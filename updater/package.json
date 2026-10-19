@@ -1,0 +1,13 @@
+{
+  "name": "oktan-fiyat-guncelleyici",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node update-prices.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}
