@@ -243,6 +243,27 @@ a{color:var(--accent)}
 .refrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .setf{display:grid;gap:12px;padding:14px 16px}
 .setf h3{font-size:15px}
+.hright{display:flex;align-items:center;gap:8px}
+@media (max-width:420px){.month span{min-width:96px}}
+dialog.sheet{border:0;padding:0;border-radius:14px;background:var(--bg);color:var(--ink);width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:hidden;box-shadow:0 20px 60px rgb(0 0 0 / .3)}
+dialog.sheet[open]{display:flex;flex-direction:column}
+dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px 10px 18px;background:var(--surface)}
+.sheet-h h2{font-size:18px}
+.sheet>.tabs{background:var(--surface)}
+.sheet-b{padding:14px;display:grid;gap:12px;overflow:auto}
+.mgroups{display:grid;gap:12px}
+.mg>summary{padding:14px 16px}
+.mgh{display:flex;gap:10px;align-items:center;min-width:0}
+.mgh b{display:block;font-size:15.5px;font-family:var(--f-display)}
+.mgh small{display:block;color:var(--muted);font-weight:400;font-size:12.5px}
+.mg>summary .mgv{margin-left:auto;font-family:var(--f-num);font-weight:500;font-size:15px;white-space:nowrap}
+.mgin{display:grid;gap:12px;padding:12px 14px 14px}
+.mgin details.fold{background:var(--bg)}
+.mgin th,.mgin td{padding:6px 8px}
+.mgin td:first-child{white-space:normal;min-width:96px}
+.mgin table{font-size:13.5px}
+.mgin .unit{white-space:nowrap}
 .code{font-family:var(--f-num);font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:4px}
 </style>
 </head>
@@ -262,10 +283,13 @@ a{color:var(--accent)}
   <div class="wrap">
     <div class="hrow">
       <div class="brand">Oktan Hesap Takip<small>gelir · gider · kart · altın</small></div>
-      <div class="month">
-        <button class="iconbtn" id="prevM" aria-label="Önceki ay">‹</button>
-        <span id="monthLbl">—</span>
-        <button class="iconbtn" id="nextM" aria-label="Sonraki ay">›</button>
+      <div class="hright">
+        <div class="month">
+          <button class="iconbtn" id="prevM" aria-label="Önceki ay">‹</button>
+          <span id="monthLbl">—</span>
+          <button class="iconbtn" id="nextM" aria-label="Sonraki ay">›</button>
+        </div>
+        <button class="iconbtn" type="button" id="setBtn" aria-label="Ayarlar" title="Ayarlar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
     </div>
     <nav role="tablist">
@@ -275,7 +299,6 @@ a{color:var(--accent)}
       <button role="tab" data-tab="fon" aria-selected="false">Fonlar</button>
       <button role="tab" data-tab="maden" aria-selected="false">Altın &amp; Gümüş</button>
       <button role="tab" data-tab="harcama" aria-selected="false">Harcamalar</button>
-      <button role="tab" data-tab="ayar" aria-selected="false">Ayarlar</button>
     </nav>
   </div>
 </header>
@@ -532,86 +555,45 @@ a{color:var(--accent)}
       <span class="hint" id="pSub">Miktar × kurumun alış fiyatı (senin satış fiyatın)</span>
       <div class="refrow" style="margin-top:6px"><button class="btn ghost" type="button" data-refresh hidden>Fiyatları şimdi güncelle</button><span class="msg" data-refmsg></span></div>
     </div>
-    <div class="sec">
-      <div class="sec-h"><h2>Fiziki altın</h2><span class="hint num" id="sub_harem"></span></div>
-      <p class="hint">Harem alış fiyatıyla değerlenir. Ziynet altınları (çeyrek, yarım, tam, ata, gremse) eski fiyatından hesaplanır.</p>
-      <div class="box list" id="list_harem"></div>
-      <details class="fold" id="pf_harem"><summary>Harem fiyatları</summary>
-        <div class="inner ptable-wrap"><table><thead><tr><th>Ürün</th><th>Alış</th><th>Satış</th><th>Saat</th></tr></thead><tbody id="haremBody"></tbody></table></div>
-        <p class="stamp" style="padding:8px 16px 12px" id="hStamp"></p>
-      </details>
-      <details class="fold"><summary>Alım / satım gir</summary>
-        <form class="inner holdf" data-src="harem" id="hf_harem">
-          <div class="seg" role="radiogroup" aria-label="İşlem yönü">
-            <label><input type="radio" name="side_harem" id="buy_harem" value="buy" checked>Alım</label>
-            <label><input type="radio" name="side_harem" id="sell_harem" value="sell">Satım</label>
-          </div>
-          <div class="grid">
-            <label class="f"><span>Ürün</span><select id="prod_harem"></select></label>
-            <label class="f"><span id="qlbl_harem">Miktar</span><input id="qty_harem" class="num" inputmode="decimal" placeholder="0" required></label>
-            <label class="f"><span>Tutar (₺, isteğe bağlı)</span><input id="cost_harem" class="num" inputmode="decimal" placeholder="0,00"></label>
-          </div>
-          <button class="btn" type="submit" id="hsub_harem">Ekle</button>
-          <div class="msg" id="hmsg_harem"></div>
-        </form>
-      </details>
-    </div>
-    <div class="sec">
-      <div class="sec-h"><h2>Banka altını (Fibabanka)</h2><span class="hint num" id="sub_fiba"></span></div>
-      <p class="hint">Fibabanka alış fiyatıyla değerlenir.</p>
-      <div class="box list" id="list_fiba"></div>
-      <details class="fold" id="pf_fiba"><summary>Fibabanka fiyatları</summary>
-        <div class="inner ptable-wrap"><table><thead><tr><th>Ürün</th><th>Banka alış</th><th>Banka satış</th><th>Saat</th></tr></thead><tbody id="fibaBody"></tbody></table></div>
-        <p class="stamp" style="padding:8px 16px 12px" id="fStamp"></p>
-      </details>
-      <details class="fold"><summary>Alım / satım gir</summary>
-        <form class="inner holdf" data-src="fiba" id="hf_fiba">
-          <div class="seg" role="radiogroup" aria-label="İşlem yönü">
-            <label><input type="radio" name="side_fiba" id="buy_fiba" value="buy" checked>Alım</label>
-            <label><input type="radio" name="side_fiba" id="sell_fiba" value="sell">Satım</label>
-          </div>
-          <div class="grid">
-            <label class="f"><span>Ürün</span><select id="prod_fiba"></select></label>
-            <label class="f"><span id="qlbl_fiba">Miktar</span><input id="qty_fiba" class="num" inputmode="decimal" placeholder="0" required></label>
-            <label class="f"><span>Tutar (₺, isteğe bağlı)</span><input id="cost_fiba" class="num" inputmode="decimal" placeholder="0,00"></label>
-          </div>
-          <button class="btn" type="submit" id="hsub_fiba">Ekle</button>
-          <div class="msg" id="hmsg_fiba"></div>
-        </form>
-      </details>
-    </div>
+    <div class="mgroups" id="metalGroups"></div>
     <p class="hint">Fiyatlar doviz.com'dan 20 dakikada bir otomatik gelir ve elle değiştirilemez. Satımda tutar girersen bakiyene eklenmez; nakit girişini Gelir &amp; Gider'den kaydet.</p>
   </section>
 
-  <!-- AYARLAR -->
-  <section class="panel" data-panel="ayar" hidden>
-    <div class="box setf">
-      <h3>Hesap</h3>
+</main>
+
+<!-- AYARLAR (sağ üstteki dişli) -->
+<dialog id="setDlg" class="sheet" aria-labelledby="setTitle">
+  <div class="sheet-h"><h2 id="setTitle">Ayarlar</h2><button class="iconbtn" type="button" id="setClose" aria-label="Kapat">✕</button></div>
+  <div class="tabs" role="tablist" aria-label="Ayarlar bölümleri">
+    <button type="button" role="tab" data-settab="hesap" aria-selected="true">Hesap</button>
+    <button type="button" role="tab" data-settab="ai" aria-selected="false">Fotoğraf</button>
+    <button type="button" role="tab" data-settab="gh" aria-selected="false">Fiyatlar</button>
+    <button type="button" role="tab" data-settab="yedek" aria-selected="false">Yedek</button>
+  </div>
+  <div class="sheet-b">
+    <div class="box setf" data-setpane="hesap">
       <p class="hint">Giriş yapan: <b id="setUser">—</b></p>
       <button class="btn ghost" type="button" id="signOut">Çıkış yap</button>
     </div>
-    <form class="box setf" id="aiForm">
-      <h3>Fotoğraf / PDF okuma (Google Gemini)</h3>
-      <p class="hint">Ekstre fotoğraflarını okumak için ücretsiz Gemini API anahtarı gerekir. Anahtarı <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> adresinden alıp buraya yapıştır. Anahtar yalnızca senin hesabının okuyabildiği veritabanı kaydında saklanır.</p>
+    <form class="box setf" id="aiForm" data-setpane="ai" hidden>
+      <p class="hint">Ekstre fotoğraflarını ve PDF'lerini okumak için ücretsiz Gemini API anahtarı gerekir. Anahtarı <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> adresinden alıp buraya yapıştır. Anahtar yalnızca senin hesabının okuyabildiği veritabanı kaydında saklanır.</p>
       <div class="grid">
-        <label class="f"><span>Gemini API anahtarı</span><input id="aiKey" type="password" autocomplete="off" placeholder="AIza…"></label>
-        <label class="f"><span>Model</span><input id="aiModel" autocomplete="off" placeholder="gemini-flash-latest"></label>
+        <label class="f"><span>Gemini API anahtarı</span><input id="aiKey" type="password" autocomplete="off" placeholder="AQ.… ya da AIza…"></label>
+        <label class="f"><span>Model (boş bırakabilirsin)</span><input id="aiModel" autocomplete="off" placeholder="gemini-flash-latest"></label>
       </div>
       <div class="refrow"><button class="btn" type="submit">Kaydet</button><button class="btn ghost" type="button" id="aiTest">Anahtarı dene</button></div>
       <div class="msg" id="aiMsg"></div>
     </form>
-    <form class="box setf" id="ghForm">
-      <h3>Fiyatları elle güncelleme (isteğe bağlı)</h3>
-      <p class="hint">Fiyatlar zaten hafta içi ve cumartesi 09:00–22:40 arasında 20 dakikada bir kendiliğinden güncellenir. "Fiyatları şimdi güncelle" düğmesi de istersen buraya GitHub deposunun adını ve yalnızca o depoda <span class="code">Actions: Read and write</span> izni olan bir erişim anahtarı (fine-grained token) gir.</p>
+    <form class="box setf" id="ghForm" data-setpane="gh" hidden>
+      <p class="hint">Fiyatlar zaten Pazartesi–Cumartesi 09:00–22:40 arasında 20 dakikada bir kendiliğinden güncellenir. İstersen "Fiyatları şimdi güncelle" düğmesi için GitHub deposunun adını ve yalnızca o depoda <span class="code">Actions: Read and write</span> izni olan bir erişim anahtarı gir.</p>
       <div class="grid">
-        <label class="f"><span>Depo (kullanıcı/depo)</span><input id="ghRepo" autocomplete="off" placeholder="emre/oktan-hesap"></label>
+        <label class="f"><span>Depo (kullanıcı/depo)</span><input id="ghRepo" autocomplete="off" placeholder="oktan-co/oktan-hesap"></label>
         <label class="f"><span>GitHub erişim anahtarı</span><input id="ghToken" type="password" autocomplete="off" placeholder="github_pat_…"></label>
       </div>
       <button class="btn" type="submit">Kaydet</button>
       <div class="msg" id="ghMsg"></div>
     </form>
-    <div class="box setf">
-      <h3>Yedek</h3>
+    <div class="box setf" data-setpane="yedek" hidden>
       <p class="hint">Tüm kayıtlarını tek bir dosya olarak indirebilir ya da daha önce aldığın bir yedeği geri yükleyebilirsin. Geri yükleme aynı kimlikli kayıtların üzerine yazar, diğerlerine dokunmaz.</p>
       <div class="refrow">
         <button class="btn ghost" type="button" id="bkDown">Yedeği indir</button>
@@ -620,8 +602,8 @@ a{color:var(--accent)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-  </section>
-</main>
+  </div>
+</dialog>
 </div>
 
 <script>
@@ -652,6 +634,45 @@ const PHYS=[{k:'gram',n:'Gram Altın (24 ayar)',u:'gr',m:'au'},{k:'a22',n:'22 Ay
 const prodList=src=>src==='fiba'?FIBA:HAREM;
 const showList=src=>src==='fiba'?FIBA:PHYS;
 const prodOf=(src,k)=>showList(src).find(p=>p.k===k)||prodList(src).find(p=>p.k===k)||{n:k,u:'',m:'au'};
+const MG=[
+ {k:'harem',src:'harem',title:'Fiziki altın',m:'au',list:PHYS,ptitle:'Harem fiyatları',pa:'Alış',ps:'Satış',
+  desc:'Harem alış fiyatıyla değerlenir. Ziynet altınları (çeyrek, yarım, tam, ata, gremse) eski fiyatından hesaplanır.',match:h=>h.src!=='fiba'},
+ {k:'fau',src:'fiba',title:'Fiba altın',m:'au',list:[FIBA[0]],ptitle:'Fibabanka altın fiyatı',pa:'Banka alış',ps:'Banka satış',
+  desc:'Fibabanka alış fiyatıyla değerlenir.',match:h=>h.src==='fiba'&&h.prod==='altin'},
+ {k:'fag',src:'fiba',title:'Fiba gümüş',m:'ag',list:[FIBA[1]],ptitle:'Fibabanka gümüş fiyatı',pa:'Banka alış',ps:'Banka satış',
+  desc:'Fibabanka alış fiyatıyla değerlenir.',match:h=>h.src==='fiba'&&h.prod==='gumus'}];
+(function buildMetalGroups(){
+  let open=[];try{open=JSON.parse(localStorage.getItem('kasa.mg')||'[]')}catch(e){}
+  document.getElementById('metalGroups').innerHTML=MG.map(g=>{const one=g.list.length===1;return `
+  <details class="fold mg" id="mg_${g.k}"${open.includes(g.k)?' open':''}>
+    <summary><span class="mgh"><span class="metal ${g.m}"></span><span><b>${g.title}</b><small id="mq_${g.k}"></small></span></span><span class="mgv" id="sub_${g.k}"></span></summary>
+    <div class="inner mgin">
+      <p class="hint">${g.desc}</p>
+      <div class="box list" id="list_${g.k}"></div>
+      <details class="fold"><summary>${g.ptitle}</summary>
+        <div class="inner ptable-wrap"><table><thead><tr><th>Ürün</th><th>${g.pa}</th><th>${g.ps}</th></tr></thead><tbody id="pb_${g.k}"></tbody></table></div>
+        <p class="stamp" style="padding:8px 16px 12px" id="ps_${g.k}"></p>
+      </details>
+      <details class="fold"><summary>Alım / satım gir</summary>
+        <form class="inner holdf" id="hf_${g.k}">
+          <div class="seg" role="radiogroup" aria-label="İşlem yönü">
+            <label><input type="radio" name="side_${g.k}" id="buy_${g.k}" value="buy" checked>Alım</label>
+            <label><input type="radio" name="side_${g.k}" id="sell_${g.k}" value="sell">Satım</label>
+          </div>
+          <div class="grid">
+            <label class="f"${one?' hidden':''}><span>Ürün</span><select id="prod_${g.k}"></select></label>
+            <label class="f"><span id="qlbl_${g.k}">Miktar</span><input id="qty_${g.k}" class="num" inputmode="decimal" placeholder="0" required></label>
+            <label class="f"><span>Tutar (₺, isteğe bağlı)</span><input id="cost_${g.k}" class="num" inputmode="decimal" placeholder="0,00"></label>
+          </div>
+          <button class="btn" type="submit" id="hsub_${g.k}">Ekle</button>
+          <div class="msg" id="hmsg_${g.k}"></div>
+        </form>
+      </details>
+    </div>
+  </details>`}).join('');
+  document.querySelectorAll('details.mg').forEach(d=>d.addEventListener('toggle',()=>{
+    try{localStorage.setItem('kasa.mg',JSON.stringify([...document.querySelectorAll('details.mg[open]')].map(x=>x.id.slice(3))))}catch(e){}}));
+})();
 
 const today=new Date();
 const mk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
@@ -674,7 +695,7 @@ const SP_GROUPS=[
 const NOT_MINE=new Set(['Dominos','Başkası için']);
 const SP_CATS=SP_GROUPS.flatMap(g=>g[1]);
 const S={ai:{},sp:[],tx:[],cards:[],hold:[],fdtx:[],fdp:{items:{}},al:[],st:[],harem:{items:{}},fiba:{items:{}},settings:{},month:mk(today),tab:'ozet'};
-try{const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','fon','maden','ayar'].includes(t))S.tab=t}catch(e){}
+try{const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','fon','maden'].includes(t))S.tab=t}catch(e){}
 let db=null;
 
 /* ---------- money logic ---------- */
@@ -906,32 +927,33 @@ function renderCards(M,CH){
 }
 function addDays(iso,n){const d=new Date(iso+'T00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function renderMetals(pv){
-  let cost=0,costed=0,missing=0;const tot={harem:0,fiba:0};
-  for(const key of ['harem','fiba']){
-    const hs=S.hold.filter(h=>(h.src==='fiba'?'fiba':'harem')===key);
-    $('#list_'+key).innerHTML=hs.length?hs.map(h=>{const p=prodOf(h.src,h.prod);const v=holdValue(h);if(v==null)missing++;else tot[key]+=v;
+  let cost=0,costed=0,missing=0;const tot={};
+  for(const g of MG){tot[g.k]=0;
+    const hs=S.hold.filter(g.match);
+    $('#list_'+g.k).innerHTML=hs.length?hs.map(h=>{const p=prodOf(h.src,h.prod);const v=holdValue(h);if(v==null)missing++;else tot[g.k]+=v;
       if(h.cost){cost+=h.cost;costed+=v||0}
       const pl=h.cost&&v!=null?v-h.cost:null;
       return `<div class="row"><span class="metal ${p.m}"></span><div class="what"><div>${esc(p.n)} · ${NUM.format(h.qty)} ${p.u}</div><small>${v!=null?'birim '+money(v/h.qty):''}${h.cost?' · maliyet '+money(h.cost):''}${pl!=null?` · <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${money(pl)}</span>`:''}</small></div>
         <div class="amt">${v==null?'<span class="mut">fiyat yok</span>':money(v)}</div><button class="del" data-del="hold" data-id="${esc(h.id)}" aria-label="Varlığı sil">✕</button></div>`}).join('')
       :`<div class="empty">Henüz kayıt yok. Aşağıdaki "Alım / satım gir" ile ekle.</div>`;
-    $('#sub_'+key).textContent=hs.length?money(tot[key]):'';
+    let q='Kayıt yok';
+    if(hs.length){if(g.list.length===1){const u=g.list[0].u;q=NUM.format(hs.reduce((a,h)=>a+h.qty,0))+' '+u}else q=hs.length+' kalem'}
+    $('#mq_'+g.k).textContent=q;$('#sub_'+g.k).textContent=hs.length?money(tot[g.k]):'';
+    fillPrices('#pb_'+g.k,g.list,S[g.src]);$('#ps_'+g.k).textContent=stamp(S[g.src].updatedAt);
   }
   $('#pTotal').textContent=money(pv);
-  let sub=`Fiziki ${money(tot.harem)} · Banka ${money(tot.fiba)}`;
+  let sub=MG.map(g=>`${g.title} ${money(tot[g.k])}`).join(' · ');
   if(cost){const pl=costed-cost;sub+=` · maliyeti girilenlerde ${pl>=0?'kâr':'zarar'} ${money(Math.abs(pl))}`}
   if(missing)sub+=` · ${missing} varlığın fiyatı girilmemiş`;
   $('#pSub').textContent=sub;
-  fillPrices('#haremBody',PHYS,S.harem,'h');fillPrices('#fibaBody',FIBA,S.fiba,'f');
-  $('#hStamp').textContent=stamp(S.harem.updatedAt);$('#fStamp').textContent=stamp(S.fiba.updatedAt);
 }
 function stamp(ts){if(S.refreshing)return 'Güncel fiyatlar getiriliyor…';if(!ts)return 'Fiyat henüz gelmedi';const d=new Date(ts),p=n=>String(n).padStart(2,'0');return `Son güncelleme: ${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`}
 function fillPrices(sel,list,src,pre){
   const tb=$(sel);const active=document.activeElement&&tb.contains(document.activeElement);
   if(active)return;
-  tb.innerHTML=list.map(p=>{const v=(src.items||{})[p.k]||{};return `<tr><td><span class="metal ${p.m}"></span>${esc(p.n)} <span class="unit">/${p.u}</span></td>
+  tb.innerHTML=list.map(p=>{const v=(src.items||{})[p.k]||{};return `<tr><td><span class="metal ${p.m}"></span>${esc(p.n)} <span class="unit">/${p.u}</span>${v.t?`<div class="unit">saat ${esc(v.t)}</div>`:''}</td>
    <td class="num">${v.alis?money(v.alis):'<span class="mut">—</span>'}</td>
-   <td class="num">${v.satis?money(v.satis):'<span class="mut">—</span>'}</td><td class="num unit">${v.t?esc(v.t):''}</td></tr>`}).join('');
+   <td class="num">${v.satis?money(v.satis):'<span class="mut">—</span>'}</td></tr>`}).join('');
 }
 
 /* ---------- form behaviour ---------- */
@@ -1098,7 +1120,7 @@ function renderSpSum(){const live=spRows.filter(r=>!r.gone);const ia=live.filter
 $('#spRev').addEventListener('click',e=>{const b=e.target.closest('[data-imdel]');if(!b)return;spRows[+b.dataset.imdel].gone=true;renderSpRev()});
 $('#spClear').addEventListener('click',()=>{spRows=[];renderSpRev();$('#spImMsg').textContent=''});
 $('#spStop').addEventListener('click',()=>spCtl&&spCtl.abort());
-const spErr={not_granted:'Önce Ayarlar sekmesinden Gemini API anahtarını gir.',bad_key:'Gemini API anahtarı geçersiz. Ayarlar sekmesinden kontrol et.',no_model:'Gemini modeli bulunamadı. Ayarlar sekmesinde model alanını boş bırakmayı dene.',
+const spErr={not_granted:'Önce sağ üstteki ⚙ Ayarlar → Fotoğraf bölümüne Gemini API anahtarını gir.',bad_key:'Gemini API anahtarı geçersiz. Sağ üstteki ⚙ Ayarlar → Fotoğraf bölümünden kontrol et.',no_model:'Gemini modeli bulunamadı. ⚙ Ayarlar → Fotoğraf bölümünde model alanını boş bırakmayı dene.',
   image_rejected:'Bu dosya okunamadı. Başka bir fotoğraf dene (JPEG/PNG).',rate_limited:'Gemini ücretsiz kullanım sınırına ulaşıldı. Bir dakika sonra (ya da yarın) tekrar dene.',refused:'Bu fotoğraf işlenemedi. Başka bir fotoğraf dene.',
   invalid_json:'Fotoğraf okunamadı. Tekrar dene ya da daha net bir fotoğraf seç.',session_expired:'Oturum süresi doldu, yeniden giriş yap.'};
 let pdfLib=null;
@@ -1178,20 +1200,20 @@ $('#cardForm').addEventListener('submit',async e=>{e.preventDefault();const msg=
     await db.collection('statements').doc(uid()).set({cardId:id,due,amount:debt>0?Math.round(debt*100)/100:0,pending:!(debt>0),paid:false,note:'',created:Date.now()});
     $('#cName').value='';$('#cLimit').value='';$('#cDebt').value='';$('#cDay').value='';flash(msg,'Kart eklendi.')}catch(err){flash(msg,errText(err),true)}
 });
-function holdQty(src,prod){return S.hold.filter(h=>(h.src==='fiba'?'fiba':'harem')===src&&h.prod===prod).reduce((a,h)=>a+h.qty,0)}
-for(const key of ['harem','fiba']){
-  const sel=$('#prod_'+key);sel.innerHTML=showList(key).map(p=>`<option value="${p.k}">${esc(p.n)}</option>`).join('');
-  const sync=()=>{const p=prodOf(key,sel.value);const sell=$('#sell_'+key).checked;$('#qlbl_'+key).textContent='Miktar ('+(p.u==='adet'?'adet':'gram')+')';$('#hsub_'+key).textContent=sell?'Satımı kaydet':'Alımı kaydet'};
+for(const g of MG){const key=g.k,src=g.src;
+  const sel=$('#prod_'+key);sel.innerHTML=g.list.map(p=>`<option value="${p.k}">${esc(p.n)}</option>`).join('');
+  const sync=()=>{const p=prodOf(src,sel.value);const sell=$('#sell_'+key).checked;$('#qlbl_'+key).textContent='Miktar ('+(p.u==='adet'?'adet':'gram')+')';$('#hsub_'+key).textContent=sell?'Satımı kaydet':'Alımı kaydet'};
   sel.addEventListener('change',sync);$('#buy_'+key).addEventListener('change',sync);$('#sell_'+key).addEventListener('change',sync);sync();
   $('#hf_'+key).addEventListener('submit',async e=>{e.preventDefault();const msg=$('#hmsg_'+key);if(!need(msg))return;
-    const qty=parseNum($('#qty_'+key).value),cost=parseNum($('#cost_'+key).value),prod=sel.value,sell=$('#sell_'+key).checked,p=prodOf(key,prod);
+    const qty=parseNum($('#qty_'+key).value),cost=parseNum($('#cost_'+key).value),prod=sel.value,sell=$('#sell_'+key).checked,p=prodOf(src,prod);
     if(!(qty>0)){flash(msg,'Miktarı sıfırdan büyük gir (ör. 12,5).',true);return}
     if(isNaN(cost)){flash(msg,'Tutarı sayı olarak gir ya da boş bırak.',true);return}
+    const mine=S.hold.filter(h=>g.match(h)&&h.prod===prod).sort((a,b)=>(a.created||0)-(b.created||0));
     try{
-      if(!sell){await db.collection('holdings').doc(uid()).set({src:key,prod,qty,cost:cost||0,created:Date.now()})}
-      else{const have=holdQty(key,prod);if(have+1e-9<qty){flash(msg,`Elinde ${NUM.format(have)} ${p.u} ${p.n} var; daha fazlasını satamazsın.`,true);return}
-        let left=qty;const hs=S.hold.filter(h=>(h.src==='fiba'?'fiba':'harem')===key&&h.prod===prod).sort((a,b)=>(a.created||0)-(b.created||0));
-        for(const h of hs){if(left<=1e-9)break;const take=Math.min(h.qty,left);left-=take;const ref=db.collection('holdings').doc(h.id);
+      if(!sell){await db.collection('holdings').doc(uid()).set({src,prod,qty,cost:cost||0,created:Date.now()})}
+      else{const have=mine.reduce((a,h)=>a+h.qty,0);if(have+1e-9<qty){flash(msg,`Elinde ${NUM.format(have)} ${p.u} ${p.n} var; daha fazlasını satamazsın.`,true);return}
+        let left=qty;
+        for(const h of mine){if(left<=1e-9)break;const take=Math.min(h.qty,left);left-=take;const ref=db.collection('holdings').doc(h.id);
           if(h.qty-take<=1e-9)await ref.delete();else{const {id,...rest}=h;const ratio=(h.qty-take)/h.qty;await ref.set({...rest,qty:Math.round((h.qty-take)*1000)/1000,cost:h.cost?Math.round(h.cost*ratio*100)/100:0})}}}
       $('#qty_'+key).value='';$('#cost_'+key).value='';flash(msg,sell?'Satım kaydedildi.':'Alım kaydedildi.')}catch(err){flash(msg,errText(err),true)}});
 }
@@ -1244,6 +1266,12 @@ function done(t,err){S.refreshing=false;render();$$('[data-refresh]').forEach(b=
 document.addEventListener('click',e=>{if(e.target.closest('[data-refresh]'))refreshPrices()});
 
 /* ---------- settings ---------- */
+function setSetTab(t){$$('[data-settab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.settab===t));$$('[data-setpane]').forEach(p=>p.hidden=p.dataset.setpane!==t);try{localStorage.setItem('kasa.settab',t)}catch(e){}}
+{let t='hesap';try{t=localStorage.getItem('kasa.settab')||'hesap'}catch(e){}if(!['hesap','ai','gh','yedek'].includes(t))t='hesap';setSetTab(t)}
+function openSettings(tab){const d=$('#setDlg');if(tab)setSetTab(tab);fillSettings();if(!d.open){try{d.showModal()}catch(e){d.setAttribute('open','')}}}
+$('#setBtn').addEventListener('click',()=>openSettings());
+$('#setClose').addEventListener('click',()=>$('#setDlg').close());
+$('#setDlg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close();const b=e.target.closest('[data-settab]');if(b)setSetTab(b.dataset.settab)});
 function fillSettings(){const a=S.ai;for(const [id,k] of [['#aiKey','geminiKey'],['#aiModel','model'],['#ghRepo','ghRepo'],['#ghToken','ghToken']]){const el=$(id);if(document.activeElement!==el)el.value=a[k]||''}}
 $('#aiForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#aiMsg');if(!need(msg))return;
   try{await db.doc('settings/ai').set({geminiKey:$('#aiKey').value.trim(),model:$('#aiModel').value.trim()},{merge:true});flash(msg,'Kaydedildi.')}catch(err){flash(msg,errText(err),true)}});
