@@ -46,7 +46,7 @@ if (!mail) { console.log('Bugün ya da yarın son ödemesi olan ödenmemiş ekst
 if (DRY) { console.log('[DRY]', mail.subject, '\n' + mail.text); process.exit(0); }
 const transport = nodemailer.createTransport({ service: 'gmail', auth: { user, pass: passRaw.replace(/\s+/g, '') } });
 try {
-  await transport.sendMail({ from: `Oktan Hesap Takip <${user}>`, to: MAIL_TO || user, subject: mail.subject, text: mail.text, html: mail.html });
+  await transport.sendMail({ from: `Oktan Hesap Takip <${user}>`, to: MAIL_TO || user, subject: mail.subject, text: mail.text, html: mail.html, priority: mail.priority });
 } catch (e) {
   fail(`E-posta gönderilemedi: ${e && e.message || e}${/535|Username and Password/i.test(String(e && e.message)) ? ' — Gmail uygulama şifresini ve GMAIL_USER adresini kontrol et.' : ''}`);
 }

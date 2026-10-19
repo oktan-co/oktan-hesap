@@ -24,23 +24,27 @@ test('ay sonundan sonraki gün', () => {
 
 test('konu: tek kart yarın', () => {
   const m = buildMail(pickDue([st[0]], cards, '2026-10-20'), { appUrl: 'https://x' });
-  assert.equal(m.subject, `Yarın son ödeme günü: Emre Akbank ${money(25615.97)}`);
+  assert.equal(m.subject, `⚠️ YARIN SON GÜN: Emre Akbank ${money(25615.97)}`);
+  assert.equal(m.priority, 'normal');
   assert.match(m.text, /21 Ekim Çarşamba/);
   assert.match(m.html, /https:\/\/x/);
 });
 
 test('konu: bugün önceliklidir; tutarsız ekstre belirtilir', () => {
   const m = buildMail(pickDue(st, cards, '2026-10-20'), {});
-  assert.match(m.subject, /^Bugün son ödeme günü: Garanti Bonus/);
-  assert.match(m.text, /Yarın son gün:/);
+  assert.match(m.subject, /^🔴 BUGÜN SON GÜN: Garanti Bonus .* · yarın 2 kart daha$/);
+  assert.equal(m.priority, 'high');
+  assert.match(m.text, /YARIN SON GÜN/);
+  assert.match(m.html, /Toplam:/);
   assert.match(m.text, /tutar henüz girilmedi/);
 });
 
 test('ödeme yoksa e-posta yok; deneme modunda yine gönderilir', () => {
   assert.equal(buildMail(pickDue([], cards, '2026-10-20'), {}), null);
   const t = buildMail(pickDue(st, cards, '2026-10-20'), { test: true });
-  assert.match(t.subject, /Deneme/);
-  assert.match(t.text, /Yaklaşan ödemeler/);
+  assert.match(t.subject, /^🧪 Deneme · 🔴 BUGÜN SON GÜN/);
+  const u = buildMail(pickDue([{ cardId: 'c1', due: '2026-10-25', amount: 10, paid: false }], cards, '2026-10-20'), { test: true });
+  assert.match(u.html, /5 GÜN KALDI/);
 });
 
 test('HTML kaçışı', () => {

@@ -3,6 +3,7 @@ import { addDaysIso } from './lib.mjs';
 
 const TRY = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const money = v => TRY.format(Math.round((v || 0) * 100) / 100);
+export const daysLeft = (iso, from) => Math.round((Date.parse(iso + 'T12:00:00Z') - Date.parse(from + 'T12:00:00Z')) / 864e5);
 export const longDate = iso => new Date(iso + 'T12:00:00Z').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long', timeZone: 'Europe/Istanbul' });
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -15,6 +16,7 @@ export function pickDue(statements, cards, today) {
     .map(s => ({ card: name(s.cardId), due: s.due, amount: s.amount > 0 ? s.amount : null, note: s.note || '' }))
     .sort((a, b) => a.due.localeCompare(b.due) || a.card.localeCompare(b.card, 'tr'));
   return {
+    date: today,
     today: open.filter(s => s.due === today),
     tomorrow: open.filter(s => s.due === tomorrow),
     upcoming: open.filter(s => s.due >= today).slice(0, 5),
@@ -23,37 +25,66 @@ export function pickDue(statements, cards, today) {
 
 const sum = list => list.reduce((a, s) => a + (s.amount || 0), 0);
 const amt = s => (s.amount != null ? money(s.amount) : 'tutar henüz girilmedi');
-const headline = (list, when) => list.length === 1
-  ? `${when} son ödeme günü: ${list[0].card} ${list[0].amount != null ? money(list[0].amount) : ''}`.trim()
-  : `${when} son ödeme günü: ${list.length} kart · ${money(sum(list))}${list.some(s => s.amount == null) ? ' +' : ''}`;
+const whenTxt = d => (d === 0 ? 'bugün son gün' : d === 1 ? 'yarın son gün' : `${d} gün kaldı`);
+/** Gün sayısına göre görünüm: son gün kırmızı, bir gün önce turuncu, diğerleri yeşil. */
+const tone = d => d === 0 ? { label: 'BUGÜN SON GÜN', emoji: '🔴', bg: '#C62828', fg: '#FFFFFF', accent: '#C62828', soft: '#FDECEA' }
+  : d === 1 ? { label: 'YARIN SON GÜN', emoji: '⚠️', bg: '#F59E0B', fg: '#2B1A00', accent: '#B45309', soft: '#FEF3C7' }
+  : { label: `${d} GÜN KALDI`, emoji: '📅', bg: '#1E5A48', fg: '#FFFFFF', accent: '#1E5A48', soft: '#E8F1EC' };
+const headline = (list, t) => `${t.emoji} ${t.label}: ${list.length === 1 ? `${list[0].card} ${list[0].amount != null ? money(list[0].amount) : '(tutar girilmedi)'}` : `${list.length} kart · ${money(sum(list))}`}`;
 
-/** E-posta konusu ve gövdesi. test=true ise yaklaşan ödemeleri deneme e-postası olarak listeler. */
+const FONT = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+function section(d, list) {
+  const t = tone(d);
+  const items = list.map(s => `<tr><td style="padding:18px 22px;border-top:1px solid #EEF1EE">
+<div style="font-size:20px;line-height:1.3;font-weight:700;color:#16201B">${esc(s.card)}</div>
+<div style="font-size:${s.amount != null ? 42 : 22}px;line-height:1.15;font-weight:800;color:${s.amount != null ? t.accent : '#B45309'};margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.01em">${esc(s.amount != null ? money(s.amount) : 'Tutar henüz girilmedi')}</div>
+${s.note ? `<div style="font-size:14px;color:#5D6A63;margin-top:6px">${esc(s.note)}</div>` : ''}</td></tr>`).join('');
+  return `<tr><td style="padding:0 0 18px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-radius:16px;overflow:hidden;background:#FFFFFF;border:1px solid #E3E7E2">
+<tr><td bgcolor="${t.bg}" style="background:${t.bg};color:${t.fg};padding:20px 22px">
+<div style="font-size:30px;line-height:1.15;font-weight:800;letter-spacing:.02em">${t.emoji} ${t.label}</div>
+<div style="font-size:17px;font-weight:600;margin-top:6px">${esc(longDate(list[0].due))}</div></td></tr>
+${items}
+${list.length > 1 ? `<tr><td bgcolor="${t.soft}" style="background:${t.soft};padding:14px 22px;font-size:17px;font-weight:700;color:#16201B">Toplam: ${esc(money(sum(list)))}${list.some(s => s.amount == null) ? ' + tutarı girilmeyenler' : ''}</td></tr>` : ''}
+</table></td></tr>`;
+}
+
+/** E-posta konusu, gövdesi ve önceliği. test=true ise aynı görünüm "Deneme" şeridiyle gönderilir. */
 export function buildMail(due, { appUrl, test = false } = {}) {
-  const sections = test
-    ? [['Yaklaşan ödemeler', due.upcoming]]
-    : [['Bugün son gün', due.today], ['Yarın son gün', due.tomorrow]].filter(([, l]) => l.length);
-  if (!sections.length && !test) return null;
-  const subject = test
-    ? 'Deneme: kart ödeme hatırlatması çalışıyor'
-    : due.today.length ? headline(due.today, 'Bugün') : headline(due.tomorrow, 'Yarın');
+  let groups = [];
+  if (due.today.length) groups.push([0, due.today]);
+  if (due.tomorrow.length) groups.push([1, due.tomorrow]);
+  if (test && !groups.length) {
+    const by = new Map();
+    for (const s of due.upcoming) { const d = daysLeft(s.due, due.date); if (!by.has(d)) by.set(d, []); by.get(d).push(s); }
+    groups = [...by.entries()];
+  }
+  if (!groups.length && !test) return null;
 
-  const textParts = sections.map(([t, l]) => `${t}:\n` + (l.length ? l.map(s => `- ${s.card}: ${amt(s)} (son ödeme ${longDate(s.due)})${s.note ? ' · ' + s.note : ''}`).join('\n') : '- Yaklaşan ödenmemiş ekstre yok.'));
+  let subject = due.today.length ? headline(due.today, tone(0)) + (due.tomorrow.length ? ` · yarın ${due.tomorrow.length} kart daha` : '')
+    : due.tomorrow.length ? headline(due.tomorrow, tone(1)) : '';
+  if (test) subject = `🧪 Deneme · ${subject || 'Kart ödeme hatırlatması'}`;
+
+  const all = groups.flatMap(([d, l]) => l.map(s => [d, s]));
+  const pre = all.length ? all.map(([d, s]) => `${s.card}: ${amt(s)}, ${whenTxt(d)}`).join(' · ') : 'Yaklaşan ödenmemiş ekstre yok.';
   const text = [
-    test ? 'Bu bir deneme e-postası. Hatırlatmalar her gün öğlen, son ödeme gününden 1 gün önce ve son gün gönderilecek.\n' : '',
-    ...textParts,
-    '',
-    appUrl ? `Uygulamayı aç: ${appUrl}` : '',
-    'Ödemeyi yaptıktan sonra uygulamada ekstrenin kutucuğunu işaretlemeyi unutma.',
-  ].filter(x => x !== '').join('\n');
+    test ? '🧪 Bu bir deneme e-postası; gerçek hatırlatmalar böyle görünecek.\n' : '',
+    ...groups.map(([d, l]) => { const t = tone(d); return `${t.emoji} ${t.label} — ${longDate(l[0].due)}\n` + l.map(s => `• ${s.card}: ${amt(s)}${s.note ? ' · ' + s.note : ''}`).join('\n'); }),
+    all.length ? '' : 'Yaklaşan ödenmemiş ekstre yok.',
+    appUrl ? `\nUygulamayı aç: ${appUrl}` : '',
+    'Ödemeyi yaptıktan sonra uygulamada ekstrenin kutucuğunu işaretle; o ekstre için bir daha hatırlatma gelmez.',
+  ].filter(x => x !== '').join('\n\n');
 
-  const row = s => `<tr><td style="padding:10px 0;border-top:1px solid #e3e7e2"><b>${esc(s.card)}</b><br><span style="color:#5d6a63;font-size:13px">Son ödeme: ${esc(longDate(s.due))}${s.note ? ' · ' + esc(s.note) : ''}</span></td>
-<td style="padding:10px 0;border-top:1px solid #e3e7e2;text-align:right;white-space:nowrap;font-family:Menlo,Consolas,monospace;font-size:15px${s.amount == null ? ';color:#9a6f17' : ''}">${esc(amt(s))}</td></tr>`;
-  const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#16201b;max-width:520px;margin:0 auto;padding:8px 4px">
-${test ? '<p style="background:#eef3ef;border-radius:8px;padding:10px 12px;font-size:14px">Bu bir deneme e-postası. Hatırlatmalar her gün öğlen, son ödeme gününden <b>1 gün önce</b> ve <b>son gün</b> gönderilecek.</p>' : ''}
-${sections.map(([t, l]) => `<h3 style="margin:18px 0 4px;font-size:16px">${esc(t)}</h3>
-<table style="width:100%;border-collapse:collapse">${l.length ? l.map(row).join('') : '<tr><td style="padding:10px 0;color:#5d6a63">Yaklaşan ödenmemiş ekstre yok.</td></tr>'}</table>`).join('')}
-${appUrl ? `<p style="margin:22px 0 8px"><a href="${esc(appUrl)}" style="background:#1e5a48;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;display:inline-block">Uygulamayı aç</a></p>` : ''}
-<p style="color:#5d6a63;font-size:13px">Ödemeyi yaptıktan sonra uygulamada ekstrenin kutucuğunu işaretlemeyi unutma.</p>
-</div>`;
-  return { subject, text, html };
+  const html = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:#EEF1EE">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${esc(pre)}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#EEF1EE" style="background:#EEF1EE"><tr><td align="center" style="padding:20px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:${FONT};color:#16201B">
+<tr><td style="padding:0 4px 14px;font-size:14px;font-weight:800;color:#1E5A48;letter-spacing:.06em">₺ OKTAN HESAP TAKİP</td></tr>
+${test ? `<tr><td style="padding:0 0 14px"><div style="background:#E3ECFF;color:#1D3F8F;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:600">🧪 Bu bir deneme e-postası. Gerçek hatırlatmalar tam olarak böyle görünecek.</div></td></tr>` : ''}
+${groups.length ? groups.map(([d, l]) => section(d, l)).join('') : '<tr><td style="padding:0 0 18px;font-size:17px">Yaklaşan ödenmemiş ekstre yok.</td></tr>'}
+${appUrl ? `<tr><td style="padding:2px 0 4px"><a href="${esc(appUrl)}" style="display:block;background:#1E5A48;color:#FFFFFF;text-decoration:none;text-align:center;font-size:19px;font-weight:700;padding:17px 20px;border-radius:14px">Uygulamayı aç →</a></td></tr>` : ''}
+<tr><td style="padding:16px 4px 0;font-size:14px;line-height:1.5;color:#5D6A63">Ödemeyi yaptıktan sonra uygulamada ekstrenin kutucuğunu işaretle; o ekstre için bir daha hatırlatma gelmez.</td></tr>
+</table></td></tr></table></body></html>`;
+  return { subject, text, html, priority: due.today.length ? 'high' : 'normal' };
 }
