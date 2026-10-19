@@ -88,7 +88,7 @@ async function updateMetals(db, now, summary) {
         items[k] = { ...(old || {}), alis: v.alis, satis: v.satis, t: v.t, d: v.d };
         summary.ok.push(`${docId}/${k} ${v.t}`);
       }
-      const data = { items, updatedAt: Date.now(), source: 'doviz.com' };
+               const data = { updatedAt: Date.now(), source: 'doviz.com', ...(Object.keys(items).length ? { items } : {}) };
       if (DRY) { log('[DRY]', docId, JSON.stringify(data)); return; }
       tx ? tx.set(ref, data, { merge: true }) : await ref.set(data, { merge: true });
     };
