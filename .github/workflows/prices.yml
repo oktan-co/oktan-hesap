@@ -1,1 +1,5 @@
-
+name: Fiyatları güncelle
+# Saatler UTC (İstanbul = UTC+3): Pzt–Cmt 09:00–22:40 arası her 20 dakikada bir
+on: {schedule: [{cron: "*/20 6-19 * * 1-6"}], workflow_dispatch: {}}
+concurrency: {group: prices, cancel-in-progress: false}
+jobs: {update: {runs-on: ubuntu-latest, timeout-minutes: 8, defaults: {run: {working-directory: updater}}, steps: [{uses: actions/checkout@v4}, {uses: actions/setup-node@v4, with: {node-version: 20}}, {run: "npm install --no-audit --no-fund --omit=dev"}, {run: "node update-prices.mjs", env: {FIREBASE_SERVICE_ACCOUNT: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"}}]}}
