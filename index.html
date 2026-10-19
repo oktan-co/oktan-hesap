@@ -238,6 +238,50 @@ a{color:var(--accent)}
 @media (prefers-reduced-motion:no-preference){.fill,.limit i{transition:width .4s ease}}
 
 
+
+/* ---- düzen güncellemesi ---- */
+.hrow{padding-block:12px 6px}
+.brand{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+nav svg{display:none}
+.mbar{justify-content:center;gap:12px}
+.mbar #monthLbl{min-width:120px;text-align:center;font-family:var(--f-display);font-weight:600;font-size:17px}
+.nextpay{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;text-decoration:none;color:inherit}
+.nextpay .np{display:grid;justify-items:end;gap:2px;text-align:right}
+.nextpay b{font-size:17px;font-weight:500}
+.nextpay:hover{background:var(--sunk)}
+.info{width:17px;height:17px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--muted);font:600 10.5px/1 var(--f-body);text-transform:none;letter-spacing:0;cursor:pointer;vertical-align:1px;margin-left:4px;padding:0}
+.info[aria-expanded="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.why{display:none!important}
+.wopen .why{display:block!important}
+.morefilt>summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:14px;list-style:none}
+.morefilt>summary::-webkit-details-marker{display:none}
+.morefilt>summary::after{content:" ▾"}
+.morefilt[open]>summary::after{content:" ▴"}
+.morefilt .mf{display:grid;gap:12px;margin-top:12px}
+.howto>summary{cursor:pointer;color:var(--muted);font-size:13.5px;font-weight:600;list-style:none}
+.howto>summary::-webkit-details-marker{display:none}
+.howto>summary::before{content:"ⓘ  "}
+.howto p{margin-top:6px}
+.sheet>.tabs button{padding:7px 11px;font-size:13.5px}
+.k3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.flow div{align-content:start}
+@media (max-width:560px){
+  .k3{grid-template-columns:1fr}
+  .k3 div{grid-template-columns:minmax(0,1fr) auto;align-items:baseline;column-gap:12px;border-left:0!important;border-top:1px solid var(--line)}
+  .k3 div:nth-child(3){grid-column:auto}
+  .k3 div>small{grid-column:1/-1}
+  .row.pend{grid-template-columns:auto minmax(0,1fr) auto}
+  .row.pend .chk{grid-column:3;grid-row:1}
+  .row.pend .pendin{grid-column:2/4;grid-row:2}
+  .row.pend .pendin input{flex:1;width:auto;min-width:0}
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);gap:0;padding:4px 2px calc(4px + env(safe-area-inset-bottom,0px))}
+  nav button{display:grid;justify-items:center;gap:3px;padding:6px 0 4px;font-size:10.5px;border-bottom:0;min-width:0}
+  nav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  nav svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  nav button[aria-selected="true"]{color:var(--accent)}
+  main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+
 /* renk temaları */
 :root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
 :root[data-accent="mor"]:not([data-theme="dark"]){--accent:#5b3a8c;--bg:#f4f2f7;--sunk:#ebe6f1;--line:#ddd6e8}
@@ -313,23 +357,18 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 <header>
   <div class="wrap">
     <div class="hrow">
-      <div class="brand">Oktan Hesap Takip<small>gelir · gider · kart · altın</small></div>
+      <div class="brand">Oktan Hesap Takip</div>
       <div class="hright">
-        <div class="month">
-          <button class="iconbtn" id="prevM" aria-label="Önceki ay">‹</button>
-          <span id="monthLbl">—</span>
-          <button class="iconbtn" id="nextM" aria-label="Sonraki ay">›</button>
-        </div>
         <button class="iconbtn" type="button" id="setBtn" aria-label="Ayarlar" title="Ayarlar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       </div>
     </div>
     <nav role="tablist">
-      <button role="tab" data-tab="ozet" aria-selected="true">Özet</button>
-      <button role="tab" data-tab="alacak" aria-selected="false">Alacaklar</button>
-      <button role="tab" data-tab="kart" aria-selected="false">Kartlar</button>
-      <button role="tab" data-tab="fon" aria-selected="false">Fonlar</button>
-      <button role="tab" data-tab="maden" aria-selected="false">Altın &amp; Gümüş</button>
-      <button role="tab" data-tab="harcama" aria-selected="false">Harcamalar</button>
+      <button role="tab" data-tab="ozet" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/></svg><span>Özet</span></button>
+      <button role="tab" data-tab="alacak" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7 7 7-7"/></svg><span>Alacaklar</span></button>
+      <button role="tab" data-tab="kart" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Kartlar</span></button>
+      <button role="tab" data-tab="fon" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg><span>Fonlar</span></button>
+      <button role="tab" data-tab="maden" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span>Altın</span></button>
+      <button role="tab" data-tab="harcama" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg><span>Harcamalar</span></button>
     </nav>
   </div>
 </header>
@@ -339,11 +378,20 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 
   <!-- ÖZET -->
   <section class="panel" data-panel="ozet">
+    <div class="period mbar" role="group" aria-label="Ay seç">
+      <button class="iconbtn" type="button" id="prevM" aria-label="Önceki ay">‹</button>
+      <span id="monthLbl">—</span>
+      <button class="iconbtn" type="button" id="nextM" aria-label="Sonraki ay">›</button>
+    </div>
+    <a class="box nextpay" id="oNext" href="#" data-go="kart" hidden>
+      <span class="eyebrow">Sıradaki kart ödemesi</span>
+      <span class="np"><b class="num" id="oNextAmt">—</b><span id="oNextSub" class="hint"></span></span>
+    </a>
     <div class="box">
       <div class="kalan">
-        <span class="eyebrow">Bu ay kalan</span>
+        <span class="eyebrow">Bu ay kalan <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span>
         <span class="big" id="sKalan">₺0,00</span>
-        <span class="hint" id="sKalanHint">Alacaklar + fonlar − bu ay ödenecek kart ekstreleri · altın ve gümüş hariç</span>
+        <span class="hint why" id="sKalanHint">Alacaklar + fonlar − bu ay ödenecek kart ekstreleri · altın ve gümüş hariç</span>
       </div>
       <div class="flow k3">
         <div><span class="eyebrow">Alacaklar</span><b class="pos" id="sGelir">—</b></div>
@@ -353,8 +401,8 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </div>
 
     <div class="box">
-      <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye</span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
-        <span class="hint">Bakiye + alacaklar + altın, gümüş ve fonlar (stopaj sonrası) − borçlar</span></div>
+      <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
+        <span class="hint why">Bakiye + alacaklar + altın, gümüş ve fonlar (stopaj sonrası) − borçlar</span></div>
       <div class="flow">
         <div><span class="eyebrow">Bakiye</span><b id="nNakit">—</b></div>
         <div><span class="eyebrow">Alacaklar</span><b id="nAlacak">—</b></div>
@@ -376,16 +424,16 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </div>
     <div class="box">
       <div class="kalan" style="padding-bottom:14px">
-        <span class="eyebrow" id="spLbl">Benim harcamalarım</span>
+        <span class="eyebrow"><span id="spLbl">Benim harcamalarım</span> <button type="button" class="info" data-why aria-label="Açıklama">i</button></span>
         <span class="big" id="spTotal">₺0,00</span>
         <span class="hint" id="spCmp"></span>
       </div>
       <div class="flow k3">
-        <div><span class="eyebrow">Kartlardan çıkan toplam</span><b id="spAll">—</b><small class="hint">benim + benim olmayan</small></div>
-        <div><span class="eyebrow">Dominos</span><b class="mut" id="spDom">—</b><small class="hint">benim değil, toplama girmez</small></div>
-        <div><span class="eyebrow">Başkası için</span><b class="mut" id="spOth">—</b><small class="hint">benim değil, toplama girmez</small></div>
+        <div><span class="eyebrow">Kartlardan çıkan toplam</span><b id="spAll">—</b><small class="hint why">benim + benim olmayan</small></div>
+        <div><span class="eyebrow">Dominos</span><b class="mut" id="spDom">—</b><small class="hint why">benim değil, toplama girmez</small></div>
+        <div><span class="eyebrow">Başkası için</span><b class="mut" id="spOth">—</b><small class="hint why">benim değil, toplama girmez</small></div>
       </div>
-      <p class="hint" style="padding:10px 18px;border-top:1px solid var(--line)">Sadece takip için; bakiyeye ve diğer hesaplara eklenmez.</p>
+      <p class="hint why" style="padding:10px 18px;border-top:1px solid var(--line)">Sadece takip için; bakiyeye ve diğer hesaplara eklenmez.</p>
     </div>
     <details class="fold" id="spAddFold"><summary>+ Harcama ekle</summary>
     <div id="spAddBox" class="inner">
@@ -432,6 +480,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </div>
     <div class="box filt" id="spFilt">
       <label class="search"><span aria-hidden="true">⌕</span><input id="fQ" type="search" placeholder="Harcama ara (ör. Trendyol, Sevde, market, 250)" aria-label="Harcama ara" autocomplete="off"></label>
+      <details class="morefilt" id="spMoreFilt"><summary>Banka, tarih, kategori</summary><div class="mf">
       <div class="tabs chips" role="tablist" aria-label="Banka" id="fPayTabs"></div>
       <input type="hidden" id="fPay" value="">
       <div class="grid">
@@ -439,9 +488,9 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         <label class="f"><span>Bitiş tarihi</span><input id="fTo" type="date"></label>
         <label class="f"><span>Kategori</span><select id="fCat"><option value="">Tümü</option></select></label>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost" type="button" id="fClear">Filtreyi temizle</button><span class="hint" id="spFiltSum">Tarih ve arama yoksa seçili ayın kayıtları listelenir.</span></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost" type="button" id="fClear">Filtreyi temizle</button><span class="hint" id="spFiltSum">Tarih ve arama yoksa seçili ayın kayıtları listelenir.</span></div></div></details>
     </div>
-    <details class="fold" id="spListFold"><summary>Harcama listesi <span class="hint" style="font-weight:400">· düzenlemek için satıra dokun</span> <span class="hint" id="spCount" style="margin-left:auto;font-weight:400"></span></summary>
+    <details class="fold" id="spListFold" open><summary>Harcama listesi <span class="hint" id="spCount" style="margin-left:auto;font-weight:400"></span></summary>
       <div class="inner list" id="spList"></div>
     </details>
   </section>
@@ -469,7 +518,6 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <p class="hint">Alacağın eline geçince ✕'e iki kez dokunarak sil.</p>
     </div>
   </section>
-  </section>
 
   <!-- HAREKETLER -->
   <section class="panel" data-panel="hareket" hidden>
@@ -484,7 +532,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         <div class="grid">
           <label class="f"><span>Tutar (₺)</span><input id="txAmt" class="num" inputmode="decimal" placeholder="0,00" required></label>
           <label class="f"><span>Tarih</span><input id="txDate" type="date" required></label>
-          <label class="f" id="fCat"><span>Kategori</span><select id="txCat"></select></label>
+          <label class="f" id="fTxCat"><span>Kategori</span><select id="txCat"></select></label>
           <label class="f" id="fMethod"><span>Ödeme şekli</span><select id="txMethod"></select></label>
           <label class="f" id="fCard" hidden><span>Hangi kart</span><select id="txCard"></select></label>
           <label class="f" id="fInst" hidden><span>Taksit</span><select id="txInst"></select></label>
@@ -511,7 +559,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
     </div>
     <div class="ktiles" id="cardList"></div>
-    <p class="hint">Kutucuğu işaretleyince ekstre ödenmiş sayılır: tutar bakiyeden düşer ve kartın bir sonraki ayki ekstresi, son ödeme gününe göre kendiliğinden açılır. Ekstre gelince tutarını yazman yeterli.</p>
+    <details class="howto"><summary>Nasıl çalışır?</summary><p class="hint">Kutucuğu işaretleyince ekstre ödenmiş sayılır: tutar bakiyeden düşer ve kartın bir sonraki ayki ekstresi, son ödeme gününe göre kendiliğinden açılır. Ekstre gelince tutarını yazman yeterli.</p></details>
     <details class="fold"><summary>Borç / ekstre ekle</summary>
       <form class="inner" id="stForm">
         <div class="grid">
@@ -934,7 +982,7 @@ function stRow(x){const td=isoToday(),soon=addDays(td,5);const d=x.due?new Date(
   const st=x.paid?'Ödendi':!d?'Tarihsiz':x.due<td?'Gecikti':(daysTo(x.due)===0?'Bugün son gün':daysTo(x.due)+' gün kaldı');
   const amt=pend?`<span class="pendin"><input id="pa_${esc(x.id)}" inputmode="decimal" placeholder="Tutar" aria-label="Ekstre tutarı"><button class="mini" data-stamt="${esc(x.id)}">Kaydet</button></span>`
     :`<div class="amt${x.paid?' mut':''}">${money(x.amount)}</div>`;
-  return `<div class="row ${cls}"><div class="date">${d?`<b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short'}).format(d)}`:'<b>—</b>'}</div>
+  return `<div class="row ${cls}${pend?' pend':''}"><div class="date">${d?`<b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short'}).format(d)}`:'<b>—</b>'}</div>
     <div class="what"><div${x.paid?' class="mut"':''}>${x.note?esc(x.note):(pend?'Ekstre bekleniyor':'Ekstre')}</div><small>${st}</small></div>
     ${amt}<input type="checkbox" class="chk" id="st_${esc(x.id)}" data-stpaid="${esc(x.id)}" ${x.paid?'checked':''} ${pend?'disabled':''} aria-label="Ödendi olarak işaretle"></div>`}
 function renderCards(M,CH){
@@ -946,6 +994,7 @@ function renderCards(M,CH){
   $('#kTotal').textContent=money(total);$('#kMonth').textContent=money(thisM);
   if(next){const n=daysTo(next.due);$('#kNext').textContent=money(next.amount);$('#kNextSub').textContent=`${cname(next.cardId)} · ${new Date(next.due+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'})} · ${n<0?'gecikti':n===0?'bugün':n+' gün kaldı'}`}
   else{$('#kNext').textContent='—';$('#kNextSub').textContent=''}
+  {const o=$('#oNext');if(next){o.hidden=false;$('#oNextAmt').textContent=money(next.amount);$('#oNextSub').textContent=$('#kNextSub').textContent}else o.hidden=true}
   $('#cardList').innerHTML=S.cards.length?S.cards.map(c=>{
     const mine=S.st.filter(x=>x.cardId===c.id);const op=mine.filter(x=>!x.paid).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
     const paid=mine.filter(x=>x.paid).sort((a,b)=>(b.due||'').localeCompare(a.due||''));
@@ -1000,7 +1049,7 @@ function fillPrices(sel,list,src,pre){
 function txType(){return $('input[name="txType"]:checked').value}
 function syncForm(){
   const t=txType();
-  $('#fCat').hidden=t==='cardpay';$('#fMethod').hidden=t!=='expense';
+  $('#fTxCat').hidden=t==='cardpay';$('#fMethod').hidden=t!=='expense';
   $('#fCard').hidden=t!=='cardpay';
   const onCard=t==='expense'&&$('#txMethod').value!=='cash';$('#fInst').hidden=!onCard;
   const want=t==='income'?INC_CATS:EXP_CATS;const sel=$('#txCat');
@@ -1319,6 +1368,7 @@ $('#thMode').addEventListener('click',e=>{const b=e.target.closest('[data-mode]'
 $('#thAccent').addEventListener('click',e=>{const b=e.target.closest('[data-accent]');if(!b)return;try{localStorage.setItem('kasa.accent',b.dataset.accent)}catch(e){}applyTheme()});
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',applyTheme);
 applyTheme();
+document.addEventListener('click',e=>{const b=e.target.closest('[data-why]');if(!b)return;e.preventDefault();const box=b.closest('.box');if(box){box.classList.toggle('wopen');b.setAttribute('aria-expanded',box.classList.contains('wopen'))}});
 function openSettings(tab){const d=$('#setDlg');if(tab)setSetTab(tab);fillSettings();if(!d.open){try{d.showModal()}catch(e){d.setAttribute('open','')}}}
 $('#setBtn').addEventListener('click',()=>openSettings());
 $('#setClose').addEventListener('click',()=>$('#setDlg').close());
