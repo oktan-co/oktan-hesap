@@ -37,7 +37,7 @@ const PAGES = {
   harem: {
     gram: 'https://altin.doviz.com/harem/gram-altin',
     a22: 'https://altin.doviz.com/harem/22-ayar-bilezik',
-    a14: 'https://altin.doviz.com/harem/14-ayar-bilezik',
+    a14: 'https://altin.doviz.com/harem/14-ayar-altin',
     ceyrek_eski: 'https://altin.doviz.com/harem/eski-ceyrek-altin',
     yarim_eski: 'https://altin.doviz.com/harem/eski-yarim-altin',
     tam_eski: 'https://altin.doviz.com/harem/eski-tam-altin',
