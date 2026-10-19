@@ -1,0 +1,43 @@
+name: Son ödeme hatırlatması
+# Her gün 11:55 (İstanbul) civarı çalışır; GitHub zamanlamayı birkaç dakika geciktirebilir.
+# Son ödeme gününden 1 gün önce ve son gün e-posta gönderir.
+# Elle çalıştırınca ("Run workflow") deneme e-postası gönderir.
+on:
+  schedule: [{cron: "55 8 * * *"}]
+  workflow_dispatch:
+    inputs:
+      deneme:
+        description: "Deneme e-postası gönder (yaklaşan ödemeleri listeler)"
+        type: boolean
+        default: true
+permissions: {contents: write}
+concurrency: {group: reminders, cancel-in-progress: false}
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults: {run: {working-directory: updater}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - run: npm install --no-audit --no-fund --omit=dev
+      - run: node reminders.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.deneme && '1' || '' }}
+      # Herkese açık depolarda GitHub, 60 gün hiç değişiklik olmazsa zamanlanmış işleri durdurur.
+      # Her ayın 1'inde boş bir kayıt atarak fiyat güncellemesinin ve bu hatırlatmanın durmamasını sağlar.
+      - name: Zamanlanmış işleri canlı tut
+        if: github.event_name == 'schedule'
+        working-directory: .
+        run: |
+          if [ "$(TZ=Europe/Istanbul date +%d)" = "01" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Zamanlanmış işleri canlı tut"
+            git push
+          fi

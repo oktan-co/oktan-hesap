@@ -2,12 +2,16 @@
   "name": "oktan-fiyat-guncelleyici",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node update-prices.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "remind": "node reminders.mjs"
   },
   "dependencies": {
-    "firebase-admin": "^12.7.0"
+    "firebase-admin": "^12.7.0",
+    "nodemailer": "^6.9.16"
   }
 }
