@@ -367,6 +367,21 @@ nav svg{display:none}
 .htip b{color:var(--ink);font-size:14px;font-weight:500}
 .htip small{font-size:11.5px}
 .hcomp .amt small{display:block;font-size:12px;font-weight:400}
+
+/* ---- fon işlemi kaydır + düzenle ---- */
+.swrow{border-top:1px solid var(--line)}
+.swrow:first-child{border-top:0}
+.swwrap{position:relative;overflow:hidden}
+.swwrap>.row{border-top:0}
+.swact{position:absolute;top:0;bottom:0;left:0;width:118px;display:flex;background:var(--accent)}
+.swbtn{flex:1;border:0;background:none;color:var(--accent-ink);font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+.swfront{position:relative;z-index:1;background:var(--surface);transition:transform .22s ease;touch-action:pan-y;cursor:pointer;user-select:none;-webkit-user-select:none}
+.swfront.drag{transition:none}
+.swrow.open .swfront{transform:translateX(118px)}
+.fedit{display:grid;gap:12px;padding:14px 16px 16px;background:var(--sunk);border-top:1px dashed var(--line)}
+.fehead{font-size:14px;color:var(--muted)}
+.fehead b{color:var(--ink)}
+.what small .odot{width:7px;height:7px;margin-right:4px;vertical-align:0}
 /* renk temaları */
 :root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
 :root[data-accent="mor"]:not([data-theme="dark"]){--accent:#5b3a8c;--bg:#f4f2f7;--sunk:#ebe6f1;--line:#ddd6e8}
@@ -708,6 +723,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </div>
     <details class="fold"><summary>İşlem geçmişi <span class="hint" id="fdCount" style="margin-left:auto;font-weight:400"></span></summary>
       <div class="inner list" id="fdList"></div>
+      <p class="hint" style="padding:8px 16px 12px">Düzenlemek için satırı sağa kaydır ya da satıra dokun.</p>
     </details>
   </section>
 
@@ -1023,6 +1039,37 @@ function drawHist(pts){const box=$('#hChart');const W=Math.max(260,Math.round(bo
 $('#hRange').addEventListener('click',e=>{const b=e.target.closest('[data-hr]');if(!b)return;HR=b.dataset.hr;try{localStorage.setItem('kasa.hr',HR)}catch(e){}renderHist()});
 $('#histBtn').addEventListener('click',()=>setTab(S.tab==='gecmis'?(S.prevTab||'ozet'):'gecmis'));
 {let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S.tab==='gecmis')renderHist()},150)})}
+/* ---------- fon işlemi: kaydır + düzenle ---------- */
+{const fl=$('#fdList');let sw=null;
+ fl.addEventListener('pointerdown',e=>{const f=e.target.closest('.swfront');if(!f||e.target.closest('button,input,select,a'))return;const row=f.closest('.swrow');
+   sw={f,row,x:e.clientX,y:e.clientY,dx:0,lock:null,pid:e.pointerId,base:row.classList.contains('open')?SWW:0}});
+ fl.addEventListener('pointermove',e=>{if(!sw||e.pointerId!==sw.pid)return;const dx=e.clientX-sw.x,dy=e.clientY-sw.y;
+   if(!sw.lock){if(Math.abs(dx)<8&&Math.abs(dy)<8)return;sw.lock=Math.abs(dx)>Math.abs(dy)?'x':'y';if(sw.lock==='x'){sw.f.classList.add('drag');try{sw.f.setPointerCapture(e.pointerId)}catch(_){}}}
+   if(sw.lock!=='x')return;sw.dx=dx;sw.f.style.transform=`translateX(${Math.max(0,Math.min(SWW*1.2,sw.base+dx))}px)`});
+ const end=e=>{if(!sw||e.pointerId!==sw.pid)return;const s=sw;sw=null;if(s.lock!=='x')return;s.f.classList.remove('drag');s.f.style.transform='';
+   const open=s.base+s.dx>SWW/2;$$('#fdList .swrow.open').forEach(r=>{if(r!==s.row)r.classList.remove('open')});s.row.classList.toggle('open',open);FSWIPE=open?s.row.dataset.swid:null;
+   s.f.dataset.dragged='1';setTimeout(()=>{delete s.f.dataset.dragged},80)};
+ fl.addEventListener('pointerup',end);fl.addEventListener('pointercancel',end);
+ fl.addEventListener('input',e=>{const box=e.target.closest('[data-feditbox]');if(!box)return;const u=parseNum(box.querySelector('[data-fe=units]').value),p=parseNum(box.querySelector('[data-fe=price]').value);
+   box.querySelector('[data-fecalc]').textContent=u>0&&p>0?'Tutar: '+money(u*p):'Tutar: —'});
+ fl.addEventListener('click',e=>{
+   const ed=e.target.closest('[data-fedit]');if(ed){FEDIT=ed.dataset.fedit;FSWIPE=null;render();const i=fl.querySelector('[data-fe=units]');if(i)i.focus();return}
+   if(e.target.closest('[data-fecancel]')){FEDIT=null;render();return}
+   const sv=e.target.closest('[data-fesave]');if(sv){saveFundEdit(sv.dataset.fesave);return}
+   const fr=e.target.closest('[data-fopen]');if(fr&&!e.target.closest('[data-del]')){if(fr.dataset.dragged)return;const row=fr.closest('.swrow');
+     if(row.classList.contains('open')){row.classList.remove('open');FSWIPE=null;return}FEDIT=FEDIT===fr.dataset.fopen?null:fr.dataset.fopen;render()}});
+ document.addEventListener('pointerdown',e=>{if(FSWIPE&&!e.target.closest('#fdList .swrow.open')){$$('#fdList .swrow.open').forEach(r=>r.classList.remove('open'));FSWIPE=null}},true);
+}
+function saveFundEdit(id){const box=[...document.querySelectorAll('[data-feditbox]')].find(b=>b.dataset.feditbox===id),t=S.fdtx.find(x=>x.id===id);if(!box||!t||!db)return;const msg=box.querySelector('.msg');
+  const date=box.querySelector('[data-fe=date]').value,units=parseNum(box.querySelector('[data-fe=units]').value),price=parseNum(box.querySelector('[data-fe=price]').value);
+  const owner=(box.querySelector('input[data-fe=owner]:checked')||{}).value||t.owner||OWNERS[0],side=(box.querySelector('input[data-fe=side]:checked')||{}).value||t.side||'buy';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){flash(msg,'Tarih seç.',true);return}
+  if(!(units>0)||!(price>0)){flash(msg,'Lot ve pay fiyatı sıfırdan büyük olmalı.',true);return}
+  const old=stripId(t),nw={...old,date,units,price,owner,side};
+  if(JSON.stringify(nw)===JSON.stringify(old)){FEDIT=null;render();return}
+  if(document.activeElement)document.activeElement.blur();FEDIT=null;render();
+  db.collection('fundtx').doc(id).set(nw).catch(err=>showBanner(errText(err)));
+  toast(`${t.code} işlemi güncellendi.`,()=>db.collection('fundtx').doc(id).set(old))}
 /* ---------- bildirim + geri al ---------- */
 let toastT=null,toastUndo=null;
 function toast(text,undo){const t=$('#toast');$('#toastTx').textContent=text;$('#toastUndo').hidden=!undo;toastUndo=undo||null;t.hidden=false;
@@ -1094,7 +1141,7 @@ function render0(){
   // metals
   renderMetals(pv);renderFunds(FP,fv);
 }
-const FOPEN=new Set();
+const FOPEN=new Set(),SWW=118;let FEDIT=null,FSWIPE=null;
 function renderFunds(FP,fv){
   const open=FP.filter(p=>p.units>1e-9);
   const costT=open.reduce((a,p)=>a+p.cost,0), realized=FP.reduce((a,p)=>a+p.realized,0);
@@ -1126,11 +1173,28 @@ function renderFunds(FP,fv){
     :`<div class="empty">Henüz fon yok. Aşağıdan ilk alımını gir.</div>`;}
   $('#fdCount').textContent=S.fdtx.length?S.fdtx.length+' işlem':'';
   const tx=[...S.fdtx].sort((a,b)=>b.date.localeCompare(a.date)||(b.created||0)-(a.created||0));
-  $('#fdList').innerHTML=tx.length?tx.map(t=>{const d=new Date(t.date+'T00:00');const sell=t.side==='sell';
-    return `<div class="row"><div class="date"><b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short',year:'2-digit'}).format(d)}</div>
-    <div class="what"><div><span class="chip">${sell?'Satım':'Alım'}</span><button type="button" class="ochip" data-fown="${esc(t.id)}" title="Kimin adına olduğunu değiştir" aria-label="${esc(t.owner||OWNERS[0])} adına; değiştirmek için dokun"><i class="odot o${Math.max(0,OWNERS.indexOf(t.owner||OWNERS[0]))}"></i>${esc(t.owner||OWNERS[0])} ⇄</button>${esc(t.code)}</div><small>${NUM.format(t.units)} lot × ${t.price.toLocaleString('tr-TR',{maximumFractionDigits:6})} ₺${t.opening?' · bakiyeye yansıtılmadı':''}</small></div>
-    <div class="amt ${sell?'pos':''}">${sell?'+':'−'}${money(t.units*t.price)}</div><button class="del" data-del="fund" data-id="${esc(t.id)}" aria-label="İşlemi sil">✕</button></div>`}).join('')
-    :`<div class="empty">Henüz fon işlemi yok.</div>`;
+  {const fl=$('#fdList'),ae=document.activeElement;if(!(ae&&fl.contains(ae)&&ae.matches('input,select,textarea'))){
+  const px6=v=>v.toLocaleString('tr-TR',{maximumFractionDigits:6});
+  fl.innerHTML=tx.length?tx.map(t=>{const d=new Date(t.date+'T00:00'),sell=t.side==='sell',ow=t.owner||OWNERS[0],oi=Math.max(0,OWNERS.indexOf(ow)),id=esc(t.id);
+    return `<div class="swrow${FSWIPE===t.id?' open':''}" data-swid="${id}"><div class="swwrap">
+    <div class="swact"><button type="button" class="swbtn" data-fedit="${id}" tabindex="-1">✎ Düzenle</button></div>
+    <div class="row swfront" data-fopen="${id}"><div class="date"><b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short',year:'2-digit'}).format(d)}</div>
+    <div class="what"><div><span class="chip">${sell?'Satım':'Alım'}</span>${esc(t.code)}</div><small><i class="odot o${oi}"></i>${esc(ow)} · ${NUM.format(t.units)} lot × ${px6(t.price)} ₺${t.opening?' · bakiyeye yansıtılmadı':''}</small></div>
+    <div class="amt ${sell?'pos':''}">${sell?'+':'−'}${money(t.units*t.price)}</div><button class="del" data-del="fund" data-id="${id}" aria-label="İşlemi sil">✕</button></div></div>
+    ${FEDIT===t.id?`<div class="fedit" data-feditbox="${id}">
+      <div class="fehead"><b>${esc(t.code)}</b> işlemini düzenle</div>
+      <div class="segrow"><span class="eyebrow">Kimin adına</span><div class="seg" role="radiogroup" aria-label="Kimin adına">${OWNERS.map(o=>`<label><input type="radio" name="feOwner" data-fe="owner" value="${esc(o)}"${o===ow?' checked':''}>${esc(o)}</label>`).join('')}</div></div>
+      <div class="segrow"><span class="eyebrow">İşlem</span><div class="seg" role="radiogroup" aria-label="İşlem"><label><input type="radio" name="feSide" data-fe="side" value="buy"${sell?'':' checked'}>Alım</label><label><input type="radio" name="feSide" data-fe="side" value="sell"${sell?' checked':''}>Satım</label></div></div>
+      <div class="grid">
+        <label class="f"><span>Tarih</span><input type="date" data-fe="date" value="${esc(t.date)}"></label>
+        <label class="f"><span>Lot (pay adedi)</span><input class="num" data-fe="units" inputmode="decimal" value="${esc(fmtIn(t.units))}"></label>
+        <label class="f"><span>Pay fiyatı (₺)</span><input class="num" data-fe="price" inputmode="decimal" value="${esc(fmtIn(t.price))}"></label>
+      </div>
+      <p class="hint" data-fecalc>Tutar: ${money(t.units*t.price)}</p>
+      <div class="refrow"><button type="button" class="btn" data-fesave="${id}">Kaydet</button><button type="button" class="btn ghost" data-fecancel>Vazgeç</button></div>
+      <div class="msg"></div>
+    </div>`:''}</div>`}).join('')
+    :`<div class="empty">Henüz fon işlemi yok.</div>`;}}
 }
 function payOpts(sel){const o=[['','Kart seçilmedi'],['cash','Nakit / banka kartı'],...S.cards.map(c=>[c.id,c.name])];
   if(sel&&!o.some(x=>x[0]===sel))o.push([sel,'Silinmiş kart']);
