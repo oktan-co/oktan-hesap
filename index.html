@@ -12,6 +12,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function(){try{var t=localStorage.getItem('kasa.theme'),a=localStorage.getItem('kasa.accent'),r=document.documentElement;
+if(t==='light'||t==='dark')r.setAttribute('data-theme',t);if(a&&a!=='yesil')r.setAttribute('data-accent',a)}catch(e){}})();
+</script>
 <script src="config.js"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -233,6 +237,33 @@ td input{width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:
 a{color:var(--accent)}
 @media (prefers-reduced-motion:no-preference){.fill,.limit i{transition:width .4s ease}}
 
+
+/* renk temaları */
+:root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
+:root[data-accent="mor"]:not([data-theme="dark"]){--accent:#5b3a8c;--bg:#f4f2f7;--sunk:#ebe6f1;--line:#ddd6e8}
+:root[data-accent="bordo"]:not([data-theme="dark"]){--accent:#8a2b3c;--bg:#f7f2f2;--sunk:#f0e6e7;--line:#e6d7d9}
+:root[data-accent="turuncu"]:not([data-theme="dark"]){--accent:#a14a12;--bg:#f7f3ee;--sunk:#efe7dd;--line:#e5d9ca}
+:root[data-accent="turkuaz"]:not([data-theme="dark"]){--accent:#0f6670;--bg:#eff5f5;--sunk:#e1ecec;--line:#d0e0e0}
+:root[data-accent="grafit"]:not([data-theme="dark"]){--accent:#3a4048;--bg:#f3f3f3;--sunk:#e8e8e8;--line:#dadada}
+@media (prefers-color-scheme: dark){:root[data-accent="mavi"]:not([data-theme="light"]){--accent:#82b1ec;--bg:#0f131a;--surface:#171d27;--sunk:#121720;--line:#262f3d;--accent-ink:#0e1116}}
+:root[data-theme="dark"][data-accent="mavi"]{--accent:#82b1ec;--bg:#0f131a;--surface:#171d27;--sunk:#121720;--line:#262f3d;--accent-ink:#0e1116}
+@media (prefers-color-scheme: dark){:root[data-accent="mor"]:not([data-theme="light"]){--accent:#b89be6;--bg:#13101a;--surface:#1c1726;--sunk:#16121f;--line:#2e2740;--accent-ink:#0e1116}}
+:root[data-theme="dark"][data-accent="mor"]{--accent:#b89be6;--bg:#13101a;--surface:#1c1726;--sunk:#16121f;--line:#2e2740;--accent-ink:#0e1116}
+@media (prefers-color-scheme: dark){:root[data-accent="bordo"]:not([data-theme="light"]){--accent:#ec8fa0;--bg:#1a1012;--surface:#24171a;--sunk:#1e1315;--line:#3d272b;--accent-ink:#0e1116}}
+:root[data-theme="dark"][data-accent="bordo"]{--accent:#ec8fa0;--bg:#1a1012;--surface:#24171a;--sunk:#1e1315;--line:#3d272b;--accent-ink:#0e1116}
+@media (prefers-color-scheme: dark){:root[data-accent="turuncu"]:not([data-theme="light"]){--accent:#f2a46b;--bg:#18120d;--surface:#221a13;--sunk:#1c1510;--line:#3a2c20;--accent-ink:#0e1116}}
+:root[data-theme="dark"][data-accent="turuncu"]{--accent:#f2a46b;--bg:#18120d;--surface:#221a13;--sunk:#1c1510;--line:#3a2c20;--accent-ink:#0e1116}
+@media (prefers-color-scheme: dark){:root[data-accent="turkuaz"]:not([data-theme="light"]){--accent:#6dd0da;--bg:#0d1617;--surface:#142021;--sunk:#101a1b;--line:#22383a;--accent-ink:#0e1116}}
+:root[data-theme="dark"][data-accent="turkuaz"]{--accent:#6dd0da;--bg:#0d1617;--surface:#142021;--sunk:#101a1b;--line:#22383a;--accent-ink:#0e1116}
+@media (prefers-color-scheme: dark){:root[data-accent="grafit"]:not([data-theme="light"]){--accent:#c3c9d1;--bg:#121314;--surface:#1b1c1e;--sunk:#161718;--line:#2c2e31;--accent-ink:#0e1116}}
+:root[data-theme="dark"][data-accent="grafit"]{--accent:#c3c9d1;--bg:#121314;--surface:#1b1c1e;--sunk:#161718;--line:#2c2e31;--accent-ink:#0e1116}
+.thm{display:flex;flex-wrap:wrap;gap:8px}
+.thm button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px;cursor:pointer}
+.thm button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);color:var(--accent)}
+.sws{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.sws button{display:grid;justify-items:center;gap:6px;padding:10px 6px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;font-size:13px;font-weight:600}
+.sws button i{width:30px;height:30px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 3px rgb(255 255 255 / .35)}
+.sws button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 /* giriş ekranı & ayarlar */
 .gate{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 16px}
 .gate .card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px 24px;display:grid;gap:14px;text-align:center}
@@ -566,6 +597,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
   <div class="sheet-h"><h2 id="setTitle">Ayarlar</h2><button class="iconbtn" type="button" id="setClose" aria-label="Kapat">✕</button></div>
   <div class="tabs" role="tablist" aria-label="Ayarlar bölümleri">
     <button type="button" role="tab" data-settab="hesap" aria-selected="true">Hesap</button>
+    <button type="button" role="tab" data-settab="tema" aria-selected="false">Görünüm</button>
     <button type="button" role="tab" data-settab="ai" aria-selected="false">Fotoğraf</button>
     <button type="button" role="tab" data-settab="gh" aria-selected="false">Fiyatlar</button>
     <button type="button" role="tab" data-settab="yedek" aria-selected="false">Yedek</button>
@@ -574,6 +606,14 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="box setf" data-setpane="hesap">
       <p class="hint">Giriş yapan: <b id="setUser">—</b></p>
       <button class="btn ghost" type="button" id="signOut">Çıkış yap</button>
+    </div>
+    <div class="box setf" data-setpane="tema" hidden>
+      <h3>Mod</h3>
+      <div class="thm" id="thMode"><button type="button" data-mode="auto">Otomatik</button><button type="button" data-mode="light">Açık</button><button type="button" data-mode="dark">Koyu</button></div>
+      <p class="hint">Otomatik, telefonunun ya da bilgisayarının açık/koyu ayarını izler.</p>
+      <h3>Renk</h3>
+      <div class="sws" id="thAccent"><button type="button" data-accent="yesil" style="--c:#1e5a48"><i></i>Yeşil</button><button type="button" data-accent="mavi" style="--c:#1f4f8a"><i></i>Mavi</button><button type="button" data-accent="mor" style="--c:#5b3a8c"><i></i>Mor</button><button type="button" data-accent="bordo" style="--c:#8a2b3c"><i></i>Bordo</button><button type="button" data-accent="turuncu" style="--c:#a14a12"><i></i>Turuncu</button><button type="button" data-accent="turkuaz" style="--c:#0f6670"><i></i>Turkuaz</button><button type="button" data-accent="grafit" style="--c:#3a4048"><i></i>Grafit</button></div>
+      <p class="hint">Seçimin bu cihazda saklanır.</p>
     </div>
     <form class="box setf" id="aiForm" data-setpane="ai" hidden>
       <p class="hint">Ekstre fotoğraflarını ve PDF'lerini okumak için ücretsiz Gemini API anahtarı gerekir. Anahtarı <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> adresinden alıp buraya yapıştır. Anahtar yalnızca senin hesabının okuyabildiği veritabanı kaydında saklanır.</p>
@@ -1267,7 +1307,18 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-refresh]'))refr
 
 /* ---------- settings ---------- */
 function setSetTab(t){$$('[data-settab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.settab===t));$$('[data-setpane]').forEach(p=>p.hidden=p.dataset.setpane!==t);try{localStorage.setItem('kasa.settab',t)}catch(e){}}
-{let t='hesap';try{t=localStorage.getItem('kasa.settab')||'hesap'}catch(e){}if(!['hesap','ai','gh','yedek'].includes(t))t='hesap';setSetTab(t)}
+{let t='hesap';try{t=localStorage.getItem('kasa.settab')||'hesap'}catch(e){}if(!['hesap','tema','ai','gh','yedek'].includes(t))t='hesap';setSetTab(t)}
+/* ---------- tema ---------- */
+function applyTheme(){let m='auto',a='yesil';try{m=localStorage.getItem('kasa.theme')||'auto';a=localStorage.getItem('kasa.accent')||'yesil'}catch(e){}
+  const r=document.documentElement;if(m==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',m);
+  if(a==='yesil')r.removeAttribute('data-accent');else r.setAttribute('data-accent',a);
+  $$('#thMode [data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===m));
+  $$('#thAccent [data-accent]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.accent===a));
+  const mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.content=getComputedStyle(r).getPropertyValue('--surface').trim()||'#1e5a48'}
+$('#thMode').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(!b)return;try{localStorage.setItem('kasa.theme',b.dataset.mode)}catch(e){}applyTheme()});
+$('#thAccent').addEventListener('click',e=>{const b=e.target.closest('[data-accent]');if(!b)return;try{localStorage.setItem('kasa.accent',b.dataset.accent)}catch(e){}applyTheme()});
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',applyTheme);
+applyTheme();
 function openSettings(tab){const d=$('#setDlg');if(tab)setSetTab(tab);fillSettings();if(!d.open){try{d.showModal()}catch(e){d.setAttribute('open','')}}}
 $('#setBtn').addEventListener('click',()=>openSettings());
 $('#setClose').addEventListener('click',()=>$('#setDlg').close());
