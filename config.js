@@ -1,12 +1,10 @@
-// Firebase ayarları — KURULUM.md, adım 3.
-// Firebase konsolu > Proje ayarları > "Uygulamalarınız" > Web uygulaması > "Yapılandırma"
-// bölümündeki değerleri aşağıya yapıştır. Bu değerler gizli değildir; erişimi
-// Firestore güvenlik kuralları (firestore.rules) korur.
+// Firebase ayarları (oktan-hesap projesi). Bu değerler gizli değildir;
+// erişimi Firestore güvenlik kuralları korur.
 window.FIREBASE_CONFIG = {
-  apiKey: "BURAYA_API_KEY",
-  authDomain: "PROJE-ADI.firebaseapp.com",
-  projectId: "PROJE-ADI",
-  storageBucket: "PROJE-ADI.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:0000000000000000"
+  apiKey: "AIzaSyCwYMRs_TSv_5Ks-kRvGL1rhGuiBNYlc0A",
+  authDomain: "oktan-hesap.firebaseapp.com",
+  projectId: "oktan-hesap",
+  storageBucket: "oktan-hesap.firebasestorage.app",
+  messagingSenderId: "161024150829",
+  appId: "1:161024150829:web:5e23402d81f7afbda997a4"
 };
