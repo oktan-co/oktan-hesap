@@ -106,6 +106,16 @@ export function parseBloomberg(html) {
   return { price, decimals: decimalsOf(pm[1]), date: `${dm[1]}.${dm[2]}.${dm[3]}` };
 }
 
+/** Kurucu şirketin (ör. Aktif Portföy) tarayıcıda çizilmiş fon sayfası -> {price, decimals}. Sayfada tarih yok. */
+export function parseIssuerPage(html) {
+  const text = htmlText(html);
+  const m = text.match(/Fon Fiyatı\s*([\d.,]+)\s*TL/);
+  if (!m) return null;
+  const raw = m[1], price = raw.includes(',') ? trNum(raw) : Number(raw);
+  if (!(price > 0)) return null;
+  return { price, decimals: decimalsOf(raw.replace(/^.*[.,]/, '0.')) };
+}
+
 /** TEFAS BindHistoryInfo yanıtı -> en son {price, decimals, date, name} */
 export function parseTefas(json, code) {
   const rows = (json && json.data || []).filter(r => String(r.FONKODU || '').toUpperCase() === code && Number(r.FIYAT) > 0);

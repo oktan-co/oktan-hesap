@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { trNum, usNum, parseDoviz, stampFor, storedKey, parseBloomberg, parseTefas, judgeFund, istanbulNow } from '../lib.mjs';
+import { parseIssuerPage, trNum, usNum, parseDoviz, stampFor, storedKey, parseBloomberg, parseTefas, judgeFund, istanbulNow } from '../lib.mjs';
 
 const DOVIZ = `<html><head><script>var x="Son (01:00) Alış / Satış 1,00 / 2,00"</script></head><body>
 <nav><a>Gram Altın 6.600,00</a></nav>
@@ -52,4 +52,11 @@ test('fon kuralları', () => {
   assert.equal(judgeFund(stored, { price: 6.40, decimals: 6, date: '20.10.2026' }).accept, false); // para piyasası düşemez
   assert.equal(judgeFund(stored, { price: 8, decimals: 6, date: '20.10.2026' }).accept, false); // %15
   assert.equal(judgeFund(undefined, { price: 1.23, decimals: 6, date: '20.10.2026' }).accept, true);
+});
+
+test('kurucu sayfası fiyatı', () => {
+  const h = '<div><span class="t">Fon Fiyatı</span><span class="d">6.410316 TL</span></div><span>Fon İhraç Tarihi</span><span>09.12.2020</span>';
+  assert.deepEqual(parseIssuerPage(h), { price: 6.410316, decimals: 6 });
+  assert.equal(parseIssuerPage('<span>Fon Fiyatı</span><span>undefined TL</span>'), null);
+  assert.equal(parseIssuerPage('<span>Fon Fiyatı</span><span>1.234,567890 TL</span>').price, 1234.56789);
 });

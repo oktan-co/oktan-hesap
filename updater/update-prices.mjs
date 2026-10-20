@@ -8,7 +8,7 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import {
   istanbulNow, parseDoviz, stampFor, storedKey, tooFar,
-  parseBloomberg, parseTefas, judgeFund, ddmmyyyy, addDaysIso,
+  parseBloomberg, parseTefas, judgeFund, ddmmyyyy, addDaysIso, parseIssuerPage,
 } from './lib.mjs';
 
 const DRY = !!process.env.DRY_RUN;
@@ -126,6 +126,26 @@ async function fromBloomberg(code) {
   return r && { ...r, source: 'Bloomberg HT' };
 }
 
+// Kurucunun sayfası fiyatı JavaScript ile yüklüyor; GitHub sunucusundaki Chrome ile çizip okunur.
+// Sayfada tarih yok: para piyasası fonlarında günün fiyatı sabah yayımlandığı için bugünün tarihi verilir.
+// Eski/aynı/düşen fiyatı judgeFund zaten reddeder.
+async function fromIssuer(code, now) {
+  const url = FUND_PAGES[code] && FUND_PAGES[code].kurucu;
+  if (!url) return null;
+  const { execFile } = await import('node:child_process');
+  const bin = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
+  let lastErr;
+  for (const b of bin) {
+    try {
+      const html = await new Promise((res, rej) => execFile(b, ['--headless=new', '--no-sandbox', '--disable-gpu', '--virtual-time-budget=15000', `--user-agent=${UA}`, '--dump-dom', url],
+        { timeout: 60000, maxBuffer: 30 * 1024 * 1024 }, (e, out) => e ? rej(e) : res(out)));
+      const r = parseIssuerPage(html);
+      return r && { ...r, date: ddmmyyyy(now.date), source: 'Kurucu sitesi' };
+    } catch (e) { lastErr = e; if (e.code !== 'ENOENT') break; }
+  }
+  throw lastErr || new Error('Chrome bulunamadı');
+}
+
 async function updateFunds(db, now, summary) {
   const codes = [...new Set((await db.collection('fundtx').get()).docs.map(d => String(d.get('code') || '').toUpperCase()).filter(Boolean))];
   if (!codes.length) { log('Fon işlemi yok, fonlar atlandı.'); return; }
@@ -133,7 +153,7 @@ async function updateFunds(db, now, summary) {
   const cands = {};
   for (const code of codes) {
     cands[code] = [];
-    for (const [name, fn] of [['TEFAS', () => fromTefas(code, now)], ['Bloomberg HT', () => fromBloomberg(code)]]) {
+    for (const [name, fn] of [['TEFAS', () => fromTefas(code, now)], ['Bloomberg HT', () => fromBloomberg(code)], ['Kurucu sitesi', () => fromIssuer(code, now)]]) {
       try { const r = await fn(); if (r) cands[code].push(r); else log(`${code}: ${name} sonuç yok`); }
       catch (e) { log(`${code}: ${name} hata: ${e.message}`); }
     }
