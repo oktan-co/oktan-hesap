@@ -16,6 +16,9 @@ import { pickDue, buildMail } from './remind-lib.mjs';
 
 const { FIREBASE_SERVICE_ACCOUNT: sa, GMAIL_USER: user, GMAIL_APP_PASSWORD: passRaw, MAIL_TO, APP_URL } = process.env;
 const TEST = process.env.TEST === '1', DRY = !!process.env.DRY_RUN;
+// SLOT: boş = öğlen hatırlatması; '21:00' gibi bir saat = son gün akşam hatırlatması (yalnızca bugün son günü olan ödenmemiş ekstreler)
+const SLOT = /^\d{2}:\d{2}$/.test(process.env.SLOT || '') ? process.env.SLOT : '';
+const sentKey = SLOT ? 'sent_' + SLOT.replace(':', '') : 'lastSent';
 const appUrl = APP_URL || 'https://oktan-co.github.io/oktan-hesap/';
 const fail = m => { console.error(m); process.exit(1); };
 
@@ -38,9 +41,10 @@ console.log(`İstanbul tarihi ${today} · bugün ${due.today.length}, yarın ${d
 
 if (!TEST) {
   const meta = await metaRef.get();
-  if (meta.exists && meta.data().lastSent === today) { console.log('Bugünün hatırlatması zaten gönderilmiş.'); process.exit(0); }
+  if (meta.exists && meta.data()[sentKey] === today) { console.log(`Bugünün ${SLOT || 'öğlen'} hatırlatması zaten gönderilmiş.`); process.exit(0); }
 }
-const mail = buildMail(due, { appUrl, test: TEST });
+if (SLOT && !due.today.length && !TEST) { console.log(`${SLOT}: bugün son günü olan ödenmemiş ekstre yok; e-posta gönderilmedi.`); process.exit(0); }
+const mail = buildMail(due, { appUrl, test: TEST, late: SLOT });
 if (!mail) { console.log('Bugün ya da yarın son ödemesi olan ödenmemiş ekstre yok; e-posta gönderilmedi.'); process.exit(0); }
 
 if (DRY) { console.log('[DRY]', mail.subject, '\n' + mail.text); process.exit(0); }
@@ -50,7 +54,7 @@ try {
 } catch (e) {
   fail(`E-posta gönderilemedi: ${e && e.message || e}${/535|Username and Password/i.test(String(e && e.message)) ? ' — Gmail uygulama şifresini ve GMAIL_USER adresini kontrol et.' : ''}`);
 }
-if (!TEST) await metaRef.set({ lastSent: today, at: Date.now() }, { merge: true });
+if (!TEST) await metaRef.set({ [sentKey]: today, at: Date.now() }, { merge: true });
 console.log('Gönderildi:', mail.subject);
 if (process.env.GITHUB_STEP_SUMMARY) {
   const { appendFileSync } = await import('node:fs');

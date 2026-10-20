@@ -52,3 +52,12 @@ test('HTML kaçışı', () => {
   assert.match(m.html, /A&amp;B/);
   assert.doesNotMatch(m.html, /<b>&lt;|<b><b>/);
 });
+
+test('son gün akşam hatırlatması: yalnızca bugün, sert görünüm', () => {
+  const m = buildMail(pickDue(st, cards, '2026-10-20'), { late: '23:30' });
+  assert.match(m.subject, /^⏰ HÂLÂ ÖDENMEDİ: Garanti Bonus .* · bugün son gün \(23:30\)$/);
+  assert.doesNotMatch(m.text, /YARIN SON GÜN/);
+  assert.match(m.html, /gün bitimine 30 dk kaldı/);
+  assert.match(buildMail(pickDue(st, cards, '2026-10-20'), { late: '21:00' }).html, /3 saat kaldı/);
+  assert.equal(buildMail(pickDue([st[0]], cards, '2026-10-20'), { late: '22:00' }), null);
+});

@@ -30,11 +30,16 @@ const whenTxt = d => (d === 0 ? 'bugün son gün' : d === 1 ? 'yarın son gün' 
 const tone = d => d === 0 ? { label: 'BUGÜN SON GÜN', emoji: '🔴', bg: '#C62828', fg: '#FFFFFF', accent: '#C62828', soft: '#FDECEA' }
   : d === 1 ? { label: 'YARIN SON GÜN', emoji: '⚠️', bg: '#F59E0B', fg: '#2B1A00', accent: '#B45309', soft: '#FEF3C7' }
   : { label: `${d} GÜN KALDI`, emoji: '📅', bg: '#1E5A48', fg: '#FFFFFF', accent: '#1E5A48', soft: '#E8F1EC' };
+/** Son gün akşam hatırlatmaları (21:00, 22:00, 23:00, 23:30) için daha sert görünüm. */
+export const lateTone = hm => {
+  const [h, m] = String(hm).split(':').map(Number), left = Math.max(0, 24 * 60 - (h * 60 + (m || 0)));
+  const kalan = left >= 60 ? `${Math.floor(left / 60)} saat${left % 60 ? ' ' + (left % 60) + ' dk' : ''}` : `${left} dk`;
+  return { label: 'HÂLÂ ÖDENMEDİ', emoji: '⏰', bg: '#7F1D1D', fg: '#FFFFFF', accent: '#B91C1C', soft: '#FDECEA', sub: `Bugün son gün · gün bitimine ${kalan} kaldı`, hm };
+};
 const headline = (list, t) => `${t.emoji} ${t.label}: ${list.length === 1 ? `${list[0].card} ${list[0].amount != null ? money(list[0].amount) : '(tutar girilmedi)'}` : `${list.length} kart · ${money(sum(list))}`}`;
 
 const FONT = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-function section(d, list) {
-  const t = tone(d);
+function section(d, list, t = tone(d)) {
   const items = list.map(s => `<tr><td style="padding:18px 22px;border-top:1px solid #EEF1EE">
 <div style="font-size:20px;line-height:1.3;font-weight:700;color:#16201B">${esc(s.card)}</div>
 <div style="font-size:${s.amount != null ? 42 : 22}px;line-height:1.15;font-weight:800;color:${s.amount != null ? t.accent : '#B45309'};margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.01em">${esc(s.amount != null ? money(s.amount) : 'Tutar henüz girilmedi')}</div>
@@ -43,17 +48,18 @@ ${s.note ? `<div style="font-size:14px;color:#5D6A63;margin-top:6px">${esc(s.not
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-radius:16px;overflow:hidden;background:#FFFFFF;border:1px solid #E3E7E2">
 <tr><td bgcolor="${t.bg}" style="background:${t.bg};color:${t.fg};padding:20px 22px">
 <div style="font-size:30px;line-height:1.15;font-weight:800;letter-spacing:.02em">${t.emoji} ${t.label}</div>
-<div style="font-size:17px;font-weight:600;margin-top:6px">${esc(longDate(list[0].due))}</div></td></tr>
+<div style="font-size:17px;font-weight:600;margin-top:6px">${esc(t.sub || longDate(list[0].due))}</div></td></tr>
 ${items}
 ${list.length > 1 ? `<tr><td bgcolor="${t.soft}" style="background:${t.soft};padding:14px 22px;font-size:17px;font-weight:700;color:#16201B">Toplam: ${esc(money(sum(list)))}${list.some(s => s.amount == null) ? ' + tutarı girilmeyenler' : ''}</td></tr>` : ''}
 </table></td></tr>`;
 }
 
 /** E-posta konusu, gövdesi ve önceliği. test=true ise aynı görünüm "Deneme" şeridiyle gönderilir. */
-export function buildMail(due, { appUrl, test = false } = {}) {
+export function buildMail(due, { appUrl, test = false, late = '' } = {}) {
+  const LT = late ? lateTone(late) : null, tn = d => (LT && d === 0 ? LT : tone(d));
   let groups = [];
   if (due.today.length) groups.push([0, due.today]);
-  if (due.tomorrow.length) groups.push([1, due.tomorrow]);
+  if (due.tomorrow.length && !LT) groups.push([1, due.tomorrow]);
   if (test && !groups.length) {
     const by = new Map();
     for (const s of due.upcoming) { const d = daysLeft(s.due, due.date); if (!by.has(d)) by.set(d, []); by.get(d).push(s); }
@@ -61,7 +67,7 @@ export function buildMail(due, { appUrl, test = false } = {}) {
   }
   if (!groups.length && !test) return null;
 
-  let subject = due.today.length ? headline(due.today, tone(0)) + (due.tomorrow.length ? ` · yarın ${due.tomorrow.length} kart daha` : '')
+  let subject = LT ? (due.today.length ? `${headline(due.today, LT)} · bugün son gün (${LT.hm})` : '') : due.today.length ? headline(due.today, tone(0)) + (due.tomorrow.length ? ` · yarın ${due.tomorrow.length} kart daha` : '')
     : due.tomorrow.length ? headline(due.tomorrow, tone(1)) : '';
   if (test) subject = `🧪 Deneme · ${subject || 'Kart ödeme hatırlatması'}`;
 
@@ -69,7 +75,7 @@ export function buildMail(due, { appUrl, test = false } = {}) {
   const pre = all.length ? all.map(([d, s]) => `${s.card}: ${amt(s)}, ${whenTxt(d)}`).join(' · ') : 'Yaklaşan ödenmemiş ekstre yok.';
   const text = [
     test ? '🧪 Bu bir deneme e-postası; gerçek hatırlatmalar böyle görünecek.\n' : '',
-    ...groups.map(([d, l]) => { const t = tone(d); return `${t.emoji} ${t.label} — ${longDate(l[0].due)}\n` + l.map(s => `• ${s.card}: ${amt(s)}${s.note ? ' · ' + s.note : ''}`).join('\n'); }),
+    ...groups.map(([d, l]) => { const t = tn(d); return `${t.emoji} ${t.label} — ${longDate(l[0].due)}\n` + l.map(s => `• ${s.card}: ${amt(s)}${s.note ? ' · ' + s.note : ''}`).join('\n'); }),
     all.length ? '' : 'Yaklaşan ödenmemiş ekstre yok.',
     appUrl ? `\nUygulamayı aç: ${appUrl}` : '',
     'Ödemeyi yaptıktan sonra uygulamada ekstrenin kutucuğunu işaretle; o ekstre için bir daha hatırlatma gelmez.',
@@ -82,9 +88,9 @@ export function buildMail(due, { appUrl, test = false } = {}) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:${FONT};color:#16201B">
 <tr><td style="padding:0 4px 14px;font-size:14px;font-weight:800;color:#1E5A48;letter-spacing:.06em">₺ OKTAN HESAP TAKİP</td></tr>
 ${test ? `<tr><td style="padding:0 0 14px"><div style="background:#E3ECFF;color:#1D3F8F;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:600">🧪 Bu bir deneme e-postası. Gerçek hatırlatmalar tam olarak böyle görünecek.</div></td></tr>` : ''}
-${groups.length ? groups.map(([d, l]) => section(d, l)).join('') : '<tr><td style="padding:0 0 18px;font-size:17px">Yaklaşan ödenmemiş ekstre yok.</td></tr>'}
+${groups.length ? groups.map(([d, l]) => section(d, l, tn(d))).join('') : '<tr><td style="padding:0 0 18px;font-size:17px">Yaklaşan ödenmemiş ekstre yok.</td></tr>'}
 ${appUrl ? `<tr><td style="padding:2px 0 4px"><a href="${esc(appUrl)}" style="display:block;background:#1E5A48;color:#FFFFFF;text-decoration:none;text-align:center;font-size:19px;font-weight:700;padding:17px 20px;border-radius:14px">Uygulamayı aç →</a></td></tr>` : ''}
 <tr><td style="padding:16px 4px 0;font-size:14px;line-height:1.5;color:#5D6A63">Ödemeyi yaptıktan sonra uygulamada ekstrenin kutucuğunu işaretle; o ekstre için bir daha hatırlatma gelmez.</td></tr>
 </table></td></tr></table></body></html>`;
-  return { subject, text, html, priority: due.today.length ? 'high' : 'normal' };
+  return { subject, text, html, priority: due.today.length ? 'high' : 'normal', late: !!LT };
 }
