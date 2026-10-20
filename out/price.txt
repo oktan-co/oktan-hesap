@@ -1,0 +1,5 @@
+Fon Fiyatı</span><span class="fund-table-container-module-scss-module__c3iIhG__desc">6.410316 TL</span></div><div class="fund-table-container-module-scss-module__c3iIhG__tableLine"><span class="fund-table-container-module-scss-module__c3iIhG__title">Fon Alış Valörü
+Fon Fiyat ve Getiri\",\"path\":\"https://www.akti
+Fon Fiyat ve Getiri\",\"menuDescription\":\"Aktif
+Fon Fiyatları ve Getirileri\",\"path\":\"fon-fiya
+Fon Fiyat ve Getiri | Aktif Portföy\",\"metaTag\"
