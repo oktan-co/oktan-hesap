@@ -944,7 +944,6 @@ const OWNERS=['Emre','Merve'];
             <label class="f"><span id="qlbl_${g.k}">Miktar</span><input id="qty_${g.k}" class="num" inputmode="decimal" placeholder="0" required></label>
             <label class="f"><span>Tutar (₺, isteğe bağlı)</span><input id="cost_${g.k}" class="num" inputmode="decimal" placeholder="0,00"></label>
           </div>
-          <div class="segrow"><span class="eyebrow">Kimin adına</span><div class="seg" role="radiogroup" aria-label="Kimin adına">${OWNERS.map((o,i)=>`<label><input type="radio" name="own_${g.k}" value="${o}"${i?'':' checked'}>${o}</label>`).join('')}</div></div>
           <button class="btn" type="submit" id="hsub_${g.k}">Ekle</button>
           <div class="msg" id="hmsg_${g.k}"></div>
         </form>
@@ -1156,12 +1155,9 @@ function renderInvest(pv,fv,FP){const tot=pv+fv;$('#yTotal').textContent=money(t
   const parts=[['Altın & gümüş',pv,'var(--gold)'],['Fonlar',fv,'var(--accent)']].filter(x=>x[1]>0.5);
   $('#yDist').innerHTML=tot>0?parts.map(([n,v,c])=>`<i style="flex:${v};background:${c}" title="${esc(n)}"></i>`).join(''):'';
   $('#yLegend').innerHTML=tot>0?parts.map(([n,v,c])=>`<span><i style="background:${c}"></i>${esc(n)} <b class="num">${money(v)}</b> <span class="hint">%${Math.round(v/tot*100)}</span></span>`).join(''):'';
-  const by=o=>S.hold.filter(h=>(h.owner||OWNERS[0])===o).reduce((a,h)=>a+(holdValue(h)||0),0)+open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.netValue??p.cost),0);
+  const by=o=>open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.netValue??p.cost),0);
   const ow=OWNERS.map(o=>[o,by(o)]).filter(x=>x[1]>0.5);
-  $('#yOwn').innerHTML=ow.length>1?ow.map(([o,v])=>`<span><i class="odot o${OWNERS.indexOf(o)}"></i>${esc(o)} <b class="num">${money(v)}</b></span>`).join(''):'';}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-hown]');if(!b||!db)return;const h=S.hold.find(x=>x.id===b.dataset.hown);if(!h)return;
-  const cur=h.owner||OWNERS[0],nx=OWNERS[(OWNERS.indexOf(cur)+1)%OWNERS.length],old=stripId(h);
-  db.collection('holdings').doc(h.id).set({...old,owner:nx}).catch(err=>showBanner(errText(err)));toast(`${nx} adına geçti.`,()=>db.collection('holdings').doc(h.id).set(old))});
+  $('#yOwn').innerHTML=ow.length>1?'<span>Fonlar:</span>'+ow.map(([o,v])=>`<span><i class="odot o${OWNERS.indexOf(o)}"></i>${esc(o)} <b class="num">${money(v)}</b></span>`).join(''):'';}
 /* ---------- bildirim + geri al ---------- */
 let toastT=null,toastUndo=null;
 function toast(text,undo,ms){const t=$('#toast');$('#toastTx').textContent=text;$('#toastUndo').hidden=!undo;toastUndo=undo||null;t.hidden=false;
@@ -1475,7 +1471,7 @@ function renderMetals(pv){
     $('#list_'+g.k).innerHTML=hs.length?hs.map(h=>{const p=prodOf(h.src,h.prod);const v=holdValue(h);if(v==null)missing++;else tot[g.k]+=v;
       if(h.cost){cost+=h.cost;costed+=v||0}
       const pl=h.cost&&v!=null?v-h.cost:null;
-      return `<div class="row"><span class="metal ${p.m}"></span><div class="what"><div>${esc(p.n)} · ${NUM.format(h.qty)} ${p.u}</div><small><button type="button" class="ochip" data-hown="${esc(h.id)}" title="Kimin adına; değiştirmek için dokun"><i class="odot o${Math.max(0,OWNERS.indexOf(h.owner||OWNERS[0]))}"></i>${esc(h.owner||OWNERS[0])} ⇄</button>${v!=null?'birim '+money(v/h.qty):''}${h.cost?' · maliyet '+money(h.cost):''}${pl!=null?` · <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${money(pl)}</span>`:''}</small></div>
+      return `<div class="row"><span class="metal ${p.m}"></span><div class="what"><div>${esc(p.n)} · ${NUM.format(h.qty)} ${p.u}</div><small>${v!=null?'birim '+money(v/h.qty):''}${h.cost?' · maliyet '+money(h.cost):''}${pl!=null?` · <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${money(pl)}</span>`:''}</small></div>
         <div class="amt">${v==null?'<span class="mut">fiyat yok</span>':money(v)}</div><button class="del" data-del="hold" data-id="${esc(h.id)}" aria-label="Varlığı sil">✕</button></div>`}).join('')
       :`<div class="empty">Henüz kayıt yok. Aşağıdaki "Alım / satım gir" ile ekle.</div>`;
     let q='Kayıt yok';
@@ -1761,13 +1757,13 @@ for(const g of MG){const key=g.k,src=g.src;
   const sync=()=>{const p=prodOf(src,sel.value);const sell=$('#sell_'+key).checked;$('#qlbl_'+key).textContent='Miktar ('+(p.u==='adet'?'adet':'gram')+')';$('#hsub_'+key).textContent=sell?'Satımı kaydet':'Alımı kaydet'};
   sel.addEventListener('change',sync);$('#buy_'+key).addEventListener('change',sync);$('#sell_'+key).addEventListener('change',sync);sync();
   $('#hf_'+key).addEventListener('submit',async e=>{e.preventDefault();const msg=$('#hmsg_'+key);if(!need(msg))return;
-    const qty=parseNum($('#qty_'+key).value),cost=parseNum($('#cost_'+key).value),prod=sel.value,sell=$('#sell_'+key).checked,p=prodOf(src,prod),owner=(document.querySelector(`input[name=own_${key}]:checked`)||{}).value||OWNERS[0];
+    const qty=parseNum($('#qty_'+key).value),cost=parseNum($('#cost_'+key).value),prod=sel.value,sell=$('#sell_'+key).checked,p=prodOf(src,prod);
     if(!(qty>0)){flash(msg,'Miktarı sıfırdan büyük gir (ör. 12,5).',true);return}
     if(isNaN(cost)){flash(msg,'Tutarı sayı olarak gir ya da boş bırak.',true);return}
-    const mine=S.hold.filter(h=>g.match(h)&&h.prod===prod&&(h.owner||OWNERS[0])===owner).sort((a,b)=>(a.created||0)-(b.created||0));
+    const mine=S.hold.filter(h=>g.match(h)&&h.prod===prod).sort((a,b)=>(a.created||0)-(b.created||0));
     try{
-      if(!sell){await db.collection('holdings').doc(uid()).set({src,prod,qty,cost:cost||0,owner,created:Date.now()})}
-      else{const have=mine.reduce((a,h)=>a+h.qty,0);if(have+1e-9<qty){flash(msg,`${owner} adına ${NUM.format(have)} ${p.u} ${p.n} var; daha fazlası satılamaz.`,true);return}
+      if(!sell){await db.collection('holdings').doc(uid()).set({src,prod,qty,cost:cost||0,created:Date.now()})}
+      else{const have=mine.reduce((a,h)=>a+h.qty,0);if(have+1e-9<qty){flash(msg,`Elinde ${NUM.format(have)} ${p.u} ${p.n} var; daha fazlasını satamazsın.`,true);return}
         let left=qty;
         for(const h of mine){if(left<=1e-9)break;const take=Math.min(h.qty,left);left-=take;const ref=db.collection('holdings').doc(h.id);
           if(h.qty-take<=1e-9)await ref.delete();else{const {id,...rest}=h;const ratio=(h.qty-take)/h.qty;await ref.set({...rest,qty:Math.round((h.qty-take)*1000)/1000,cost:h.cost?Math.round(h.cost*ratio*100)/100:0})}}}
