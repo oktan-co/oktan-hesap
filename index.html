@@ -387,6 +387,7 @@ nav svg{display:none}
 .strow{cursor:pointer}
 .strow.on{background:var(--sunk)}
 .stedit{color:var(--muted);opacity:.7;margin-left:2px}
+[data-alopen] .what small{white-space:normal}
 /* renk temaları */
 :root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
 :root[data-accent="mor"]:not([data-theme="dark"]){--accent:#5b3a8c;--bg:#f4f2f7;--sunk:#ebe6f1;--line:#ddd6e8}
@@ -498,10 +499,10 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="kalan">
         <span class="eyebrow">Bu ay kalan <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span>
         <span class="big" id="sKalan">₺0,00</span>
-        <span class="hint why" id="sKalanHint">Alacaklar + fonlar − bu ay ödenecek kart ekstreleri · altın ve gümüş hariç</span>
+        <span class="hint why" id="sKalanHint">Alacaklar (tarihsizler ve bu aya kadar olanlar) + fonlar − bu ay ödenecek kart ekstreleri · altın ve gümüş hariç</span>
       </div>
       <div class="flow k3">
-        <div><span class="eyebrow">Alacaklar</span><b class="pos" id="sGelir">—</b></div>
+        <div><span class="eyebrow">Alacaklar</span><b class="pos" id="sGelir">—</b><small class="hint" id="sGelirSub"></small></div>
         <div><span class="eyebrow">Fonlar (net)</span><b class="pos" id="sFon">—</b></div>
         <div><span class="eyebrow">Bu ay ödenecek</span><b class="neg" id="sKartHar">—</b><small class="hint" id="sKartSub"></small></div>
       </div>
@@ -611,7 +612,9 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="grid">
         <label class="f"><span>Kimden / ne için</span><input id="alName" placeholder="ör. Maaş, Osman ceza" maxlength="60" required></label>
         <label class="f"><span>Tutar (₺)</span><input id="alAmt" class="num" inputmode="decimal" placeholder="0,00" required></label>
+        <label class="f"><span>Ne zaman alacağım (isteğe bağlı)</span><input id="alDate" type="date"></label>
       </div>
+      <p class="hint">Tarih girmezsen "her an alabilirim" sayılır ve her ayın hesabına girer. Tarih girersen o aydan itibaren hesaba katılır.</p>
       <button class="btn" type="submit">Alacak ekle</button>
       <div class="msg" id="alMsg"></div>
     </form>
@@ -1124,10 +1127,11 @@ function render0(){
   const pv=S.hold.reduce((a,h)=>a+(holdValue(h)||0),0);
   const FP=fundPositions();const fv=FP.reduce((a,p)=>a+(p.units>1e-9?(p.netValue??p.cost):0),0);
   const alT=S.al.reduce((a,x)=>a+x.amount,0);
+  const alM=S.al.filter(x=>!x.date||x.date.slice(0,7)<=M).reduce((a,x)=>a+x.amount,0),alLater=alT-alM;
   const dueList=S.st.filter(x=>!x.paid&&x.due&&x.due.slice(0,7)<=M&&(M!==mk(today)||true));
-  const dueThis=dueList.reduce((a,x)=>a+(x.amount||0),0);const kalan=alT+fv-dueThis;
+  const dueThis=dueList.reduce((a,x)=>a+(x.amount||0),0);const kalan=alM+fv-dueThis;
   $('#sKalan').textContent=money(kalan);$('#sKalan').className='big '+(kalan<0?'neg':'');
-  $('#sGelir').textContent=money(alT);$('#sFon').textContent=money(fv);$('#sKartHar').textContent=money(dueThis);
+  $('#sGelir').textContent=money(alM);$('#sGelirSub').textContent=alLater>0.004?`+${money(alLater)} sonraki aylarda`:'';$('#sFon').textContent=money(fv);$('#sKartHar').textContent=money(dueThis);
   const pend=dueList.filter(x=>!(x.amount>0)).length;$('#sKartSub').textContent=dueList.length?`${dueList.length} ekstre${pend?` · ${pend} tanesinin tutarı girilmedi`:''}`:'';
   $('#nMaden').textContent=money(pv+fv);$('#nAlacak').textContent=money(alT);
   const ana=cashUpTo(M)+alT+pv+fv-debt;$('#nAna').textContent=money(ana);
@@ -1284,10 +1288,29 @@ function renderAlacak(t){
   const borc=S.st.filter(x=>!x.paid).reduce((a,x)=>a+x.amount,0),fk=t-borc;
   $('#alSum').textContent=money(t);$('#alBorc').textContent=money(borc);$('#alFark').textContent=(fk<0?'−':'+')+money(Math.abs(fk));$('#alFark').className=fk<0?'neg':'pos';
   $('#alTotal').innerHTML=S.al.length?`Toplam ${money(t)} · borçla fark <b class="${fk<0?'neg':'pos'}">${fk<0?'−':'+'}${money(Math.abs(fk))}</b>`:'';
-  $('#alList').innerHTML=S.al.length?S.al.map(a=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${esc(a.name)}</div></div>
-    <div class="amt">${money(a.amount)}</div><button class="del" data-del="al" data-id="${esc(a.id)}" aria-label="Alacağı sil">✕</button></div>`).join('')
+  const ord=[...S.al].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.created||0)-(b.created||0));
+  const when=a=>{if(!a.date)return 'Tarihsiz · her an alınabilir';const d=new Date(a.date+'T00:00'),n=daysTo(a.date);return d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'})+(n<0?' · gecikti':n===0?' · bugün':n<=31?` · ${n} gün sonra`:'')};
+  $('#alList').innerHTML=S.al.length?ord.map(a=>{const ed=ALEDIT===a.id,id=esc(a.id),late=a.date&&a.date<isoToday();
+    return `<div class="row strow${ed?' on':''}" data-alopen="${id}" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${esc(a.name)}</div><small class="${late?'neg':''}">${esc(when(a))} <span class="stedit">✎</span></small></div>
+    <div class="amt">${money(a.amount)}</div><button class="del" data-del="al" data-id="${id}" aria-label="Alacağı sil">✕</button></div>
+    ${ed?`<div class="fedit" data-aleditbox="${id}"><div class="grid">
+      <label class="f"><span>Kimden / ne için</span><input data-ae="name" value="${esc(a.name)}" maxlength="60"></label>
+      <label class="f"><span>Tutar (₺)</span><input class="num" data-ae="amount" inputmode="decimal" value="${esc(fmtIn(a.amount))}"></label>
+      <label class="f"><span>Ne zaman (boş = her an)</span><input type="date" data-ae="date" value="${esc(a.date||'')}"></label></div>
+      <div class="refrow"><button type="button" class="btn" data-alsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-alcancel>Vazgeç</button></div><div class="msg"></div></div>`:''}`}).join('')
     :`<div class="empty">Kimseden alacağın yok.</div>`;
 }
+let ALEDIT=null;
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-alcancel]')){ALEDIT=null;render();return}
+  const sv=e.target.closest('[data-alsave]');if(sv){const id=sv.dataset.alsave,box=[...document.querySelectorAll('[data-aleditbox]')].find(b=>b.dataset.aleditbox===id),a=S.al.find(x=>x.id===id);if(!box||!a||!db)return;
+    const v=k=>box.querySelector(`[data-ae=${k}]`).value,name=v('name').trim(),amount=parseNum(v('amount'));
+    if(!name||!(amount>0)){flash(box.querySelector('.msg'),'İsim ve sıfırdan büyük tutar gir.',true);return}
+    const old=stripId(a),nw={...old,name,amount:Math.round(amount*100)/100,date:v('date')||''};
+    if(document.activeElement)document.activeElement.blur();ALEDIT=null;render();
+    db.collection('alacak').doc(id).set(nw).catch(err=>showBanner(errText(err)));toast('Alacak güncellendi.',()=>db.collection('alacak').doc(id).set(old));return}
+  const r=e.target.closest('[data-alopen]');if(!r||e.target.closest('input,button,select,label,a'))return;
+  ALEDIT=ALEDIT===r.dataset.alopen?null:r.dataset.alopen;render()});
 function daySuffix(n){const l=n%10,t=n%100;if(t===10||t===30)return "'u";if(t===20)return "'si";if(t===40)return "'ı";return "'"+({0:'ı',1:'i',2:'si',3:'ü',4:'ü',5:'i',6:'sı',7:'si',8:'i',9:'u'})[l]}
 function nextDue(fromIso,day){const d=new Date((fromIso||isoToday())+'T00:00');const y=d.getFullYear(),m=d.getMonth()+1;const last=new Date(y,m+1,0).getDate();
   const nd=new Date(y,m,Math.min(day,last));return nd.getFullYear()+'-'+String(nd.getMonth()+1).padStart(2,'0')+'-'+String(nd.getDate()).padStart(2,'0')}
@@ -1624,8 +1647,8 @@ $('#spAddAll').addEventListener('click',async()=>{const msg=$('#spImMsg');if(!ne
   catch(err){renderSpRev();flash(msg,(ok?ok+' harcama eklendi, kalanlar eklenemedi. ':'')+errText(err),true)}finally{b.disabled=false}});
 
 $('#alForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#alMsg');if(!need(msg))return;
-  const name=$('#alName').value.trim(),amt=parseNum($('#alAmt').value);if(!name||!(amt>0)){flash(msg,'İsim ve sıfırdan büyük tutar gir.',true);return}
-  try{await db.collection('alacak').doc(uid()).set({name,amount:amt,created:Date.now()});$('#alName').value='';$('#alAmt').value='';flash(msg,'Alacak eklendi.')}catch(err){flash(msg,errText(err),true)}});
+  const name=$('#alName').value.trim(),amt=parseNum($('#alAmt').value),date=$('#alDate').value||'';if(!name||!(amt>0)){flash(msg,'İsim ve sıfırdan büyük tutar gir.',true);return}
+  try{await db.collection('alacak').doc(uid()).set({name,amount:amt,date,created:Date.now()});$('#alName').value='';$('#alAmt').value='';$('#alDate').value='';flash(msg,'Alacak eklendi.')}catch(err){flash(msg,errText(err),true)}});
 $('#cardForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#cardMsg');if(!need(msg))return;
   const name=$('#cName').value.trim(),lim=parseNum($('#cLimit').value),debt=parseNum($('#cDebt').value),day=parseInt($('#cDay').value,10);
   if(!name){flash(msg,'Kart adını yaz.',true);return}
