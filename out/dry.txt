@@ -1,0 +1,8 @@
+İstanbul saati 2026-10-20 12:11 (DRY_RUN)
+[DRY] fiba {"updatedAt":1792487503406,"source":"doviz.com","items":{"altin":{"d":"2026-10-20","satis":6589.45,"t":"12:11","alis":6535.3},"gumus":{"d":"2026-10-20","satis":92,"t":"12:11","alis":90.57}}}
+[DRY] harem {"updatedAt":1792487504385,"source":"doviz.com","items":{"a14":{"d":"2026-10-20","satis":4769.56,"t":"12:11","alis":3578.27},"gram":{"d":"2026-10-20","satis":6588.27,"t":"12:11","alis":6517.73},"a22":{"d":"2026-10-20","satis":6154.44,"t":"12:11","alis":5958.93},"ceyrek_eski":{"d":"2026-10-20","satis":10548,"t":"12:11","alis":10468},"gumus":{"d":"2026-10-20","satis":92.77,"t":"12:11","alis":85.49},"gremse_eski":{"d":"2026-10-20","satis":105541,"t":"12:11","alis":104480},"tam_eski":{"d":"2026-10-20","satis":42124,"t":"12:11","alis":41890},"ata_eski":{"d":"2026-10-20","satis":43438,"t":"12:11","alis":43135},"yarim_eski":{"d":"2026-10-20","satis":21062,"t":"12:11","alis":20932}}}
+IDL: TEFAS hata: HTTP 404
+IDL: Bloomberg HT 6.40425 (20.10.2026) -> red: aynı gün, daha az hane
+IDL: Kurucu sitesi 6.410316 (20.10.2026) -> red: aynı fiyat
+
+Güncellendi: fiba/altin 12:11, fiba/gumus 12:11, harem/a14 12:11, harem/gram 12:11, harem/a22 12:11, harem/ceyrek_eski 12:11, harem/gumus 12:11, harem/gremse_eski 12:11, harem/tam_eski 12:11, harem/ata_eski 12:11, harem/yarim_eski 12:11 · Fon eski kaldı: IDL 6.410316 (20.10.2026)
