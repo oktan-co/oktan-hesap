@@ -382,6 +382,11 @@ nav svg{display:none}
 .fehead{font-size:14px;color:var(--muted)}
 .fehead b{color:var(--ink)}
 .what small .odot{width:7px;height:7px;margin-right:4px;vertical-align:0}
+
+/* ---- ekstre düzenleme ---- */
+.strow{cursor:pointer}
+.strow.on{background:var(--sunk)}
+.stedit{color:var(--muted);opacity:.7;margin-left:2px}
 /* renk temaları */
 :root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
 :root[data-accent="mor"]:not([data-theme="dark"]){--accent:#5b3a8c;--bg:#f4f2f7;--sunk:#ebe6f1;--line:#ddd6e8}
@@ -681,6 +686,10 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         <button class="btn" type="submit">Kartı ekle</button>
         <div class="msg" id="cardMsg"></div>
       </form>
+    </details>
+    <details class="fold" id="paidFold"><summary>Ödediklerim <span class="hint" id="paidCount" style="margin-left:auto;font-weight:400"></span></summary>
+      <div class="inner list" id="paidList"></div>
+      <p class="hint" style="padding:8px 16px 12px">Düzeltmek ya da silmek için satıra dokun. Kutucuğu kaldırırsan ekstre yeniden açık borca döner.</p>
     </details>
   </section>
 
@@ -1070,6 +1079,28 @@ function saveFundEdit(id){const box=[...document.querySelectorAll('[data-feditbo
   if(document.activeElement)document.activeElement.blur();FEDIT=null;render();
   db.collection('fundtx').doc(id).set(nw).catch(err=>showBanner(errText(err)));
   toast(`${t.code} işlemi güncellendi.`,()=>db.collection('fundtx').doc(id).set(old))}
+/* ---------- ekstre düzenle / sil ---------- */
+document.addEventListener('click',e=>{
+  const sv=e.target.closest('[data-stsave]');if(sv){saveStmt(sv.dataset.stsave);return}
+  if(e.target.closest('[data-stcancel]')){STEDIT=null;render();return}
+  const dl=e.target.closest('[data-stdel]');if(dl){delStmt(dl.dataset.stdel);return}
+  const r=e.target.closest('[data-stopen]');if(!r||e.target.closest('input,button,select,label,a'))return;
+  STEDIT=STEDIT===r.dataset.stopen?null:r.dataset.stopen;render()});
+function saveStmt(id){const box=[...document.querySelectorAll('[data-steditbox]')].find(b=>b.dataset.steditbox===id),x=S.st.find(s=>s.id===id);if(!box||!x||!db)return;const msg=box.querySelector('.msg');
+  const v=k=>box.querySelector(`[data-se=${k}]`).value,amount=parseNum(v('amount'));
+  if(isNaN(amount)||amount<0){flash(msg,'Tutarı sayı olarak gir.',true);return}
+  if(x.paid&&!(amount>0)){flash(msg,'Ödenmiş ekstrenin tutarı sıfır olamaz; silmek istiyorsan Sil’e bas.',true);return}
+  const old=stripId(x),nw={...old,amount:Math.round(amount*100)/100,due:v('due')||'',cardId:v('cardId')||x.cardId,note:v('note').trim(),pending:!x.paid&&!(amount>0)};
+  const pt=x.paid&&x.payTx?S.tx.find(t=>t.id===x.payTx):null,oldPt=pt?stripId(pt):null;
+  if(document.activeElement)document.activeElement.blur();STEDIT=null;render();
+  const run=async(st,tx)=>{await db.collection('statements').doc(id).set(st);if(pt&&tx)await db.collection('tx').doc(pt.id).set(tx)};
+  run(nw,pt?{...oldPt,amount:nw.amount,cardId:nw.cardId}:null).catch(err=>showBanner(errText(err)));
+  toast('Ekstre güncellendi.',()=>run(old,oldPt))}
+function delStmt(id){const x=S.st.find(s=>s.id===id);if(!x||!db)return;const old=stripId(x);
+  const pt=x.paid&&x.payTx?S.tx.find(t=>t.id===x.payTx):null,oldPt=pt?stripId(pt):null;
+  STEDIT=null;
+  (async()=>{if(pt)await db.collection('tx').doc(pt.id).delete();await db.collection('statements').doc(id).delete()})().catch(err=>showBanner(errText(err)));
+  toast(x.paid?'Ödenmiş ekstre ve ödeme kaydı silindi.':'Ekstre silindi.',async()=>{await db.collection('statements').doc(id).set(old);if(pt)await db.collection('tx').doc(pt.id).set(oldPt)})}
 /* ---------- bildirim + geri al ---------- */
 let toastT=null,toastUndo=null;
 function toast(text,undo,ms){const t=$('#toast');$('#toastTx').textContent=text;$('#toastUndo').hidden=!undo;toastUndo=undo||null;t.hidden=false;
@@ -1262,14 +1293,28 @@ function nextDue(fromIso,day){const d=new Date((fromIso||isoToday())+'T00:00');c
   const nd=new Date(y,m,Math.min(day,last));return nd.getFullYear()+'-'+String(nd.getMonth()+1).padStart(2,'0')+'-'+String(nd.getDate()).padStart(2,'0')}
 function mono(name){const w=name.trim().split(/\s+/);const b=w[w.length-1]||'?';return b.slice(0,2).toLocaleUpperCase('tr-TR')}
 function daysTo(iso){return Math.round((new Date(iso+'T00:00')-new Date(isoToday()+'T00:00'))/864e5)}
-function stRow(x){const td=isoToday(),soon=addDays(td,5);const d=x.due?new Date(x.due+'T00:00'):null;const pend=!x.paid&&!(x.amount>0);
+let STEDIT=null;
+function stRow(x,showCard){const td=isoToday(),soon=addDays(td,5);const d=x.due?new Date(x.due+'T00:00'):null;const pend=!x.paid&&!(x.amount>0);
   const cls=x.paid||!d?'':x.due<td?'late':x.due<=soon?'due':'';
-  const st=x.paid?'Ödendi':!d?'Tarihsiz':x.due<td?'Gecikti':(daysTo(x.due)===0?'Bugün son gün':daysTo(x.due)+' gün kaldı');
+  const cn=(S.cards.find(c=>c.id===x.cardId)||{}).name||'Silinmiş kart';
+  const pt=x.paid&&x.payTx?S.tx.find(t=>t.id===x.payTx):null;
+  const st=x.paid?(pt?'Ödendi · '+new Date(pt.date+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'short'}):'Ödendi'):!d?'Tarihsiz':x.due<td?'Gecikti':(daysTo(x.due)===0?'Bugün son gün':daysTo(x.due)+' gün kaldı');
   const amt=pend?`<span class="pendin"><input id="pa_${esc(x.id)}" inputmode="decimal" placeholder="Tutar" aria-label="Ekstre tutarı"><button class="mini" data-stamt="${esc(x.id)}">Kaydet</button></span>`
     :`<div class="amt${x.paid?' mut':''}">${money(x.amount)}</div>`;
-  return `<div class="row ${cls}${pend?' pend':''}"><div class="date">${d?`<b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short'}).format(d)}`:'<b>—</b>'}</div>
-    <div class="what"><div${x.paid?' class="mut"':''}>${x.note?esc(x.note):(pend?'Ekstre bekleniyor':'Ekstre')}</div><small>${st}</small></div>
-    ${amt}<input type="checkbox" class="chk" id="st_${esc(x.id)}" data-stpaid="${esc(x.id)}" ${x.paid?'checked':''} ${pend?'disabled':''} aria-label="Ödendi olarak işaretle"></div>`}
+  const ed=STEDIT===x.id,id=esc(x.id);
+  return `<div class="row strow ${cls}${pend?' pend':''}${ed?' on':''}" data-stopen="${id}"><div class="date">${d?`<b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short'}).format(d)}`:'<b>—</b>'}</div>
+    <div class="what"><div${x.paid?' class="mut"':''}>${showCard?esc(cn):(x.note?esc(x.note):(pend?'Ekstre bekleniyor':'Ekstre'))}</div><small>${st}${showCard&&x.note?' · '+esc(x.note):''} <span class="stedit">✎</span></small></div>
+    ${amt}<input type="checkbox" class="chk" id="st_${id}" data-stpaid="${id}" ${x.paid?'checked':''} ${pend?'disabled':''} aria-label="Ödendi olarak işaretle"></div>
+  ${ed?`<div class="fedit" data-steditbox="${id}">
+    <div class="grid">
+      <label class="f"><span>Tutar (₺)</span><input class="num" data-se="amount" inputmode="decimal" value="${esc(fmtIn(x.amount||''))}" placeholder="0,00"></label>
+      <label class="f"><span>Son ödeme tarihi</span><input type="date" data-se="due" value="${esc(x.due||'')}"></label>
+      <label class="f"><span>Kart</span><select data-se="cardId">${S.cards.map(c=>`<option value="${esc(c.id)}"${c.id===x.cardId?' selected':''}>${esc(c.name)}</option>`).join('')}</select></label>
+      <label class="f"><span>Not</span><input data-se="note" value="${esc(x.note||'')}" maxlength="40" placeholder="isteğe bağlı"></label>
+    </div>
+    ${x.paid?'<p class="hint">Bu ekstre ödendi olarak işaretli; tutarı değiştirirsen ödeme kaydı da güncellenir.</p>':''}
+    <div class="refrow"><button type="button" class="btn" data-stsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-stcancel>Vazgeç</button><button type="button" class="btn ghost neg" data-stdel="${id}" style="margin-left:auto">Sil</button></div>
+    <div class="msg"></div></div>`:''}`}
 function renderCards(M,CH){
   const td=isoToday();const open=S.st.filter(x=>!x.paid);
   const total=open.reduce((a,x)=>a+(x.amount||0),0);
@@ -1288,14 +1333,19 @@ function renderCards(M,CH){
     return `<article class="ktile"><div class="ktile-h"><div class="mono${two?' m2':''}" aria-hidden="true">${esc(mono(c.name))}</div>
       <div style="min-width:0"><h3>${esc(c.name)}</h3><small>${c.dueDay?'Son ödeme her ayın '+c.dueDay+daySuffix(c.dueDay):'Son ödeme günü girilmemiş'}${c.limit?' · limit '+money(c.limit):''}</small></div>
       <div class="kdebt"><b class="${deb>0?'neg':'mut'}">${money(deb)}</b><span>açık borç</span></div></div>
-      ${op.length?op.map(stRow).join(''):'<div class="row" style="grid-template-columns:1fr"><span class="hint">Açık ekstre yok.</span></div>'}
+      ${op.length?op.map(x=>stRow(x)).join(''):'<div class="row" style="grid-template-columns:1fr"><span class="hint">Açık ekstre yok.</span></div>'}
       <div class="kfoot"><span>${spend?'Bu ay karta yazılan harcama '+money(spend):''}</span>
         <details><summary>Kart ayarları</summary><div class="kset">
           <label>Son ödeme günü <input id="kd_${esc(c.id)}" data-kday="${esc(c.id)}" inputmode="numeric" value="${c.dueDay||''}"></label>
           <button class="del" data-del="card" data-id="${esc(c.id)}" aria-label="Kartı sil">Kartı sil</button></div>
-          ${paid.length?`<div class="list" style="margin-top:8px">${paid.slice(0,6).map(stRow).join('')}</div>`:''}</details></div>
+</details></div>
     </article>`}).join('')
     :`<div class="box empty">Henüz kart yok. Aşağıdan kartını ekle.</div>`;
+  {const pd=S.st.filter(x=>x.paid).map(x=>({x,pt:x.payTx?S.tx.find(t=>t.id===x.payTx):null})).sort((a,b)=>((b.pt&&b.pt.date)||b.x.due||'').localeCompare((a.pt&&a.pt.date)||a.x.due||''));
+   const yr=td.slice(0,4),yt=pd.filter(o=>((o.pt&&o.pt.date)||o.x.due||'').startsWith(yr)).reduce((a,o)=>a+(o.x.amount||0),0);
+   $('#paidCount').textContent=pd.length?`${pd.length} ödeme · ${yr}: ${money(yt)}`:'';
+   const pl=$('#paidList'),ae=document.activeElement;if(!(ae&&pl.contains(ae)&&ae.matches('input,select')))
+   pl.innerHTML=pd.length?pd.map(o=>stRow(o.x,true)).join(''):'<div class="empty">Henüz ödenmiş ekstre yok. Ekstreyi ödeyip kutucuğunu işaretlediğinde burada birikir.</div>';}
   const keep=$('#stCard').value;$('#stCard').innerHTML=S.cards.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')||'<option value="">Önce kart ekle</option>';
   if(S.cards.some(c=>c.id===keep))$('#stCard').value=keep;
 }
