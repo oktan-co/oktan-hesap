@@ -464,18 +464,12 @@ nav svg{display:none}
   [data-panel=ozet]>#ozSide{grid-row:2/span 2}
   [data-panel=ozet]>#ozSide2{grid-row:4}
 }
-/* A: 3 sütunlu pano */
-@media (min-width:1400px){
-  body:not(.vB) [data-panel=ozet]:not([hidden]){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr)}
-  body:not(.vB) [data-panel=ozet]>#ozSide{grid-column:2;grid-row:2/span 3;position:sticky;top:28px}
-  body:not(.vB) [data-panel=ozet]>#ozSide2{grid-column:3;grid-row:2/span 3;position:sticky;top:28px}
-}
 /* B: 2 sütun, solda büyük kutular + yatırım/harcama yan yana */
 @media (min-width:1400px){
-  body.vB [data-panel=ozet]:not([hidden]){grid-template-columns:minmax(0,1.6fr) minmax(360px,1fr)}
-  body.vB [data-panel=ozet]>#ozSide{grid-column:2;grid-row:2/span 3}
-  body.vB [data-panel=ozet]>#ozSide2{grid-column:1;grid-row:4;grid-template-columns:1fr 1fr;position:static}
-  body.vB [data-panel=ozet]>#ozSide2>.box:last-child{grid-column:1/-1}
+  [data-panel=ozet]:not([hidden]){grid-template-columns:minmax(0,1.6fr) minmax(360px,1fr)}
+  [data-panel=ozet]>#ozSide{grid-column:2;grid-row:2/span 3}
+  [data-panel=ozet]>#ozSide2{grid-column:1;grid-row:4;grid-template-columns:1fr 1fr;position:static}
+  [data-panel=ozet]>#ozSide2>.box:last-child{grid-column:1/-1}
 }
 /* renk temaları */
 :root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
@@ -621,7 +615,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="dside donly" id="ozSide2">
       <div class="box">
         <div class="sec-h" style="padding:14px 18px 4px"><h2>Yatırımlar</h2><a href="#" class="linkbtn" data-go="yatirim">Ayrıntı ›</a></div>
-        <div style="padding:0 18px 14px;display:grid;gap:8px"><b class="num" id="ozYTot" style="font-size:24px;font-weight:500"></b><span class="hint" id="ozYPl"></span><div class="ydist" id="ozYDist" style="margin:2px 0"></div><div class="ozpx" id="ozYPx"></div></div>
+        <div style="padding:0 18px 14px;display:grid;gap:8px"><b class="num" id="ozYTot" style="font-size:24px;font-weight:500"></b><span class="hint" id="ozYPl"></span><div class="ydist" id="ozYDist" style="margin:2px 0"></div><div class="ozpx" id="ozYPx"></div><div class="ozpx" id="ozYOwn"></div></div>
       </div>
       <div class="box">
         <div class="sec-h" style="padding:14px 18px 4px"><h2 id="ozSpH">Bu ay harcamalar</h2><a href="#" class="linkbtn" data-go="harcama">Ayrıntı ›</a></div>
@@ -1286,6 +1280,8 @@ function renderOzExtra(){const M=S.month;
   $('#ozYDist').innerHTML=tot>0?[[pv,'var(--gold)','Altın & gümüş'],[fv,'var(--accent)','Fonlar']].filter(x=>x[0]>0.5).map(([v,c,n])=>`<i style="flex:${v};background:${c}" title="${n} %${Math.round(v/tot*100)}"></i>`).join(''):'';
   const g=(S.harem.items||{}).gram,px=[];if(g&&g.alis)px.push(['Gram altın',pmoney(g.alis)]);
   for(const c of [...new Set(open.map(p=>p.code))].slice(0,2)){const f=(S.fdp.items||{})[c];if(f&&f.price)px.push([c,f.price.toLocaleString('tr-TR',{maximumFractionDigits:6})+' ₺'])}
+  {const by=o=>open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.netValue??p.cost),0),ow=OWNERS.map(o=>[o,by(o)]).filter(x=>x[1]>0.5);
+   $('#ozYOwn').innerHTML=ow.length>1?'<span>Fonlar:</span>'+ow.map(([o,v])=>`<span><i class="odot o${OWNERS.indexOf(o)}"></i>${esc(o)} <b class="num">${money(v)}</b></span>`).join(''):''}
   $('#ozYPx').innerHTML=px.map(([n,v])=>`<span>${esc(n)} <b class="num">${esc(v)}</b></span>`).join('');
   const SPX=expandSp(M>mk(today)?M:mk(today)),cur=SPX.filter(x=>x.date.slice(0,7)===M&&!NOT_MINE.has(x.cat)),st=cur.reduce((a,x)=>a+sgn(x),0);
   $('#ozSpH').textContent=monthName(M)+' harcamalar';$('#ozSpTot').textContent=money(st);
@@ -2088,7 +2084,6 @@ function startData(fs){
   on(db.doc('settings/ai'),s=>{S.ai=s.exists?s.data():{};syncAI();syncRefresh();fillSettings();setTimeout(autoRefresh,3000)});
 }
 function showGate(text,signedIn){$('#app').hidden=true;$('#gate').hidden=false;$('#gateMsg').textContent=text;$('#gIn').hidden=!!signedIn;$('#gOut').hidden=!signedIn}
-if(location.hash==='#vB')document.body.classList.add('vB');
 (function boot(){
   const cfg=window.FIREBASE_CONFIG;
   if(!window.firebase||!cfg||!cfg.apiKey||/BURAYA/.test(cfg.apiKey)){showGate('Kurulum tamamlanmamış: config.js dosyasına Firebase ayarlarını yapıştır (KURULUM.md, adım 3).');$('#gIn').hidden=true;return}
