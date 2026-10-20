@@ -211,4 +211,5 @@ if (process.env.GITHUB_STEP_SUMMARY) {
   const { appendFileSync } = await import('node:fs');
   appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Fiyat güncelleme ${now.date} ${now.hm}\n\n${line}\n`);
 }
+if (!DRY) { try { await db.collection('prices').doc('status').set({ checkedAt: Date.now(), ok: !hardFail, line }); } catch (e) { console.error('Durum yazılamadı:', e); } }
 process.exit(hardFail ? 1 : 0);
