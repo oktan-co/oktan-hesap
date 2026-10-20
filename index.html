@@ -404,6 +404,57 @@ nav svg{display:none}
 .hleg i{display:inline-block;width:14px;height:2px;border-radius:1px;margin-right:6px;vertical-align:3px}
 .hl2{fill:none;stroke:var(--gold);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .hd2{fill:var(--gold);stroke:var(--surface);stroke-width:2}
+
+/* ================= GENİŞ EKRAN (bilgisayar) ================= */
+.dcell,.dflex,.donly{display:none!important}
+@media (max-width:999.98px){
+  .dcol{display:contents}
+  [data-panel=harcama]>.dcol>[data-ord="1"]{order:1}[data-panel=harcama]>.dcol>[data-ord="2"]{order:2}[data-panel=harcama]>.dcol>[data-ord="3"]{order:3}[data-panel=harcama]>.dcol>[data-ord="4"]{order:4}[data-panel=harcama]>.dcol>[data-ord="5"]{order:5}
+}
+@media (min-width:1000px){
+  body{padding-left:232px}
+  header{position:fixed;top:0;bottom:0;left:0;width:232px;border-bottom:0;border-right:1px solid var(--line);display:flex;flex-direction:column}
+  header>.wrap{max-width:none;margin:0;padding:18px 14px;display:flex;flex-direction:column;gap:18px;flex:1;min-height:0}
+  header .hrow{flex-direction:column;align-items:stretch;gap:16px;padding:0}
+  header .brand{font-size:18px;padding:0 8px}
+  header .hright{order:2;justify-content:flex-start;padding:0 4px}
+  nav{flex-direction:column;gap:2px;overflow:visible}
+  nav button{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;border-bottom:0;font-size:14.5px;text-align:left}
+  nav svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  nav button:hover{background:var(--sunk)}
+  nav button[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);font-weight:600}
+  main.wrap{max-width:1180px;padding:28px 32px 60px}
+  .panel{gap:20px}
+  /* özet: iki sütun */
+  [data-panel=ozet]:not([hidden]){display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);align-items:start;column-gap:20px}
+  [data-panel=ozet]>.mbar{grid-column:1/-1}
+  [data-panel=ozet]>.box,[data-panel=ozet]>.nextpay{grid-column:1}
+  [data-panel=ozet]>#oNext{display:none}
+  [data-panel=ozet]>.dside{grid-column:2;grid-row:2/span 3;display:grid!important;gap:20px;position:sticky;top:28px}
+  /* harcamalar: liste solda, ekleme/kategori/filtre sağda */
+  [data-panel=harcama]:not([hidden]){display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);align-items:start;column-gap:20px}
+  [data-panel=harcama]>.period{grid-column:1/-1}
+  .dcol{display:grid;gap:20px;min-width:0}
+  .dcol.dside{position:sticky;top:28px;max-height:calc(100vh - 56px);overflow:auto;padding-bottom:4px}
+  /* harcama tablosu */
+  .dcell{display:block!important}.dflex{display:grid!important}
+  #spList .sphead,.sphh{display:grid;grid-template-columns:56px minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) 120px;align-items:center;gap:12px}
+  #spList .spsub{display:none}
+  .spc,.spk{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sphh{padding:8px 16px;border-bottom:1px solid var(--line);background:var(--sunk)}
+  .sphh button{border:0;background:none;font:600 12px/1.2 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;text-align:left;padding:4px 0}
+  .sphh button:last-child{text-align:right}
+  .sphh button.on{color:var(--ink)}
+  /* kartlar: ikişerli */
+  .ktiles{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  /* yatırımlar: altın ve fonlar yan yana */
+  main.yat2{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;column-gap:20px}
+  main.yat2>#banner,main.yat2>.ypanel{grid-column:1/-1}
+  main.yat2 .ysub{display:none}
+  /* geçmiş */
+  [data-panel=gecmis]{max-width:none}
+  .toast{bottom:28px}
+}
 /* renk temaları */
 :root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
 :root[data-accent="mor"]:not([data-theme="dark"]){--accent:#5b3a8c;--bg:#f4f2f7;--sunk:#ebe6f1;--line:#ddd6e8}
@@ -535,6 +586,16 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
     </div>
 
+    <div class="dside donly" id="ozSide">
+      <div class="box">
+        <div class="sec-h" style="padding:14px 18px 6px"><h2>Yaklaşan ödemeler</h2><a href="#" class="linkbtn" data-go="kart">Kartlar ›</a></div>
+        <div class="list" id="ozUpcoming"></div>
+      </div>
+      <div class="box">
+        <div class="sec-h" style="padding:14px 18px 0"><h2>Servet · son 3 ay</h2><button type="button" class="linkbtn" data-openhist>Ayrıntı ›</button></div>
+        <div id="ozSpark" style="padding:6px 12px 12px"></div>
+      </div>
+    </div>
     <div hidden><div id="catBars"></div><span id="catTotal"></span></div>
   </section>
 
@@ -546,7 +607,8 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="pchips" id="spPeriod"></div>
       <button type="button" class="iconbtn" data-spstep="1" aria-label="Sonraki ay">›</button>
     </div>
-    <div class="box">
+    <div class="dcol dmain">
+    <div class="box" data-ord="1">
       <div class="kalan" style="padding-bottom:14px">
         <span class="eyebrow"><span id="spLbl">Benim harcamalarım</span> <button type="button" class="info" data-why aria-label="Açıklama">i</button></span>
         <span class="big" id="spTotal">₺0,00</span>
@@ -555,7 +617,13 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="flow k3" id="spSplit"></div>
       <p class="hint why" style="padding:10px 18px;border-top:1px solid var(--line)">Sadece takip için; bakiyeye ve diğer hesaplara eklenmez.</p>
     </div>
-    <details class="fold" id="spAddFold"><summary>+ Harcama ekle</summary>
+    <details class="fold" id="spListFold" open data-ord="5"><summary>Harcama listesi <span class="hint" id="spCount" style="margin-left:auto;font-weight:400"></span></summary>
+      <div class="sphead sphh dflex" id="spTHead"></div>
+      <div class="inner list" id="spList"></div>
+    </details>
+      </div>
+    <div class="dcol dside">
+    <details class="fold" id="spAddFold" data-ord="2"><summary>+ Harcama ekle</summary>
     <div id="spAddBox" class="inner">
       <div class="tabs" role="tablist" aria-label="Harcama ekleme">
         <button type="button" role="tab" data-sptab="manual" aria-selected="true">Harcama ekle</button>
@@ -595,11 +663,11 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </div>
     </div>
     </details>
-    <div class="sec">
+    <div class="sec" data-ord="3">
       <div class="sec-h"><h2>Kategorilere göre</h2><button type="button" class="linkbtn" data-opencat>Kategorileri düzenle</button></div>
       <div class="box pad"><div class="bars" id="spBars"></div></div>
     </div>
-    <div class="box filt" id="spFilt">
+    <div class="box filt" id="spFilt" data-ord="4">
       <label class="search"><span aria-hidden="true">⌕</span><input id="fQ" type="search" placeholder="Harcama ara (ör. Trendyol, Sevde, market, 250)" aria-label="Harcama ara" autocomplete="off"></label>
       <details class="morefilt" id="spMoreFilt"><summary>Banka, tarih, kategori</summary><div class="mf">
       <div class="tabs chips" role="tablist" aria-label="Banka" id="fPayTabs"></div>
@@ -611,10 +679,8 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn ghost" type="button" id="fClear">Filtreyi temizle</button><span class="hint" id="spFiltSum">Tarih ve arama yoksa seçili ayın kayıtları listelenir.</span></div></div></details>
     </div>
-    <details class="fold" id="spListFold" open><summary>Harcama listesi <span class="hint" id="spCount" style="margin-left:auto;font-weight:400"></span></summary>
-      <div class="inner list" id="spList"></div>
-    </details>
-  </section>
+    </div>
+</section>
 
   <!-- ALACAKLAR -->
   <section class="panel" data-panel="alacak" hidden>
@@ -1025,7 +1091,8 @@ function holdValue(h){const src=h.src==='fiba'?S.fiba:S.harem;const p=(src.items
 function setTab(t){if(t==='fon'||t==='maden'){S.yt=t;t='yatirim'}if(t!=='gecmis')S.prevTab=t;S.tab=t;try{localStorage.setItem('kasa.tab',t);localStorage.setItem('kasa.yt',S.yt)}catch(e){}
   $$('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
   $$('[data-ytab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.ytab===S.yt));
-  $$('[data-panel]').forEach(p=>p.hidden=!(p.dataset.panel===t||(t==='yatirim'&&p.dataset.panel===S.yt)));
+  $$('[data-panel]').forEach(p=>p.hidden=!(p.dataset.panel===t||(t==='yatirim'&&(p.dataset.panel===S.yt||(WIDE.matches&&(p.dataset.panel==='fon'||p.dataset.panel==='maden'))))));
+  document.querySelector('main').classList.toggle('yat2',t==='yatirim'&&WIDE.matches);
   $('#histBtn').setAttribute('aria-pressed',t==='gecmis');if(t==='gecmis')renderHist();}
 /* ---------- servet geçmişi ---------- */
 const LOADED=new Set(),SNAP_NEED=['tx','cards','holdings','alacak','statements','fundtx','prices/funds','prices/harem','prices/fiba','settings/main'];
@@ -1158,6 +1225,22 @@ function renderInvest(pv,fv,FP){const tot=pv+fv;$('#yTotal').textContent=money(t
   const by=o=>open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.netValue??p.cost),0);
   const ow=OWNERS.map(o=>[o,by(o)]).filter(x=>x[1]>0.5);
   $('#yOwn').innerHTML=ow.length>1?'<span>Fonlar:</span>'+ow.map(([o,v])=>`<span><i class="odot o${OWNERS.indexOf(o)}"></i>${esc(o)} <b class="num">${money(v)}</b></span>`).join(''):'';}
+/* ---------- geniş ekran ---------- */
+const WIDE=matchMedia('(min-width: 1000px)');
+document.addEventListener('click',e=>{const b=e.target.closest('[data-spsort]');if(b){const k=b.dataset.spsort,cur=S.spSort||{k:'date',d:-1};S.spSort={k,d:cur.k===k?-cur.d:(k==='date'||k==='amount'?-1:1)};render();return}
+  if(e.target.closest('[data-openhist]')){setTab('gecmis')}});
+document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select,[contenteditable]')||e.metaKey||e.ctrlKey||e.altKey||document.querySelector('dialog[open]'))return;
+  if(e.key==='n'||e.key==='N'){e.preventDefault();setTab('harcama');const f=$('#spAddFold');f.open=true;setSpTab('manual');setTimeout(()=>{f.scrollIntoView({block:'nearest'});$('#spAmt').focus()},50)}
+  else if(e.key==='/'){e.preventDefault();setTab('harcama');setTimeout(()=>$('#fQ').focus(),50)}});
+WIDE.addEventListener?.('change',()=>{setTab(S.tab);render()});
+function renderOzSide(){if(!WIDE.matches)return;const td=isoToday(),cn=id=>(S.cards.find(c=>c.id===id)||{}).name||'Kart';
+  const up=S.st.filter(x=>!x.paid&&x.due).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
+  $('#ozUpcoming').innerHTML=up.length?up.map(x=>{const n=daysTo(x.due),d=new Date(x.due+'T00:00');return `<div class="row" style="grid-template-columns:auto minmax(0,1fr) auto"><div class="date"><b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short'}).format(d)}</div><div class="what"><div>${esc(cn(x.cardId))}</div><small class="${n<0?'neg':''}">${n<0?'gecikti':n===0?'bugün son gün':n+' gün kaldı'}</small></div><div class="amt">${x.amount>0?money(x.amount):'<span class="mut">tutar yok</span>'}</div></div>`}).join(''):'<div class="empty">Açık ekstre yok.</div>';
+  const H=(S.hist||[]).filter(h=>/^\d{4}-\d{2}-\d{2}$/.test(h.id)&&typeof h.ana==='number'&&h.id>=addDays(td,-92)),box=$('#ozSpark');
+  if(H.length<2){box.innerHTML='<p class="hint" style="padding:8px 6px">Grafik her gün bir nokta ekleyerek dolacak.</p>';return}
+  const W=Math.max(220,box.clientWidth-24||300),Hh=90,vs=H.map(h=>h.ana),lo=Math.min(...vs),hi=Math.max(...vs),r=hi-lo||1;
+  const pts=vs.map((v,i)=>`${(i/(vs.length-1)*(W-8)+4).toFixed(1)},${(Hh-6-(v-lo)/r*(Hh-16)).toFixed(1)}`),d=vs[vs.length-1]-vs[0];
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${Hh}" width="100%" height="${Hh}" role="img" aria-label="Son 3 ay ana bakiye"><polyline points="${pts.join(' ')}" class="hl"/><circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="4" class="hd"/></svg><p class="hint" style="padding:0 6px">${money(vs[vs.length-1])} · <span class="${d>=0?'pos':'neg'}">${d>=0?'+':'−'}${money(Math.abs(d))}</span></p>`}
 /* ---------- bildirim + geri al ---------- */
 let toastT=null,toastUndo=null;
 function toast(text,undo,ms){const t=$('#toast');$('#toastTx').textContent=text;$('#toastUndo').hidden=!undo;toastUndo=undo||null;t.hidden=false;
@@ -1192,6 +1275,7 @@ function render0(){
   {const cash=cashUpTo(mk(today));maybeSnap({ana:cash+alT+pv+fv-debt,bakiye:cash,alacak:alT,maden:pv,fon:fv,borc:debt,
     fonBy:Object.fromEntries(OWNERS.map(o=>[o,FP.filter(p=>p.owner===o&&p.units>1e-9).reduce((a,p)=>a+(p.netValue??p.cost),0)]))},S.hold.some(h=>holdValue(h)==null))}
   if(S.tab==='gecmis')renderHist();
+  renderOzSide();
   renderAlacak(M);renderSpend(M);
   // categories (cash + card installments in this month)
   const cats={};
@@ -1322,7 +1406,10 @@ function renderSpend(M){
   if(fq){const cn=id=>((S.cards.find(c=>c.id===id)||{}).name||'');base=base.filter(x=>[x.note,x.cat,cn(x.pay),x.refund?'iade':'',String(x.amount).replace('.',','),pmoney(x.amount)].join(' ').toLocaleLowerCase('tr-TR').includes(fq))}if(ff)base=base.filter(x=>x.date>=ff);if(ft)base=base.filter(x=>x.date<=ft);
   if(fp)base=base.filter(x=>(x.pay||'')===(fp==='none'?'':fp));
   if(fc)base=base.filter(x=>x.cat===fc);
-  const list=[...base].sort((a,b)=>b.date.localeCompare(a.date)||(b.created||0)-(a.created||0));
+  const SK=S.spSort||{k:'date',d:-1},cnn=id=>((S.cards.find(c=>c.id===id)||{}).name||(id==='cash'?'Nakit':''));
+  const keyOf={date:x=>x.date,note:x=>(x.note||x.cat||'').toLocaleLowerCase('tr-TR'),cat:x=>x.cat.toLocaleLowerCase('tr-TR'),pay:x=>cnn(x.pay).toLocaleLowerCase('tr-TR'),amount:x=>sgn(x)}[SK.k]||(x=>x.date);
+  const list=[...base].sort((a,b)=>{const A=keyOf(a),B=keyOf(b);return (A<B?-1:A>B?1:0)*SK.d||b.date.localeCompare(a.date)||(b.created||0)-(a.created||0)});
+  $('#spTHead').innerHTML=[['date','Tarih'],['note','Açıklama'],['cat','Kategori'],['pay','Kart'],['amount','Tutar']].map(([k,n])=>`<button type="button" data-spsort="${k}" class="${SK.k===k?'on':''}">${n}${SK.k===k?(SK.d<0?' ↓':' ↑'):''}</button>`).join('');
   const fnet=list.reduce((a,x)=>a+sgn(x),0);
   $('#spFiltSum').textContent=fon?`Filtre açık · ${list.length} kayıt · net ${money(fnet)}`:'Tarih ve arama yoksa seçili ayın kayıtları listelenir.';
   $('#spCount').textContent=list.length?list.length+' kayıt'+(fon?` · net ${money(fnet)} (filtreli)`:''):'';
@@ -1334,6 +1421,7 @@ function renderSpend(M){
       <span class="date"><b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short'}).format(d)}</span>
       <span style="min-width:0"><span class="sptitle">${esc(x.note||x.cat)}${x.refund?'<span class="sptag">İade</span>':''}${nm?'<span class="sptag">Benim değil</span>':''}${x.repeat?'<span class="sptag">Her ay</span>':''}</span>
         <span class="spsub">${esc(x.cat)} · ${esc(cn(x.pay))}</span></span>
+      <span class="spc dcell">${esc(x.cat)}</span><span class="spk dcell">${esc(cn(x.pay))}</span>
       <span class="amt${x.refund?' pos':nm?' mut':''}">${x.refund?'+':''}${money(x.amount)}</span></button>
       ${op&&x.virt?`<div class="spedit"><p class="hint">Düzenli harcama: her ayın ${Number(x.date.slice(8,10))}${daySuffix(Number(x.date.slice(8,10)))} tekrar eder. Tutarı, kategoriyi ya da açıklamayı ilk kaydından değiştirirsen her aya yansır.</p>
         <div class="acts"><button class="btn ghost" type="button" data-spskip="${esc(x.src)}" data-m="${x.virt}">Bu ayı atla</button><button class="btn ghost neg" type="button" data-spstop="${esc(x.src)}" data-m="${x.virt}">Bu aydan itibaren durdur</button></div>
