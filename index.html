@@ -455,6 +455,28 @@ nav svg{display:none}
   [data-panel=gecmis]{max-width:none}
   .toast{bottom:28px}
 }
+
+/* ---- geniş ekran: Özet panosu ---- */
+.ozpx{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted)}.ozpx b{color:var(--ink);font-weight:500}
+@media (min-width:1000px){
+  main.wrap{max-width:1640px;margin:0;padding:28px 36px 60px}
+  [data-panel=ozet]>#ozSide2{grid-column:2;display:grid!important;gap:20px}
+  [data-panel=ozet]>#ozSide{grid-row:2/span 2}
+  [data-panel=ozet]>#ozSide2{grid-row:4}
+}
+/* A: 3 sütunlu pano */
+@media (min-width:1400px){
+  body:not(.vB) [data-panel=ozet]:not([hidden]){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr)}
+  body:not(.vB) [data-panel=ozet]>#ozSide{grid-column:2;grid-row:2/span 3;position:sticky;top:28px}
+  body:not(.vB) [data-panel=ozet]>#ozSide2{grid-column:3;grid-row:2/span 3;position:sticky;top:28px}
+}
+/* B: 2 sütun, solda büyük kutular + yatırım/harcama yan yana */
+@media (min-width:1400px){
+  body.vB [data-panel=ozet]:not([hidden]){grid-template-columns:minmax(0,1.6fr) minmax(360px,1fr)}
+  body.vB [data-panel=ozet]>#ozSide{grid-column:2;grid-row:2/span 3}
+  body.vB [data-panel=ozet]>#ozSide2{grid-column:1;grid-row:4;grid-template-columns:1fr 1fr;position:static}
+  body.vB [data-panel=ozet]>#ozSide2>.box:last-child{grid-column:1/-1}
+}
 /* renk temaları */
 :root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
 :root[data-accent="mor"]:not([data-theme="dark"]){--accent:#5b3a8c;--bg:#f4f2f7;--sunk:#ebe6f1;--line:#ddd6e8}
@@ -590,6 +612,20 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="box">
         <div class="sec-h" style="padding:14px 18px 6px"><h2>Yaklaşan ödemeler</h2><a href="#" class="linkbtn" data-go="kart">Kartlar ›</a></div>
         <div class="list" id="ozUpcoming"></div>
+      </div>
+      <div class="box">
+        <div class="sec-h" style="padding:14px 18px 6px"><h2 id="ozAlH">Bu ay alacaklarım</h2><a href="#" class="linkbtn" data-go="alacak">Alacaklar ›</a></div>
+        <div class="list" id="ozAl"></div>
+      </div>
+    </div>
+    <div class="dside donly" id="ozSide2">
+      <div class="box">
+        <div class="sec-h" style="padding:14px 18px 4px"><h2>Yatırımlar</h2><a href="#" class="linkbtn" data-go="yatirim">Ayrıntı ›</a></div>
+        <div style="padding:0 18px 14px;display:grid;gap:8px"><b class="num" id="ozYTot" style="font-size:24px;font-weight:500"></b><span class="hint" id="ozYPl"></span><div class="ydist" id="ozYDist" style="margin:2px 0"></div><div class="ozpx" id="ozYPx"></div></div>
+      </div>
+      <div class="box">
+        <div class="sec-h" style="padding:14px 18px 4px"><h2 id="ozSpH">Bu ay harcamalar</h2><a href="#" class="linkbtn" data-go="harcama">Ayrıntı ›</a></div>
+        <div style="padding:0 18px 14px;display:grid;gap:10px"><b class="num" id="ozSpTot" style="font-size:24px;font-weight:500"></b><div class="bars" id="ozSpBars"></div></div>
       </div>
       <div class="box">
         <div class="sec-h" style="padding:14px 18px 0"><h2>Servet · son 3 ay</h2><button type="button" class="linkbtn" data-openhist>Ayrıntı ›</button></div>
@@ -1233,7 +1269,7 @@ document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,sele
   if(e.key==='n'||e.key==='N'){e.preventDefault();setTab('harcama');const f=$('#spAddFold');f.open=true;setSpTab('manual');setTimeout(()=>{f.scrollIntoView({block:'nearest'});$('#spAmt').focus()},50)}
   else if(e.key==='/'){e.preventDefault();setTab('harcama');setTimeout(()=>$('#fQ').focus(),50)}});
 WIDE.addEventListener?.('change',()=>{setTab(S.tab);render()});
-function renderOzSide(){if(!WIDE.matches)return;const td=isoToday(),cn=id=>(S.cards.find(c=>c.id===id)||{}).name||'Kart';
+function renderOzSide(){if(!WIDE.matches)return;renderOzExtra();const td=isoToday(),cn=id=>(S.cards.find(c=>c.id===id)||{}).name||'Kart';
   const up=S.st.filter(x=>!x.paid&&x.due).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
   $('#ozUpcoming').innerHTML=up.length?up.map(x=>{const n=daysTo(x.due),d=new Date(x.due+'T00:00');return `<div class="row" style="grid-template-columns:auto minmax(0,1fr) auto"><div class="date"><b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short'}).format(d)}</div><div class="what"><div>${esc(cn(x.cardId))}</div><small class="${n<0?'neg':''}">${n<0?'gecikti':n===0?'bugün son gün':n+' gün kaldı'}</small></div><div class="amt">${x.amount>0?money(x.amount):'<span class="mut">tutar yok</span>'}</div></div>`}).join(''):'<div class="empty">Açık ekstre yok.</div>';
   const H=(S.hist||[]).filter(h=>/^\d{4}-\d{2}-\d{2}$/.test(h.id)&&typeof h.ana==='number'&&h.id>=addDays(td,-92)),box=$('#ozSpark');
@@ -1241,6 +1277,20 @@ function renderOzSide(){if(!WIDE.matches)return;const td=isoToday(),cn=id=>(S.ca
   const W=Math.max(220,box.clientWidth-24||300),Hh=90,vs=H.map(h=>h.ana),lo=Math.min(...vs),hi=Math.max(...vs),r=hi-lo||1;
   const pts=vs.map((v,i)=>`${(i/(vs.length-1)*(W-8)+4).toFixed(1)},${(Hh-6-(v-lo)/r*(Hh-16)).toFixed(1)}`),d=vs[vs.length-1]-vs[0];
   box.innerHTML=`<svg viewBox="0 0 ${W} ${Hh}" width="100%" height="${Hh}" role="img" aria-label="Son 3 ay ana bakiye"><polyline points="${pts.join(' ')}" class="hl"/><circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="4" class="hd"/></svg><p class="hint" style="padding:0 6px">${money(vs[vs.length-1])} · <span class="${d>=0?'pos':'neg'}">${d>=0?'+':'−'}${money(Math.abs(d))}</span></p>`}
+function renderOzExtra(){const M=S.month;
+  const L=alFor(M,false);$('#ozAlH').textContent=monthName(M)+' alacaklarım';
+  $('#ozAl').innerHTML=L.length?L.map(o=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div>${o.rec?'<span class="chip">Her ay</span>':''}${esc(o.a.name)}</div><small>${o.date?new Date(o.date+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):'her an'}</small></div><div class="amt pos">${money(o.amount)}</div>${o.rec?`<button class="del" data-aldone="${esc(o.a.id)}" data-m="${M}" aria-label="Tahsil edildi">✓</button>`:'<span></span>'}</div>`).join(''):'<div class="empty">Bu ay alacak yok.</div>';
+  const pv=S.hold.reduce((a,h)=>a+(holdValue(h)||0),0),FP=fundPositions(),open=FP.filter(p=>p.units>1e-9),fv=open.reduce((a,p)=>a+(p.netValue??p.cost),0),tot=pv+fv;
+  let mpl=0;for(const h of S.hold){const v=holdValue(h);if(h.cost&&v!=null)mpl+=v-h.cost}const pl=mpl+open.reduce((a,p)=>a+(p.gross==null?0:p.gross-p.taxAmt),0);
+  $('#ozYTot').textContent=money(tot);$('#ozYPl').innerHTML=`Kâr/zarar <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':'−'}${money(Math.abs(pl))}</span>`;
+  $('#ozYDist').innerHTML=tot>0?[[pv,'var(--gold)','Altın & gümüş'],[fv,'var(--accent)','Fonlar']].filter(x=>x[0]>0.5).map(([v,c,n])=>`<i style="flex:${v};background:${c}" title="${n} %${Math.round(v/tot*100)}"></i>`).join(''):'';
+  const g=(S.harem.items||{}).gram,px=[];if(g&&g.alis)px.push(['Gram altın',pmoney(g.alis)]);
+  for(const c of [...new Set(open.map(p=>p.code))].slice(0,2)){const f=(S.fdp.items||{})[c];if(f&&f.price)px.push([c,f.price.toLocaleString('tr-TR',{maximumFractionDigits:6})+' ₺'])}
+  $('#ozYPx').innerHTML=px.map(([n,v])=>`<span>${esc(n)} <b class="num">${esc(v)}</b></span>`).join('');
+  const SPX=expandSp(M>mk(today)?M:mk(today)),cur=SPX.filter(x=>x.date.slice(0,7)===M&&!NOT_MINE.has(x.cat)),st=cur.reduce((a,x)=>a+sgn(x),0);
+  $('#ozSpH').textContent=monthName(M)+' harcamalar';$('#ozSpTot').textContent=money(st);
+  const cats={};for(const x of cur)cats[x.cat]=(cats[x.cat]||0)+sgn(x);const ce=Object.entries(cats).filter(([,v])=>v>0.004).sort((a,b)=>b[1]-a[1]).slice(0,5),mx=ce.length?ce[0][1]:1;
+  $('#ozSpBars').innerHTML=ce.length?ce.map(([k,v])=>`<div class="bar"><span>${esc(k)}</span><span class="num">${money(v)}</span><div class="track"><div class="fill" style="width:${(v/mx*100).toFixed(1)}%"></div></div></div>`).join(''):'<p class="hint">Bu ay harcama yok.</p>'}
 /* ---------- bildirim + geri al ---------- */
 let toastT=null,toastUndo=null;
 function toast(text,undo,ms){const t=$('#toast');$('#toastTx').textContent=text;$('#toastUndo').hidden=!undo;toastUndo=undo||null;t.hidden=false;
@@ -2038,6 +2088,7 @@ function startData(fs){
   on(db.doc('settings/ai'),s=>{S.ai=s.exists?s.data():{};syncAI();syncRefresh();fillSettings();setTimeout(autoRefresh,3000)});
 }
 function showGate(text,signedIn){$('#app').hidden=true;$('#gate').hidden=false;$('#gateMsg').textContent=text;$('#gIn').hidden=!!signedIn;$('#gOut').hidden=!signedIn}
+if(location.hash==='#vB')document.body.classList.add('vB');
 (function boot(){
   const cfg=window.FIREBASE_CONFIG;
   if(!window.firebase||!cfg||!cfg.apiKey||/BURAYA/.test(cfg.apiKey)){showGate('Kurulum tamamlanmamış: config.js dosyasına Firebase ayarlarını yapıştır (KURULUM.md, adım 3).');$('#gIn').hidden=true;return}
