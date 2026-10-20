@@ -278,8 +278,8 @@ nav svg{display:none}
   .row.pend .chk{grid-column:3;grid-row:1}
   .row.pend .pendin{grid-column:2/4;grid-row:2}
   .row.pend .pendin input{flex:1;width:auto;min-width:0}
-  nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);gap:0;padding:4px 2px calc(4px + env(safe-area-inset-bottom,0px))}
-  nav button{display:grid;justify-items:center;gap:3px;padding:6px 0 4px;font-size:10.5px;border-bottom:0;min-width:0}
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:4px 2px calc(4px + env(safe-area-inset-bottom,0px))}
+  nav button{display:grid;justify-items:center;gap:3px;padding:6px 0 4px;font-size:11px;border-bottom:0;min-width:0}
   nav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
   nav svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   nav button[aria-selected="true"]{color:var(--accent)}
@@ -391,6 +391,19 @@ nav svg{display:none}
 .flow.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:560px){.flow.k5{grid-template-columns:repeat(2,minmax(0,1fr))}.flow.k5 div:nth-child(5){grid-column:1/-1;border-left:0}}
 [data-alopen] .what small{white-space:normal}
+
+/* ---- yatırımlar ---- */
+.ydist{display:flex;gap:2px;height:10px;margin:0 18px 10px;border-radius:5px;overflow:hidden}
+.ydist i{display:block;min-width:4px}
+.ylegend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:0 18px 12px;font-size:13.5px;color:var(--muted)}
+.ylegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:0}
+.ylegend b{color:var(--ink);font-weight:500}
+.ysub{padding:0}
+.ypanel{gap:12px}
+.hleg{display:flex;flex-wrap:wrap;gap:4px 16px;padding:0 6px;font-size:12.5px;color:var(--muted)}
+.hleg i{display:inline-block;width:14px;height:2px;border-radius:1px;margin-right:6px;vertical-align:3px}
+.hl2{fill:none;stroke:var(--gold);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.hd2{fill:var(--gold);stroke:var(--surface);stroke-width:2}
 /* renk temaları */
 :root[data-accent="mavi"]:not([data-theme="dark"]){--accent:#1f4f8a;--bg:#f1f3f7;--sunk:#e5e9f1;--line:#d7dde8}
 :root[data-accent="mor"]:not([data-theme="dark"]){--accent:#5b3a8c;--bg:#f4f2f7;--sunk:#ebe6f1;--line:#ddd6e8}
@@ -477,8 +490,8 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <button role="tab" data-tab="ozet" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/></svg><span>Özet</span></button>
       <button role="tab" data-tab="alacak" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7 7 7-7"/></svg><span>Alacaklar</span></button>
       <button role="tab" data-tab="kart" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Kartlar</span></button>
-      <button role="tab" data-tab="fon" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg><span>Fonlar</span></button>
-      <button role="tab" data-tab="maden" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/></svg><span>Altın</span></button>
+      <button role="tab" data-tab="yatirim" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg><span>Yatırımlar</span></button>
+      
       <button role="tab" data-tab="harcama" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg><span>Harcamalar</span></button>
     </nav>
   </div>
@@ -513,12 +526,11 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 
     <div class="box">
       <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
-        <span class="hint why">Bakiye + alacaklar + altın, gümüş ve fonlar (stopaj sonrası) − borçlar</span></div>
-      <div class="flow k5">
+        <span class="hint why">Bakiye + alacaklar + yatırımlar (altın, gümüş ve stopaj sonrası fonlar) − borçlar</span></div>
+      <div class="flow">
         <div><span class="eyebrow">Bakiye</span><b id="nNakit">—</b></div>
         <div><span class="eyebrow">Alacaklar</span><b id="nAlacak">—</b></div>
-        <div><span class="eyebrow">Altın &amp; gümüş</span><b id="nMaden" style="color:var(--gold)">—</b></div>
-        <div><span class="eyebrow">Fonlar</span><b id="nFon" style="color:var(--accent)">—</b></div>
+        <div><span class="eyebrow">Yatırımlar</span><b id="nMaden" style="color:var(--gold)">—</b><small class="hint" id="nYatSub"></small></div>
         <div><span class="eyebrow">Borçlar</span><b class="neg" id="nBorc">—</b></div>
       </div>
     </div>
@@ -707,6 +719,25 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </details>
   </section>
 
+  <!-- YATIRIMLAR (altın & gümüş + fonlar) -->
+  <section class="panel ypanel" data-panel="yatirim" hidden>
+    <div class="box">
+      <div class="kalan">
+        <span class="eyebrow">Yatırımlarım <button type="button" class="info" data-why aria-label="Ayrıntı">i</button></span>
+        <span class="big" id="yTotal">—</span>
+        <span class="hint" id="yPl"></span>
+        <span class="hint why">Altın ve gümüş kurumun alış fiyatıyla, fonlar stopaj düşülmüş net değerle hesaplanır. Kâr/zarar, maliyeti girilen altınlar ve tüm fonlar üzerinden.</span>
+      </div>
+      <div class="ydist" id="yDist"></div>
+      <div class="ylegend" id="yLegend"></div>
+      <div class="fown" id="yOwn" style="padding:0 18px 14px"></div>
+    </div>
+    <div class="tabs chips ysub" role="tablist" aria-label="Yatırım türü">
+      <button type="button" role="tab" data-ytab="maden" aria-selected="true">Altın &amp; gümüş</button>
+      <button type="button" role="tab" data-ytab="fon" aria-selected="false">Fonlar</button>
+    </div>
+  </section>
+
   <!-- FONLAR -->
   <section class="panel" data-panel="fon" hidden>
     <div class="box port">
@@ -759,7 +790,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="refrow" style="margin-top:6px"><button class="btn ghost" type="button" data-refresh hidden>Fiyatları şimdi güncelle</button><span class="msg" data-refmsg></span></div>
     </div>
     <div class="mgroups" id="metalGroups"></div>
-    <p class="hint">Fiyatlar doviz.com'dan 20 dakikada bir otomatik gelir ve elle değiştirilemez. Satımda tutar girersen bakiyene eklenmez; nakit girişini Gelir &amp; Gider'den kaydet.</p>
+    <p class="hint">Fiyatlar doviz.com'dan 20 dakikada bir otomatik gelir ve elle değiştirilemez. Satımda girdiğin tutar bakiyene eklenmez.</p>
   </section>
 
   <!-- GEÇMİŞ (başlıktaki grafik düğmesi) -->
@@ -889,6 +920,7 @@ const MG=[
   desc:'Fibabanka alış fiyatıyla değerlenir.',match:h=>h.src==='fiba'&&h.prod==='altin'},
  {k:'fag',src:'fiba',title:'Fiba gümüş',m:'ag',list:[FIBA[1]],ptitle:'Fibabanka gümüş fiyatı',pa:'Banka alış',ps:'Banka satış',
   desc:'Fibabanka alış fiyatıyla değerlenir.',match:h=>h.src==='fiba'&&h.prod==='gumus'}];
+const OWNERS=['Emre','Merve'];
 (function buildMetalGroups(){
   let open=[];try{open=JSON.parse(localStorage.getItem('kasa.mg')||'[]')}catch(e){}
   document.getElementById('metalGroups').innerHTML=MG.map(g=>{const one=g.list.length===1;return `
@@ -912,6 +944,7 @@ const MG=[
             <label class="f"><span id="qlbl_${g.k}">Miktar</span><input id="qty_${g.k}" class="num" inputmode="decimal" placeholder="0" required></label>
             <label class="f"><span>Tutar (₺, isteğe bağlı)</span><input id="cost_${g.k}" class="num" inputmode="decimal" placeholder="0,00"></label>
           </div>
+          <div class="segrow"><span class="eyebrow">Kimin adına</span><div class="seg" role="radiogroup" aria-label="Kimin adına">${OWNERS.map((o,i)=>`<label><input type="radio" name="own_${g.k}" value="${o}"${i?'':' checked'}>${o}</label>`).join('')}</div></div>
           <button class="btn" type="submit" id="hsub_${g.k}">Ekle</button>
           <div class="msg" id="hmsg_${g.k}"></div>
         </form>
@@ -940,7 +973,6 @@ const SP_DEFAULT=[
  ['Finans',['Nakit avans']],
  ['Diğer',['Hediye','Evcil hayvan','Vergi / Harç','Diğer']],
  ['Benim olmayan',['Dominos','Başkası için']]];
-const OWNERS=['Emre','Merve'];
 let CAT_GROUPS=SP_DEFAULT.map(([g,c])=>({g,c:[...c],nm:g==='Benim olmayan'}));
 let SP_GROUPS=SP_DEFAULT,NOT_MINE=new Set(),SP_CATS=[],catsKey=null,CAT_EDIT=null;
 function applyCats(){const raw=S.settings.spGroups;const key=JSON.stringify(Array.isArray(raw)&&raw.length?raw:null);if(key===catsKey)return;catsKey=key;
@@ -949,7 +981,7 @@ function applyCats(){const raw=S.settings.spGroups;const key=JSON.stringify(Arra
   const sc=$('#spCat');if(sc){const v=sc.value;sc.innerHTML=spCatOpts(v)}
   renderCatEditor()}
 const S={pstat:{},ai:{},sp:[],tx:[],cards:[],hold:[],fdtx:[],fdp:{items:{}},al:[],st:[],harem:{items:{}},fiba:{items:{}},settings:{},month:mk(today),tab:'ozet'};
-try{const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','fon','maden','gecmis'].includes(t))S.tab=t}catch(e){}
+S.yt='maden';try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'?(S.yt=t,'yatirim'):t}catch(e){}
 let db=null;
 
 /* ---------- money logic ---------- */
@@ -991,9 +1023,10 @@ function fundPositions(){
 function holdValue(h){const src=h.src==='fiba'?S.fiba:S.harem;const p=(src.items||{})[h.prod];return p&&p.alis?h.qty*p.alis:null}
 
 /* ---------- render ---------- */
-function setTab(t){if(t!=='gecmis')S.prevTab=t;S.tab=t;try{localStorage.setItem('kasa.tab',t)}catch(e){}
+function setTab(t){if(t==='fon'||t==='maden'){S.yt=t;t='yatirim'}if(t!=='gecmis')S.prevTab=t;S.tab=t;try{localStorage.setItem('kasa.tab',t);localStorage.setItem('kasa.yt',S.yt)}catch(e){}
   $$('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
-  $$('[data-panel]').forEach(p=>p.hidden=p.dataset.panel!==t);
+  $$('[data-ytab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.ytab===S.yt));
+  $$('[data-panel]').forEach(p=>p.hidden=!(p.dataset.panel===t||(t==='yatirim'&&p.dataset.panel===S.yt)));
   $('#histBtn').setAttribute('aria-pressed',t==='gecmis');if(t==='gecmis')renderHist();}
 /* ---------- servet geçmişi ---------- */
 const LOADED=new Set(),SNAP_NEED=['tx','cards','holdings','alacak','statements','fundtx','prices/funds','prices/harem','prices/fiba','settings/main'];
@@ -1033,13 +1066,13 @@ function renderHist(){
 function drawHist(pts){const box=$('#hChart');const W=Math.max(260,Math.round(box.clientWidth||340)),Hh=W<520?220:260;
   if(!pts.length){box.innerHTML='<p class="empty">Henüz kayıt yok. Uygulamayı her açtığında o günün değeri kendiliğinden kaydedilir; grafik zamanla dolacak.</p>';return}
   const cmp=new Intl.NumberFormat('tr-TR',{notation:'compact',maximumFractionDigits:2});
-  const ts=pts.map(p=>new Date(p.id+'T00:00').getTime()),vs=pts.map(p=>p.ana);
+  const ts=pts.map(p=>new Date(p.id+'T00:00').getTime()),vs=pts.map(p=>p.ana),ys=pts.map(p=>(p.maden||0)+(p.fon||0));
   let t0=ts[0],t1=ts[ts.length-1];if(t1===t0){t0-=3*864e5;t1+=3*864e5}
-  let lo=Math.min(...vs),hi=Math.max(...vs);if(hi-lo<Math.max(Math.abs(hi)*0.002,1)){const pd=Math.max(Math.abs(hi)*0.02,1000);lo-=pd;hi+=pd}
+  let lo=Math.min(...vs,...ys),hi=Math.max(...vs,...ys);if(hi-lo<Math.max(Math.abs(hi)*0.002,1)){const pd=Math.max(Math.abs(hi)*0.02,1000);lo-=pd;hi+=pd}
   const tk=niceTicks(lo,hi,4);lo=Math.min(lo,tk[0]);hi=Math.max(hi,tk[tk.length-1]);
   const yl=tk.map(v=>HIDE?'•••':cmp.format(v)),L=Math.max(...yl.map(x=>x.length))*6.6+14,R=10,T=40,B=26,iw=W-L-R,ih=Hh-T-B;
   const X=t=>L+(t-t0)/(t1-t0)*iw,Y=v=>T+(1-(v-lo)/(hi-lo))*ih,f1=n=>n.toFixed(1);
-  const line=pts.map((p,i)=>`${i?'L':'M'}${f1(X(ts[i]))},${f1(Y(vs[i]))}`).join('');
+  const line=pts.map((p,i)=>`${i?'L':'M'}${f1(X(ts[i]))},${f1(Y(vs[i]))}`).join(''),line2=pts.map((p,i)=>`${i?'L':'M'}${f1(X(ts[i]))},${f1(Y(ys[i]))}`).join('');
   const area=pts.length>1?`${line}L${f1(X(ts[ts.length-1]))},${f1(T+ih)}L${f1(X(ts[0]))},${f1(T+ih)}Z`:'';
   const grid=tk.map((v,i)=>`<line x1="${f1(L)}" x2="${W-R}" y1="${f1(Y(v))}" y2="${f1(Y(v))}" class="hg"/><text x="${f1(L-8)}" y="${f1(Y(v)+4)}" text-anchor="end" class="ht">${esc(yl[i])}</text>`).join('');
   const span=(t1-t0)/864e5,xf=new Intl.DateTimeFormat('tr-TR',span>240?{month:'short',year:'2-digit'}:{day:'numeric',month:'short'});
@@ -1047,14 +1080,14 @@ function drawHist(pts){const box=$('#hChart');const W=Math.max(260,Math.round(bo
   const xt=xs.map((t,i)=>`<text x="${f1(X(t))}" y="${Hh-6}" text-anchor="${nx>1&&i===0?'start':nx>1&&i===nx-1?'end':'middle'}" class="ht">${esc(xf.format(new Date(t)))}</text>`).join('');
   const n=pts.length-1,first=fmtD(pts[0].id),lastD=fmtD(pts[n].id);
   box.innerHTML=`<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" role="img" aria-label="Ana bakiye grafiği: ${esc(first)} ${esc(money(vs[0]))}, ${esc(lastD)} ${esc(money(vs[n]))}">
-    ${grid}${area?`<path d="${area}" class="ha"/>`:''}<path d="${line}" class="hl"/>
-    <circle cx="${f1(X(ts[n]))}" cy="${f1(Y(vs[n]))}" r="4.5" class="hd"/>${xt}
+    ${grid}${area?`<path d="${area}" class="ha"/>`:''}<path d="${line2}" class="hl2"/><path d="${line}" class="hl"/>
+    <circle cx="${f1(X(ts[n]))}" cy="${f1(Y(ys[n]))}" r="4.5" class="hd2"/><circle cx="${f1(X(ts[n]))}" cy="${f1(Y(vs[n]))}" r="4.5" class="hd"/>${xt}
     <line class="hx" y1="${T}" y2="${T+ih}" x1="0" x2="0" visibility="hidden"/><circle class="hd hc" r="4.5" cx="0" cy="0" visibility="hidden"/>
-  </svg><div class="htip" hidden></div>${pts.length<3?'<p class="hint" style="padding:4px 6px 2px">Grafik her gün kendiliğinden bir nokta ekleyerek dolacak.</p>':''}`;
+  </svg><div class="hleg"><span><i style="background:var(--accent)"></i>Ana bakiye</span><span><i style="background:var(--gold)"></i>Yatırımlar</span></div><div class="htip" hidden></div>${pts.length<3?'<p class="hint" style="padding:4px 6px 2px">Grafik her gün kendiliğinden bir nokta ekleyerek dolacak.</p>':''}`;
   const svg=box.querySelector('svg'),hx=svg.querySelector('.hx'),hc=svg.querySelector('.hc'),tip=box.querySelector('.htip');
   const show=ev=>{const r=svg.getBoundingClientRect(),k=r.width/W,px=(ev.clientX-r.left)/k;let bi=0,bd=Infinity;ts.forEach((t,i)=>{const d=Math.abs(X(t)-px);if(d<bd){bd=d;bi=i}});
     const x=X(ts[bi]),y=Y(vs[bi]);for(const a of ['x1','x2'])hx.setAttribute(a,f1(x));hx.setAttribute('visibility','visible');hc.setAttribute('cx',f1(x));hc.setAttribute('cy',f1(y));hc.setAttribute('visibility','visible');
-    const pv=bi>0?vs[bi]-vs[bi-1]:null;tip.innerHTML=`<span>${esc(fmtD(pts[bi].id))}</span><b class="num">${money(vs[bi])}</b>${pv!=null&&Math.abs(pv)>=1?`<small class="${pv>=0?'pos':'neg'}">${signM(pv)} önceki kayda göre</small>`:''}`;tip.hidden=false;
+    const pv=bi>0?vs[bi]-vs[bi-1]:null;tip.innerHTML=`<span>${esc(fmtD(pts[bi].id))}</span><b class="num">${money(vs[bi])}</b><small>Yatırımlar ${money(ys[bi])}</small>${pv!=null&&Math.abs(pv)>=1?`<small class="${pv>=0?'pos':'neg'}">${signM(pv)} önceki kayda göre</small>`:''}`;tip.hidden=false;
     const tw=tip.offsetWidth;tip.style.left=Math.max(0,Math.min(box.clientWidth-tw,x*k-tw/2))+'px'};
   const hide=()=>{hx.setAttribute('visibility','hidden');hc.setAttribute('visibility','hidden');tip.hidden=true};
   svg.addEventListener('pointermove',show);svg.addEventListener('pointerdown',show);svg.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')hide()});
@@ -1115,6 +1148,20 @@ function delStmt(id){const x=S.st.find(s=>s.id===id);if(!x||!db)return;const old
   STEDIT=null;
   (async()=>{if(pt)await db.collection('tx').doc(pt.id).delete();await db.collection('statements').doc(id).delete()})().catch(err=>showBanner(errText(err)));
   toast(x.paid?'Ödenmiş ekstre ve ödeme kaydı silindi.':'Ekstre silindi.',async()=>{await db.collection('statements').doc(id).set(old);if(pt)await db.collection('tx').doc(pt.id).set(oldPt)})}
+/* ---------- yatırımlar özeti ---------- */
+function renderInvest(pv,fv,FP){const tot=pv+fv;$('#yTotal').textContent=money(tot);
+  let mpl=0,mc=0;for(const h of S.hold){const v=holdValue(h);if(h.cost&&v!=null){mpl+=v-h.cost;mc++}}
+  const open=FP.filter(p=>p.units>1e-9),fpl=open.reduce((a,p)=>a+(p.gross==null?0:p.gross-p.taxAmt),0),pl=mpl+fpl;
+  $('#yPl').innerHTML=(mc||open.length)?`Toplam kâr/zarar <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':'−'}${money(Math.abs(pl))}</span>${HIDE?'':` <span class="hint">(altın ${mpl>=0?'+':'−'}${money(Math.abs(mpl))} · fon ${fpl>=0?'+':'−'}${money(Math.abs(fpl))})</span>`}`:'';
+  const parts=[['Altın & gümüş',pv,'var(--gold)'],['Fonlar',fv,'var(--accent)']].filter(x=>x[1]>0.5);
+  $('#yDist').innerHTML=tot>0?parts.map(([n,v,c])=>`<i style="flex:${v};background:${c}" title="${esc(n)}"></i>`).join(''):'';
+  $('#yLegend').innerHTML=tot>0?parts.map(([n,v,c])=>`<span><i style="background:${c}"></i>${esc(n)} <b class="num">${money(v)}</b> <span class="hint">%${Math.round(v/tot*100)}</span></span>`).join(''):'';
+  const by=o=>S.hold.filter(h=>(h.owner||OWNERS[0])===o).reduce((a,h)=>a+(holdValue(h)||0),0)+open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.netValue??p.cost),0);
+  const ow=OWNERS.map(o=>[o,by(o)]).filter(x=>x[1]>0.5);
+  $('#yOwn').innerHTML=ow.length>1?ow.map(([o,v])=>`<span><i class="odot o${OWNERS.indexOf(o)}"></i>${esc(o)} <b class="num">${money(v)}</b></span>`).join(''):'';}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-hown]');if(!b||!db)return;const h=S.hold.find(x=>x.id===b.dataset.hown);if(!h)return;
+  const cur=h.owner||OWNERS[0],nx=OWNERS[(OWNERS.indexOf(cur)+1)%OWNERS.length],old=stripId(h);
+  db.collection('holdings').doc(h.id).set({...old,owner:nx}).catch(err=>showBanner(errText(err)));toast(`${nx} adına geçti.`,()=>db.collection('holdings').doc(h.id).set(old))});
 /* ---------- bildirim + geri al ---------- */
 let toastT=null,toastUndo=null;
 function toast(text,undo,ms){const t=$('#toast');$('#toastTx').textContent=text;$('#toastUndo').hidden=!undo;toastUndo=undo||null;t.hidden=false;
@@ -1144,7 +1191,7 @@ function render0(){
   $('#sKalan').textContent=money(kalan);$('#sKalan').className='big '+(kalan<0?'neg':'');
   $('#sGelir').textContent=money(alM);$('#sGelirSub').textContent=alLater>0.004?`+${money(alLater)} sonraki aylarda`:'';$('#sFon').textContent=money(fv);$('#sKartHar').textContent=money(dueThis);
   const pend=dueList.filter(x=>!(x.amount>0)).length;$('#sKartSub').textContent=dueList.length?`${dueList.length} ekstre${pend?` · ${pend} tanesinin tutarı girilmedi`:''}`:'';
-  $('#nMaden').textContent=money(pv);$('#nFon').textContent=money(fv);$('#nAlacak').textContent=money(alT);
+  $('#nMaden').textContent=money(pv+fv);$('#nYatSub').textContent=`altın ${money(pv)} · fon ${money(fv)}`;renderInvest(pv,fv,FP);$('#nAlacak').textContent=money(alT);
   const ana=cashUpTo(M)+alT+pv+fv-debt;$('#nAna').textContent=money(ana);
   {const cash=cashUpTo(mk(today));maybeSnap({ana:cash+alT+pv+fv-debt,bakiye:cash,alacak:alT,maden:pv,fon:fv,borc:debt,
     fonBy:Object.fromEntries(OWNERS.map(o=>[o,FP.filter(p=>p.owner===o&&p.units>1e-9).reduce((a,p)=>a+(p.netValue??p.cost),0)]))},S.hold.some(h=>holdValue(h)==null))}
@@ -1428,7 +1475,7 @@ function renderMetals(pv){
     $('#list_'+g.k).innerHTML=hs.length?hs.map(h=>{const p=prodOf(h.src,h.prod);const v=holdValue(h);if(v==null)missing++;else tot[g.k]+=v;
       if(h.cost){cost+=h.cost;costed+=v||0}
       const pl=h.cost&&v!=null?v-h.cost:null;
-      return `<div class="row"><span class="metal ${p.m}"></span><div class="what"><div>${esc(p.n)} · ${NUM.format(h.qty)} ${p.u}</div><small>${v!=null?'birim '+money(v/h.qty):''}${h.cost?' · maliyet '+money(h.cost):''}${pl!=null?` · <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${money(pl)}</span>`:''}</small></div>
+      return `<div class="row"><span class="metal ${p.m}"></span><div class="what"><div>${esc(p.n)} · ${NUM.format(h.qty)} ${p.u}</div><small><button type="button" class="ochip" data-hown="${esc(h.id)}" title="Kimin adına; değiştirmek için dokun"><i class="odot o${Math.max(0,OWNERS.indexOf(h.owner||OWNERS[0]))}"></i>${esc(h.owner||OWNERS[0])} ⇄</button>${v!=null?'birim '+money(v/h.qty):''}${h.cost?' · maliyet '+money(h.cost):''}${pl!=null?` · <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':''}${money(pl)}</span>`:''}</small></div>
         <div class="amt">${v==null?'<span class="mut">fiyat yok</span>':money(v)}</div><button class="del" data-del="hold" data-id="${esc(h.id)}" aria-label="Varlığı sil">✕</button></div>`}).join('')
       :`<div class="empty">Henüz kayıt yok. Aşağıdaki "Alım / satım gir" ile ekle.</div>`;
     let q='Kayıt yok';
@@ -1714,13 +1761,13 @@ for(const g of MG){const key=g.k,src=g.src;
   const sync=()=>{const p=prodOf(src,sel.value);const sell=$('#sell_'+key).checked;$('#qlbl_'+key).textContent='Miktar ('+(p.u==='adet'?'adet':'gram')+')';$('#hsub_'+key).textContent=sell?'Satımı kaydet':'Alımı kaydet'};
   sel.addEventListener('change',sync);$('#buy_'+key).addEventListener('change',sync);$('#sell_'+key).addEventListener('change',sync);sync();
   $('#hf_'+key).addEventListener('submit',async e=>{e.preventDefault();const msg=$('#hmsg_'+key);if(!need(msg))return;
-    const qty=parseNum($('#qty_'+key).value),cost=parseNum($('#cost_'+key).value),prod=sel.value,sell=$('#sell_'+key).checked,p=prodOf(src,prod);
+    const qty=parseNum($('#qty_'+key).value),cost=parseNum($('#cost_'+key).value),prod=sel.value,sell=$('#sell_'+key).checked,p=prodOf(src,prod),owner=(document.querySelector(`input[name=own_${key}]:checked`)||{}).value||OWNERS[0];
     if(!(qty>0)){flash(msg,'Miktarı sıfırdan büyük gir (ör. 12,5).',true);return}
     if(isNaN(cost)){flash(msg,'Tutarı sayı olarak gir ya da boş bırak.',true);return}
-    const mine=S.hold.filter(h=>g.match(h)&&h.prod===prod).sort((a,b)=>(a.created||0)-(b.created||0));
+    const mine=S.hold.filter(h=>g.match(h)&&h.prod===prod&&(h.owner||OWNERS[0])===owner).sort((a,b)=>(a.created||0)-(b.created||0));
     try{
-      if(!sell){await db.collection('holdings').doc(uid()).set({src,prod,qty,cost:cost||0,created:Date.now()})}
-      else{const have=mine.reduce((a,h)=>a+h.qty,0);if(have+1e-9<qty){flash(msg,`Elinde ${NUM.format(have)} ${p.u} ${p.n} var; daha fazlasını satamazsın.`,true);return}
+      if(!sell){await db.collection('holdings').doc(uid()).set({src,prod,qty,cost:cost||0,owner,created:Date.now()})}
+      else{const have=mine.reduce((a,h)=>a+h.qty,0);if(have+1e-9<qty){flash(msg,`${owner} adına ${NUM.format(have)} ${p.u} ${p.n} var; daha fazlası satılamaz.`,true);return}
         let left=qty;
         for(const h of mine){if(left<=1e-9)break;const take=Math.min(h.qty,left);left-=take;const ref=db.collection('holdings').doc(h.id);
           if(h.qty-take<=1e-9)await ref.delete();else{const {id,...rest}=h;const ratio=(h.qty-take)/h.qty;await ref.set({...rest,qty:Math.round((h.qty-take)*1000)/1000,cost:h.cost?Math.round(h.cost*ratio*100)/100:0})}}}
@@ -1743,6 +1790,7 @@ document.addEventListener('click',async e=>{
   toast(lbl+' silindi.',data?()=>db.collection(coll).doc(id).set(data):null);
 });
 $$('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+$$('[data-ytab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.ytab)));
 $('#prevM').addEventListener('click',()=>{S.month=addM(S.month,-1);render()});
 $('#nextM').addEventListener('click',()=>{S.month=addM(S.month,1);render()});
 
