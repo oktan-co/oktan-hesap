@@ -57,6 +57,8 @@ ${list.length > 1 ? `<tr><td bgcolor="${t.soft}" style="background:${t.soft};pad
 /** E-posta konusu, gövdesi ve önceliği. test=true ise aynı görünüm "Deneme" şeridiyle gönderilir. */
 export function buildMail(due, { appUrl, test = false, late = '' } = {}) {
   const LT = late ? lateTone(late) : null, tn = d => (LT && d === 0 ? LT : tone(d));
+  // deneme + akşam: bugün son günü olan yoksa en yakın ödemeyi akşam görünümüyle göster
+  if (test && LT && !due.today.length && due.upcoming.length) due = { ...due, today: due.upcoming.filter(x => x.due === due.upcoming[0].due), tomorrow: [] };
   let groups = [];
   if (due.today.length) groups.push([0, due.today]);
   if (due.tomorrow.length && !LT) groups.push([1, due.tomorrow]);
