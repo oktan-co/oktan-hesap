@@ -1,3 +1,6 @@
 {
-  "IDL": { "bloomberght": "https://www.bloomberght.com/yatirim-fonlari/aktif-portfoy-para-piyasasi-tl-fonu-idl" }
+  "IDL": {
+    "bloomberght": "https://www.bloomberght.com/yatirim-fonlari/aktif-portfoy-para-piyasasi-tl-fonu-idl",
+    "kurucu": "https://www.aktifportfoy.com.tr/fonlarimiz/yatirim-fonlarimiz/idl"
+  }
 }
