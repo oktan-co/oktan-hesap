@@ -1655,7 +1655,9 @@ function marketOpen(d=new Date()){const t=d.getHours()*60+d.getMinutes();return 
 function autoRefresh(){if(!db||!ghReady()||S.refreshing||document.visibilityState!=='visible'||!marketOpen())return;
   if(!['prices/harem','prices/funds'].every(k=>LOADED.has(k)))return;
   const last=Math.max(S.harem.updatedAt||0,S.fiba.updatedAt||0);let tried=0;try{tried=Number(localStorage.getItem('kasa.lastRefresh'))||0}catch(e){}
-  if(Date.now()-last<35*60e3||Date.now()-tried<20*60e3)return;refreshPrices(true)}
+  if(Date.now()-last<35*60e3||Date.now()-tried<20*60e3)return;refreshPrices(true);
+  // fiyatlar eskidiyse arka plandaki "saat" durmuş olabilir; onu da yeniden başlat
+  fetch(`https://api.github.com/repos/${S.ai.ghRepo.trim()}/actions/workflows/ticker.yml/dispatches`,{method:'POST',headers:{'Accept':'application/vnd.github+json','Authorization':'Bearer '+S.ai.ghToken.trim(),'X-GitHub-Api-Version':'2022-11-28'},body:JSON.stringify({ref:'main'})}).catch(()=>{})}
 setInterval(autoRefresh,60e3);addEventListener('visibilitychange',()=>setTimeout(autoRefresh,1500));
 function done(t,err){S.refreshing=false;render();$$('[data-refresh]').forEach(b=>b.disabled=false);refMsg(t,err)}
 document.addEventListener('click',e=>{if(e.target.closest('[data-refresh]'))refreshPrices()});

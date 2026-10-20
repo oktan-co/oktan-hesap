@@ -28,7 +28,7 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-          TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.deneme && '1' || '' }}
+          TEST: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deneme == 'true' && '1' || '' }}
       # Herkese açık depolarda GitHub, 60 gün hiç değişiklik olmazsa zamanlanmış işleri durdurur.
       # Her ayın 1'inde boş bir kayıt atarak fiyat güncellemesinin ve bu hatırlatmanın durmamasını sağlar.
       - name: Zamanlanmış işleri canlı tut
