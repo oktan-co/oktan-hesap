@@ -304,6 +304,12 @@ nav svg{display:none}
 .fnote b{color:var(--ink);font-weight:500;font-family:var(--f-num);font-variant-numeric:tabular-nums}
 .fnote .fn-row{display:flex;justify-content:space-between;gap:12px}
 .fnote .fn-net{border-top:1px dashed var(--line);padding-top:6px;margin-top:2px;color:var(--ink)}
+.fnote.sell{background:color-mix(in srgb,var(--gold) 9%,var(--surface));border-color:color-mix(in srgb,var(--gold) 45%,transparent);gap:6px;padding:12px 14px}
+.fnote.sell .fn-net{border-top:1px solid color-mix(in srgb,var(--gold) 35%,transparent);padding-top:8px;font-weight:500}
+.fnote .fn-h{display:flex;align-items:center;gap:8px;color:var(--gold);font-weight:600;font-size:14.5px}
+.fnote .fn-h svg{flex:none}
+.fnote .fn-tax{display:flex;justify-content:space-between;align-items:center;gap:12px;background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold);border-radius:8px;padding:9px 12px;font-weight:600;margin-bottom:2px}
+.fnote .fn-tax b{color:var(--gold);font-size:16px;font-weight:600}
 .fnote .fn-net b{font-size:15px}
 .fnote .fn-lots{font-size:12.5px}
 .fnote .warn{color:var(--neg)}
@@ -1686,19 +1692,22 @@ function fdSync(){const sell=$('#fdSell').checked;$('#fdSubmit').textContent=sel
   const owner=(document.querySelector('input[name="fdOwner"]:checked')||{}).value||OWNERS[0],code=$('#fdCode').value.trim().toLocaleUpperCase('en-US').replace(/[^A-Z0-9]/g,'');
   const rate=((S.settings.fundTax||{})[code])||0,pct=v=>'%'+String(v).replace('.',','),note=$('#fdNote'),px=v=>v.toLocaleString('tr-TR',{maximumFractionDigits:6});
   const dmy=iso=>String(iso||'').split('-').reverse().join('.'),row=(a,b,c='')=>`<div class="fn-row ${c}"><span>${a}</span><b>${b}</b></div>`;
+  note.classList.remove('sell');
   if(!code){note.hidden=true;return}
   if(!sell){note.hidden=false;note.innerHTML=`<span>Alımda stopaj kesilmez. ${rate?`${esc(code)} satarken yalnızca kârdan ${pct(rate)} stopaj kesilir; satış FIFO ile en eski alımlardan düşülür.`:`Satarken kârdan stopaj kesilir; oranı fonun ⚙ ayarından girebilirsin.`}</span>`;return}
   const pv=sellPreview(owner,code,u,p);
   if(!pv||!(pv.have>1e-9)){note.hidden=false;note.innerHTML=`<span class="warn">${esc(owner)} adına ${esc(code)} pozisyonu yok.</span>`;return}
   if(!(u>0&&p>0)){note.hidden=false;note.innerHTML=`<span>${esc(owner)} adına ${NUM.format(pv.have)} lot ${esc(code)} var. Lot ve fiyatı girince stopaj ve hesaba geçecek net tutar burada hesaplanır.</span>`;return}
   const tv=$('#fdTax').value.trim(),man=tv?parseNum(tv):NaN,tax=man>=0?r2(man):pv.auto,net=pv.gross-tax;
-  note.hidden=false;note.innerHTML=
+  const shield='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M12 8v4M12 16h.01"/></svg>';
+  note.hidden=false;note.classList.add('sell');note.innerHTML=
+    `<div class="fn-h">${shield}Kesilecek stopaj</div>`+
     (pv.short?`<span class="warn">${esc(owner)} adına yalnızca ${NUM.format(pv.have)} lot var; daha fazlası satılamaz.</span>`:'')+
-    `<div class="fn-lots">FIFO ile düşülecek alımlar: ${pv.used.map(l=>`${NUM.format(l.units)} lot · ${esc(dmy(l.date))} (${px(l.price)} ₺)`).join(', ')}</div>`+
+    `<div class="fn-tax"><span>${man>=0?'Stopaj (elle girildi)':`Stopaj (${rate?pct(rate)+' × kâr':'oran girilmemiş'})`}</span><b>−${money(tax)}</b></div>`+
     row('Brüt satış',money(pv.gross))+row('FIFO maliyet',money(pv.cost))+
-    row('Kâr',`${pv.gain>=0?'+':''}${money(pv.gain)}`)+
-    row(man>=0?'Stopaj (elle girildi)':`Stopaj (${rate?pct(rate)+' × kâr':'oran girilmemiş'})`,'−'+money(tax))+
-    row('Hesaba geçecek net',money(net),'fn-net')+
+    row('Brüt kâr',`${pv.gain>=0?'+':''}${money(pv.gain)}`)+
+    row('Hesabına yatacak tutar',money(net),'fn-net')+
+    `<div class="fn-lots">FIFO ile düşülecek alımlar: ${pv.used.map(l=>`${NUM.format(l.units)} lot · ${esc(dmy(l.date))} (${px(l.price)} ₺)`).join(', ')}</div>`+
     (rate||man>=0?'':`<span class="warn">Bu fonun stopaj oranı girilmemiş; ⚙ ayarından gir.</span>`)}
 {let d=OWNERS[0];try{d=localStorage.getItem('kasa.fdOwner')||d}catch(e){}if(!OWNERS.includes(d))d=OWNERS[0];
  $('#fdOwners').innerHTML=OWNERS.map(o=>`<label><input type="radio" name="fdOwner" value="${esc(o)}"${o===d?' checked':''}>${esc(o)}</label>`).join('')}
