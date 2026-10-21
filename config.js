@@ -11,4 +11,4 @@ window.FIREBASE_CONFIG = {
 
 // Bildirimler için Firebase > Proje ayarları > Cloud Messaging > Web Push sertifikaları
 // bölümündeki açık anahtarı (genelde "B" ile başlar) buraya yapıştır.
-window.VAPID_KEY = "BURAYA";
+window.VAPID_KEY = "BDj2G6u4O-oAnYz5QCISrleI2OAW-D7T3GK6HNMsBzdBuBvEfYIil3I3ssn9A-dyNQ8PgyraUBCSkyqRTs_h7Cs";
