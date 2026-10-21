@@ -854,16 +854,16 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
   <!-- FONLAR -->
   <section class="panel" data-panel="fon" hidden>
     <div class="box port">
-      <span class="eyebrow">Fon portföyü değeri <button type="button" class="info" data-why aria-label="Ayrıntı">i</button></span>
+      <span class="eyebrow">Fon portföyü net değeri <button type="button" class="info" data-why aria-label="Ayrıntı">i</button></span>
       <span class="big" id="fdTotal" style="color:var(--accent)">₺0,00</span>
       <span class="hint" id="fdPl"></span>
       <span class="fown" id="fdOwn"></span>
-      <span class="hint why" id="fdSub">Lot × güncel fiyat (brüt)</span>
+      <span class="hint why" id="fdSub">Lot × güncel fiyat, stopaj düşülmüş</span>
     </div>
     <div class="sec">
       <div class="sec-h"><h2>Pozisyonlarım</h2><span class="stamp" id="fdStamp"></span></div>
       <div class="box list" id="fdPos"></div>
-      <details class="howto"><summary>Nasıl çalışır?</summary><p class="hint">Güncel fiyatlar TEFAS verisinden otomatik gelir. Değerler bankadaki gibi brüt gösterilir; stopaj sonrası net ayrıca yazar. Maliyet FIFO (ilk giren ilk çıkar) ile hesaplanır: satışta en eski alımlar düşülür. Stopaj oranını fonun yanındaki ⚙ düğmesinden girersin; stopaj yalnızca kârdan kesilir.</p></details>
+      <details class="howto"><summary>Nasıl çalışır?</summary><p class="hint">Güncel fiyatlar TEFAS verisinden otomatik gelir. Değerler stopaj düşülmüş net gösterilir; bankadakiyle karşılaştırmak için brüt değer fonun ⚙ detayında yazar. Maliyet FIFO (ilk giren ilk çıkar) ile hesaplanır: satışta en eski alımlar düşülür. Stopaj oranını fonun yanındaki ⚙ düğmesinden girersin; stopaj yalnızca kârdan kesilir.</p></details>
       <div class="refrow"><button class="btn ghost" type="button" data-refresh hidden>Fiyatları şimdi güncelle</button><span class="msg" data-refmsg></span></div>
     </div>
     <div class="sec">
@@ -1405,30 +1405,30 @@ function renderFunds(FP,fv){
   const open=FP.filter(p=>p.units>1e-9);
   const costT=open.reduce((a,p)=>a+p.cost,0), realized=FP.reduce((a,p)=>a+p.realized,0), realTax=FP.reduce((a,p)=>a+p.realizedTax,0);
   const gross=open.reduce((a,p)=>a+(p.value??p.cost),0),taxT=open.reduce((a,p)=>a+p.taxAmt,0);
-  $('#fdTotal').textContent=money(gross);
+  $('#fdTotal').textContent=money(fv);
   const un=gross-costT;
-  $('#fdSub').textContent=open.length?`Lot × güncel fiyat (brüt, bankadaki gibi) · maliyet FIFO ${money(costT)} · brüt K/Z ${un>=0?'+':''}${money(un)} · potansiyel stopaj ${money(taxT)}${realized?` · satışlardan net ${realized-realTax>=0?'+':''}${money(realized-realTax)} kâr (stopaj ${money(realTax)})`:''}`:'Lot × güncel fiyat (brüt)';
-  {const net=un-taxT;$('#fdPl').innerHTML=open.length?`Stopaj sonrası net <b class="num">${money(fv)}</b> · <span class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</span> ${net>=0?'kâr':'zarar'}`:''}
+  $('#fdSub').textContent=open.length?`Lot × güncel fiyat, stopaj düşülmüş · maliyet FIFO ${money(costT)} · brüt K/Z ${un>=0?'+':''}${money(un)} · potansiyel stopaj ${money(taxT)}${realized?` · satışlardan net ${realized-realTax>=0?'+':''}${money(realized-realTax)} kâr (stopaj ${money(realTax)})`:''}`:'Lot × güncel fiyat, stopaj düşülmüş';
+  {const net=un-taxT;$('#fdPl').innerHTML=open.length?`Stopaj sonrası <span class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</span> ${net>=0?'kâr':'zarar'} · brüt <b class="num">${money(gross)}</b>`:''}
   const st=lastCheck();$('#fdStamp').textContent=open.length?(st?stamp(st):'Fiyat bekleniyor'):'';
   const tb=$('#fdPos');if(!(document.activeElement&&tb.contains(document.activeElement))){
   const sgn=v=>v==null?'—':(v>=0?'+':'')+money(v),cls=v=>v==null?'mut':v>=0?'pos':'neg',px=v=>v.toLocaleString('tr-TR',{maximumFractionDigits:6});
-  const ownV=o=>open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.value??p.cost),0),dmy=iso=>String(iso||'').split('-').reverse().join('.');
+  const ownV=o=>open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.netValue??p.cost),0),dmy=iso=>String(iso||'').split('-').reverse().join('.');
   const owners=[...new Set(open.map(p=>p.owner))];
   $('#fdOwn').innerHTML=open.length?owners.map(o=>`<span><i class="odot o${Math.max(0,OWNERS.indexOf(o))}"></i>${esc(o)} <b class="num">${money(ownV(o))}</b></span>`).join(''):'';
   const row=p=>{const pl=p.gross,net=pl==null?null:pl-p.taxAmt,kid=esc(p.key.replace(/[^A-Za-z0-9]/g,'_')),op=FOPEN.has(kid);
     return `<div class="row frow"><div class="mono fmono o${Math.max(0,OWNERS.indexOf(p.owner))}">${esc(p.code.slice(0,3))}</div>
-      <div class="what"><div>${esc(p.name||p.code)}</div><small>${NUM.format(p.units)} lot · <span class="${cls(pl)}">${sgn(pl)}</span> brüt</small></div>
-      <div class="amt">${p.value!=null?money(p.value):'<span class="mut">fiyat yok</span>'}</div>
+      <div class="what"><div>${esc(p.name||p.code)}</div><small>${NUM.format(p.units)} lot · <span class="${cls(net)}">${sgn(net)}</span> net</small></div>
+      <div class="amt">${p.netValue!=null?money(p.netValue):'<span class="mut">fiyat yok</span>'}</div>
       <button type="button" class="del fgear" data-fset="${kid}" aria-expanded="${op}" aria-label="${esc(p.owner+' '+p.code)} ayarları">⚙</button></div>
       <div class="fset" ${op?'':'hidden'} id="fs_${kid}" data-fkey="${esc(p.key)}">
         <div><span>Alım tutarı <small class="unit">FIFO</small></span><b class="num">${money(p.cost)}</b></div>
         <div><span>Ortalama maliyet</span><b class="num">${px(p.cost/p.units)} ₺</b></div>
         <div><span>Güncel fiyat${p.pdate?` <small class="unit">${esc(p.pdate)}</small>`:''}</span><b class="num">${p.price!=null?px(p.price)+' ₺':'bekleniyor'}</b></div>
+        <div><span>Güncel değer <small class="unit">brüt, bankadaki</small></span><b class="num">${p.value!=null?money(p.value):'—'}</b></div>
         <div><span>Brüt kâr/zarar</span><b class="num ${cls(pl)}">${sgn(pl)}</b></div>
         <div><label for="ft_${kid}">Stopaj oranı (%)</label><input id="ft_${kid}" data-ftax="${esc(p.code)}" inputmode="decimal" value="${esc(fmtIn(p.tax))}" placeholder="0" aria-label="${esc(p.code)} stopaj oranı"></div>
         <div><span>Tahmini stopaj</span><b class="num">${p.taxAmt?'−'+money(p.taxAmt):money(0)}</b></div>
         <div><span>Net kâr/zarar</span><b class="num ${cls(net)}">${sgn(net)}</b></div>
-        <div><span>Stopaj sonrası değer</span><b class="num">${p.netValue!=null?money(p.netValue):'—'}</b></div>
         <div class="flots"><span>Kalan alımlar <small class="unit">satışta önce en eskisi düşer</small></span>${p.lots.map(l=>`<small>${esc(dmy(l.date))} · ${NUM.format(l.units)} lot × ${px(l.price)} ₺</small>`).join('')}</div>
         <div><label for="fo_${kid}">Kimin adına</label><select id="fo_${kid}" data-fmove="${esc(p.key)}">${OWNERS.map(o=>`<option${o===p.owner?' selected':''}>${esc(o)}</option>`).join('')}</select></div>
       </div>`};
