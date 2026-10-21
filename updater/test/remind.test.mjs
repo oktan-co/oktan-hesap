@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pickDue, buildMail, money } from '../remind-lib.mjs';
+import { pickDue, buildMail, buildPush, money } from '../remind-lib.mjs';
 
 const cards = [{ id: 'c1', name: 'Emre Akbank' }, { id: 'c2', name: 'Garanti Bonus' }];
 const st = [
@@ -60,4 +60,36 @@ test('son gün akşam hatırlatması: yalnızca bugün, sert görünüm', () => 
   assert.match(m.html, /gün bitimine 30 dk kaldı/);
   assert.match(buildMail(pickDue(st, cards, '2026-10-20'), { late: '21:00' }).html, /3 saat kaldı/);
   assert.equal(buildMail(pickDue([st[0]], cards, '2026-10-20'), { late: '22:00' }), null);
+});
+
+test('bildirim: tek kart yarın', () => {
+  const p = buildPush(pickDue([st[0]], cards, '2026-10-20'), {});
+  assert.equal(p.title, `⚠️ YARIN SON GÜN: Emre Akbank ${money(25615.97)}`);
+  assert.equal(p.urgent, false);
+  assert.match(p.body, /ekstreyi işaretle/);
+});
+
+test('bildirim: bugün önceliklidir, yarınkiler gövdede', () => {
+  const p = buildPush(pickDue(st, cards, '2026-10-20'), {});
+  assert.match(p.title, /^🔴 BUGÜN SON GÜN: Garanti Bonus .* · yarın 2 kart daha$/);
+  assert.match(p.body, /Yarın son gün: Emre Akbank/);
+  assert.match(p.body, /tutar henüz girilmedi/);
+  assert.equal(p.urgent, true);
+});
+
+test('bildirim: ödeme yoksa null; deneme yine gönderir', () => {
+  assert.equal(buildPush(pickDue([], cards, '2026-10-20'), {}), null);
+  const t = buildPush(pickDue([], cards, '2026-10-20'), { test: true });
+  assert.match(t.title, /^🧪 Deneme · Bildirimler çalışıyor/);
+  const u = buildPush(pickDue([{ cardId: 'c1', due: '2026-10-25', amount: 10, paid: false }], cards, '2026-10-20'), { test: true });
+  assert.match(u.title, /^🧪 Deneme · 1 yaklaşan ödeme/);
+  assert.match(u.body, /5 gün kaldı/);
+});
+
+test('bildirim: akşam hatırlatması yalnızca bugünü anlatır', () => {
+  const p = buildPush(pickDue(st, cards, '2026-10-20'), { late: '23:30' });
+  assert.match(p.title, /^⏰ HÂLÂ ÖDENMEDİ: Garanti Bonus/);
+  assert.match(p.body, /gün bitimine 30 dk kaldı/);
+  assert.doesNotMatch(p.body, /Yarın/);
+  assert.equal(buildPush(pickDue([st[0]], cards, '2026-10-20'), { late: '22:00' }), null);
 });

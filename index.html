@@ -16,6 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script>
 (function(){try{var t=localStorage.getItem('kasa.theme'),a=localStorage.getItem('kasa.accent'),r=document.documentElement;
 if(t==='light'||t==='dark')r.setAttribute('data-theme',t);if(a&&a!=='yesil')r.setAttribute('data-accent',a)}catch(e){}})();
@@ -946,6 +947,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <button type="button" role="tab" data-settab="kat" aria-selected="false">Kategoriler</button>
     <button type="button" role="tab" data-settab="ai" aria-selected="false">Fotoğraf</button>
     <button type="button" role="tab" data-settab="gh" aria-selected="false">Fiyatlar</button>
+    <button type="button" role="tab" data-settab="bil" aria-selected="false">Bildirim</button>
     <button type="button" role="tab" data-settab="yedek" aria-selected="false">Yedek</button>
   </div>
   <div class="sheet-b">
@@ -979,6 +981,12 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <button class="btn" type="submit">Kaydet</button>
       <div class="msg" id="ghMsg"></div>
     </form>
+    <div class="box setf" data-setpane="bil" hidden>
+      <p class="hint">Kart son ödeme günü yaklaşınca telefonuna bildirim gelir: son ödemeden 1 gün önce ve son gün öğlen 12 civarı; hâlâ ödenmemişse son gün akşam 21:00, 22:00, 23:00 ve 23:30'da. Ekstreyi uygulamada ödendi diye işaretlersen o ekstre için bildirim kesilir.</p>
+      <p class="hint" id="ntInfo"></p>
+      <div class="refrow"><button class="btn" type="button" id="ntOn">Bildirimleri aç</button></div>
+      <div class="msg" id="ntMsg"></div>
+    </div>
     <div class="box setf" data-setpane="kat" hidden>
       <p class="hint">Harcama kategorilerini buradan ekleyip silebilir, adını ya da grubunu değiştirebilirsin. <b>Benim olmayan</b> gruptakiler kartlardan çıkan toplama girer ama senin harcamana sayılmaz. Adını değiştirdiğin kategorinin eski harcamaları da yeni ada taşınır.</p>
       <div id="catEd" class="cated"></div>
@@ -2034,7 +2042,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-refresh]'))refr
 
 /* ---------- settings ---------- */
 function setSetTab(t){$$('[data-settab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.settab===t));$$('[data-setpane]').forEach(p=>p.hidden=p.dataset.setpane!==t);try{localStorage.setItem('kasa.settab',t)}catch(e){}}
-{let t='hesap';try{t=localStorage.getItem('kasa.settab')||'hesap'}catch(e){}if(!['hesap','tema','kat','ai','gh','yedek'].includes(t))t='hesap';setSetTab(t)}
+{let t='hesap';try{t=localStorage.getItem('kasa.settab')||'hesap'}catch(e){}if(!['hesap','tema','kat','ai','gh','bil','yedek'].includes(t))t='hesap';setSetTab(t)}
 /* ---------- tema ---------- */
 function applyTheme(){let m='auto',a='yesil';try{m=localStorage.getItem('kasa.theme')||'auto';a=localStorage.getItem('kasa.accent')||'yesil'}catch(e){}
   const r=document.documentElement;if(m==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',m);
@@ -2088,7 +2096,7 @@ document.addEventListener('submit',e=>{const f=e.target.closest('[data-catadd]')
 $('#grpAdd').addEventListener('submit',e=>{e.preventDefault();const n=$('#grpName').value.trim().replace(/\s+/g,' ');if(!n)return;
   if(CAT_GROUPS.some(x=>lc(x.g)===lc(n))){flash($('#catMsg'),'Bu adda bir grup zaten var.',true);return}
   const G=catClone();const i=G.findIndex(x=>x.nm);G.splice(i<0?G.length:i,0,{g:n,c:[],nm:false});$('#grpName').value='';saveCats(G)});
-function openSettings(tab){const d=$('#setDlg');if(tab)setSetTab(tab);fillSettings();renderCatEditor();if(!d.open){try{d.showModal()}catch(e){d.setAttribute('open','')}}}
+function openSettings(tab){const d=$('#setDlg');if(tab)setSetTab(tab);fillSettings();renderCatEditor();notifUI();if(!d.open){try{d.showModal()}catch(e){d.setAttribute('open','')}}}
 $('#setBtn').addEventListener('click',()=>openSettings());
 $('#setClose').addEventListener('click',()=>$('#setDlg').close());
 $('#setDlg').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close();const b=e.target.closest('[data-settab]');if(b)setSetTab(b.dataset.settab)});
@@ -2106,6 +2114,28 @@ $('#ghForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$(
   const repo=$('#ghRepo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\/+$/,'');
   if(repo&&!/^[\w.-]+\/[\w.-]+$/.test(repo)){flash(msg,'Depoyu kullanıcı/depo biçiminde yaz.',true);return}
   try{await db.doc('settings/ai').set({ghRepo:repo,ghToken:$('#ghToken').value.trim()},{merge:true});flash(msg,'Kaydedildi.')}catch(err){flash(msg,errText(err),true)}});
+
+/* ---------- bildirimler ---------- */
+const fcmReady=()=>!!(window.firebase&&firebase.messaging&&window.VAPID_KEY&&!/BURAYA/.test(window.VAPID_KEY));
+function notifUI(){const p=('Notification' in window)?Notification.permission:'yok',b=$('#ntOn'),i=$('#ntInfo');
+  b.hidden=(p==='yok'||p==='denied');b.textContent=p==='granted'?'Bu cihazı yeniden kaydet':'Bildirimleri aç';
+  i.textContent=p==='granted'?'Bu cihazda bildirimler açık ✓':p==='denied'?'Bildirim izni kapalı. Telefon ya da tarayıcı ayarlarından bu uygulama için bildirime izin ver.':p==='yok'?'Bu tarayıcı bildirimi desteklemiyor. iPhone’da önce uygulamayı Paylaş → Ana Ekrana Ekle ile ekleyip Ana ekran simgesinden aç.':'Bu cihaz henüz kayıtlı değil.'}
+async function notifSync(loud){const msg=$('#ntMsg');
+  if(!('Notification' in window)||Notification.permission!=='granted'||!db||!fcmReady())return;
+  try{if(!(await firebase.messaging.isSupported()))return;
+    const reg=await navigator.serviceWorker.ready;
+    const tok=await firebase.messaging().getToken({vapidKey:window.VAPID_KEY,serviceWorkerRegistration:reg});
+    if(!tok)return;
+    const u=firebase.auth().currentUser;
+    await db.collection('devices').doc(tok).set({token:tok,user:(u&&u.email)||'',ua:navigator.userAgent.slice(0,140),at:Date.now()});
+    if(loud)flash(msg,'Bildirimler açıldı ✓');
+  }catch(err){if(loud)flash(msg,'Cihaz kaydedilemedi ('+(err.code||err.message)+')',true)}}
+$('#ntOn').addEventListener('click',async()=>{const msg=$('#ntMsg');if(!need(msg))return;
+  try{if(!fcmReady()){flash(msg,'Bildirim kurulumu henüz tamamlanmadı.',true);return}
+    if(!(await firebase.messaging.isSupported())){flash(msg,'Bu cihaz bildirimi desteklemiyor.',true);return}
+    const p=await Notification.requestPermission();notifUI();
+    if(p!=='granted'){flash(msg,'Bildirim izni verilmedi.',true);return}
+    await notifSync(true);notifUI()}catch(err){flash(msg,'Bildirim açılamadı ('+(err.code||err.message)+')',true)}});
 
 /* ---------- backup ---------- */
 const COLLS=['tx','cards','holdings','spend','alacak','statements','fundtx','history','prices','settings'];
@@ -2151,6 +2181,7 @@ function startData(fs){
   on(db.doc('prices/status'),s=>{S.pstat=s.exists?s.data():{};render()});
   on(db.doc('settings/main'),s=>{S.settings=s.exists?s.data():{};render()});
   on(db.doc('settings/ai'),s=>{S.ai=s.exists?s.data():{};syncAI();syncRefresh();fillSettings();setTimeout(autoRefresh,3000)});
+  setTimeout(()=>notifSync(false),3000);
 }
 function showGate(text,signedIn){$('#app').hidden=true;$('#gate').hidden=false;$('#gateMsg').textContent=text;$('#gIn').hidden=!!signedIn;$('#gOut').hidden=!signedIn}
 (function boot(){

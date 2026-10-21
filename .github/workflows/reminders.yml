@@ -1,13 +1,13 @@
 name: Son ödeme hatırlatması
 # Her gün 11:55 (İstanbul) civarı çalışır; GitHub zamanlamayı birkaç dakika geciktirebilir.
-# Son ödeme gününden 1 gün önce ve son gün e-posta gönderir.
-# Elle çalıştırınca ("Run workflow") deneme e-postası gönderir.
+# Son ödeme gününden 1 gün önce ve son gün telefona bildirim gönderir.
+# Elle çalıştırınca ("Run workflow") deneme bildirimi gönderir.
 on:
   schedule: [{cron: "55 8 * * *"}]
   workflow_dispatch:
     inputs:
       deneme:
-        description: "Deneme e-postası gönder (yaklaşan ödemeleri listeler)"
+        description: "Deneme bildirimi gönder (yaklaşan ödemeleri listeler)"
         type: boolean
         default: true
       saat:
@@ -29,9 +29,6 @@ jobs:
       - run: node reminders.mjs
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          MAIL_TO: ${{ secrets.MAIL_TO }}
           SLOT: ${{ github.event.inputs.saat }}
           TEST: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deneme == 'true' && '1' || '' }}
       # Herkese açık depolarda GitHub, 60 gün hiç değişiklik olmazsa zamanlanmış işleri durdurur.

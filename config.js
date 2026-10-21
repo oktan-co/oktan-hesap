@@ -8,3 +8,7 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "161024150829",
   appId: "1:161024150829:web:5e23402d81f7afbda997a4"
 };
+
+// Bildirimler için Firebase > Proje ayarları > Cloud Messaging > Web Push sertifikaları
+// bölümündeki açık anahtarı (genelde "B" ile başlar) buraya yapıştır.
+window.VAPID_KEY = "BURAYA";

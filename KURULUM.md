@@ -115,17 +115,14 @@ Bilmen gerekenler:
 4. Oluşan anahtarı ve depo adını (`KULLANICI/oktan-hesap`) sitede **Ayarlar → Fiyatları elle güncelleme** bölümüne yaz.
 5. Bundan sonra **Altın & Gümüş** ve **Fonlar** sekmelerinde düğme görünür.
 
-## 10. Son ödeme hatırlatması (e-posta)
+## 10. Son ödeme hatırlatması (telefon bildirimi)
 
-Her gün öğlen 12:00 civarı otomatik bir kontrol çalışır. Bir kartın son ödeme günü **yarınsa** ya da **bugünse** Gmail'ine e-posta gelir (ödenmiş ekstreler atlanır; tutarı girilmemiş ekstre "tutar henüz girilmedi" diye yazılır).
+Bir kartın son ödeme günü **yarınsa** ya da **bugünse** öğlen 12:00 civarı telefonuna bildirim gelir. Son gün ekstre hâlâ ödenmemiş olarak işaretliyse 21:00, 22:00, 23:00 ve 23:30'da tekrar gelir (ödenmiş ekstreler atlanır; tutarı girilmemiş ekstre "tutar henüz girilmedi" diye yazılır).
 
-1. Google hesabında 2 Adımlı Doğrulama açık olmalı: <https://myaccount.google.com/signinoptions/twosv>
-2. Uygulama şifresi oluştur: <https://myaccount.google.com/apppasswords> → ad olarak "Oktan Hesap" yaz → **Oluştur**. Çıkan 16 harfli şifreyi kopyala (bir daha gösterilmez).
-3. GitHub'da depo → **Settings → Secrets and variables → Actions → New repository secret** ile iki gizli değer ekle:
-   - `GMAIL_USER` → Gmail adresin
-   - `GMAIL_APP_PASSWORD` → 2. adımdaki 16 harfli şifre (boşluklu ya da boşluksuz olabilir)
-   - (isteğe bağlı) `MAIL_TO` → e-postanın başka bir adrese gitmesini istersen o adres
-4. Deneme: depo → **Actions → Son ödeme hatırlatması → Run workflow**. Birkaç dakika içinde yaklaşan ödemeleri listeleyen bir deneme e-postası gelir.
+1. Firebase konsolu → Proje ayarları → **Cloud Messaging** → "Web Push sertifikaları" → **Anahtar çifti oluştur**. Çıkan açık anahtarı `config.js` içindeki `VAPID_KEY` satırına yapıştır.
+2. `FIREBASE_SERVICE_ACCOUNT` gizli değeri (fiyat güncelleyiciyle ortak) zaten tanımlıysa başka bir şey gerekmez.
+3. Telefonda uygulamayı aç → ⚙ Ayarlar → **Bildirim** → **Bildirimleri aç** → izin ver. iPhone'da uygulama önce Safari'den Paylaş → **Ana Ekrana Ekle** ile eklenmeli ve Ana ekran simgesinden açılmalı (iOS 16.4 ve üstü).
+4. Deneme: depo → **Actions → Son ödeme hatırlatması → Run workflow** (deneme işaretli). Birkaç dakika içinde yaklaşan ödemeleri listeleyen bir deneme bildirimi gelir.
 
 Herkese açık depolarda GitHub, 60 gün hiç değişiklik olmazsa zamanlanmış işleri durdurur. Hatırlatma görevi her ayın 1'inde boş bir kayıt atarak hem bu görevin hem fiyat güncellemesinin durmamasını sağlar.
 
@@ -143,7 +140,7 @@ Yeni site sorunsuz çalıştıktan sonra Claude'daki fiyat güncelleme görevini
 - `updater/` — fiyat çekici (Node.js) ve testleri (`npm test`)
 - `updater/funds.json` — TEFAS'a erişilemezse kullanılacak yedek fon sayfaları. Yeni bir fon alırsan Bloomberg HT sayfasının adresini buraya ekleyebilirsin.
 - `.github/workflows/prices.yml` — zamanlanmış fiyat güncelleme
-- `.github/workflows/reminders.yml` + `updater/reminders.mjs` — son ödeme e-posta hatırlatması (10. adım)
+- `.github/workflows/reminders.yml` + `updater/reminders.mjs` — son ödeme bildirim hatırlatması (10. adım)
 
 ### Fiyat kuralları (çekici bunlara uyar)
 

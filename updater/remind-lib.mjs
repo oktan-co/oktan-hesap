@@ -96,3 +96,27 @@ ${appUrl ? `<tr><td style="padding:2px 0 4px"><a href="${esc(appUrl)}" style="di
 </table></td></tr></table></body></html>`;
   return { subject, text, html, priority: due.today.length ? 'high' : 'normal', late: !!LT };
 }
+
+/** Telefon bildirimi için başlık ve metin. Gönderilecek bir şey yoksa null (deneme hariç). */
+export function buildPush(due, { test = false, late = '' } = {}) {
+  const LT = late ? lateTone(late) : null;
+  let today = due.today, tomorrow = LT ? [] : due.tomorrow;
+  if (test && LT && !today.length && due.upcoming.length) today = due.upcoming.filter(x => x.due === due.upcoming[0].due);
+  const row = s => `${s.card}: ${amt(s)}`;
+  let title = '', body = [];
+  if (today.length) {
+    title = headline(today, LT || tone(0)) + (tomorrow.length ? ` · yarın ${tomorrow.length} kart daha` : '');
+    if (today.length > 1) body.push(...today.map(s => '• ' + row(s)));
+    if (LT) body.push(LT.sub);
+    if (tomorrow.length) body.push('Yarın son gün: ' + tomorrow.map(row).join(', '));
+  } else if (tomorrow.length) {
+    title = headline(tomorrow, tone(1));
+    if (tomorrow.length > 1) body.push(...tomorrow.map(s => '• ' + row(s)));
+  } else if (test) {
+    title = due.upcoming.length ? `${due.upcoming.length} yaklaşan ödeme` : 'Bildirimler çalışıyor';
+    body.push(...(due.upcoming.length ? due.upcoming.map(s => `• ${row(s)} · ${whenTxt(daysLeft(s.due, due.date))}`) : ['Yaklaşan ödenmemiş ekstre yok.']));
+  } else return null;
+  if (test) title = '🧪 Deneme · ' + title;
+  body.push('Ödedikten sonra uygulamada ekstreyi işaretle.');
+  return { title, body: body.join('\n'), tag: 'odeme', urgent: !!today.length };
+}

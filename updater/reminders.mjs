@@ -1,29 +1,23 @@
-// Oktan Hesap Takip — kart son ödeme hatırlatıcısı (GitHub Actions'ta her gün öğlen çalışır).
-// Son ödeme gününden 1 gün önce ve son gün e-posta gönderir.
+// Oktan Hesap Takip — kart son ödeme hatırlatıcısı (GitHub Actions'ta çalışır, telefona bildirim gönderir).
+// Son ödeme gününden 1 gün önce ve son gün bildirim gönderir; son gün ödenmemişse akşam tekrarları (SLOT) vardır.
 // Ortam değişkenleri (GitHub > Settings > Secrets and variables > Actions):
 //   FIREBASE_SERVICE_ACCOUNT  servis hesabı JSON'u (fiyat güncelleyiciyle aynı)
-//   GMAIL_USER                gönderen Gmail adresi
-//   GMAIL_APP_PASSWORD        o hesabın 16 haneli uygulama şifresi
-//   MAIL_TO                   (isteğe bağlı) alıcı; boşsa GMAIL_USER
-//   APP_URL                   (isteğe bağlı) e-postadaki "Uygulamayı aç" bağlantısı
-//   TEST=1                    elle çalıştırma: yaklaşan ödemeleri deneme e-postası olarak gönder
-//   DRY_RUN=1                 e-posta gönderme, sadece yazdır
+//   SLOT                      boş = öğlen hatırlatması; '21:00' gibi bir saat = son gün akşam hatırlatması
+//   TEST=1                    elle çalıştırma: yaklaşan ödemeleri deneme bildirimi olarak gönder
+//   DRY_RUN=1                 bildirim gönderme, sadece yazdır
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import nodemailer from 'nodemailer';
+import { getMessaging } from 'firebase-admin/messaging';
 import { istanbulNow } from './lib.mjs';
-import { pickDue, buildMail } from './remind-lib.mjs';
+import { pickDue, buildPush } from './remind-lib.mjs';
 
-const { FIREBASE_SERVICE_ACCOUNT: sa, GMAIL_USER: user, GMAIL_APP_PASSWORD: passRaw, MAIL_TO, APP_URL } = process.env;
+const { FIREBASE_SERVICE_ACCOUNT: sa } = process.env;
 const TEST = process.env.TEST === '1', DRY = !!process.env.DRY_RUN;
-// SLOT: boş = öğlen hatırlatması; '21:00' gibi bir saat = son gün akşam hatırlatması (yalnızca bugün son günü olan ödenmemiş ekstreler)
 const SLOT = /^\d{2}:\d{2}$/.test(process.env.SLOT || '') ? process.env.SLOT : '';
 const sentKey = SLOT ? 'sent_' + SLOT.replace(':', '') : 'lastSent';
-const appUrl = APP_URL || 'https://oktan-co.github.io/oktan-hesap/';
 const fail = m => { console.error(m); process.exit(1); };
 
 if (!sa) fail('FIREBASE_SERVICE_ACCOUNT tanımlı değil (GitHub > Settings > Secrets).');
-if (!DRY && (!user || !passRaw)) fail('GMAIL_USER ve GMAIL_APP_PASSWORD tanımlı değil (GitHub > Settings > Secrets). Kurulum: KURULUM.md, "Son ödeme hatırlatması".');
 
 initializeApp({ credential: cert(JSON.parse(sa)) });
 const db = getFirestore();
@@ -43,20 +37,34 @@ if (!TEST) {
   const meta = await metaRef.get();
   if (meta.exists && meta.data()[sentKey] === today) { console.log(`Bugünün ${SLOT || 'öğlen'} hatırlatması zaten gönderilmiş.`); process.exit(0); }
 }
-if (SLOT && !due.today.length && !TEST) { console.log(`${SLOT}: bugün son günü olan ödenmemiş ekstre yok; e-posta gönderilmedi.`); process.exit(0); }
-const mail = buildMail(due, { appUrl, test: TEST, late: SLOT });
-if (!mail) { console.log('Bugün ya da yarın son ödemesi olan ödenmemiş ekstre yok; e-posta gönderilmedi.'); process.exit(0); }
+if (SLOT && !due.today.length && !TEST) { console.log(`${SLOT}: bugün son günü olan ödenmemiş ekstre yok; bildirim gönderilmedi.`); process.exit(0); }
+const push = buildPush(due, { test: TEST, late: SLOT });
+if (!push) { console.log('Bugün ya da yarın son ödemesi olan ödenmemiş ekstre yok; bildirim gönderilmedi.'); process.exit(0); }
 
-if (DRY) { console.log('[DRY]', mail.subject, '\n' + mail.text); process.exit(0); }
-const transport = nodemailer.createTransport({ service: 'gmail', auth: { user, pass: passRaw.replace(/\s+/g, '') } });
-try {
-  await transport.sendMail({ from: `Oktan Hesap Takip <${user}>`, to: MAIL_TO || user, subject: mail.subject, text: mail.text, html: mail.html, priority: mail.priority });
-} catch (e) {
-  fail(`E-posta gönderilemedi: ${e && e.message || e}${/535|Username and Password/i.test(String(e && e.message)) ? ' — Gmail uygulama şifresini ve GMAIL_USER adresini kontrol et.' : ''}`);
+if (DRY) { console.log('[DRY]', push.title, '\n' + push.body); process.exit(0); }
+
+const devices = await db.collection('devices').get();
+if (devices.empty) fail('Kayıtlı cihaz yok. Uygulamada ⚙ Ayarlar → Bildirim → "Bildirimleri aç" ile telefonu kaydet.');
+let ok = 0, bad = 0;
+for (const doc of devices.docs) {
+  const token = doc.data().token || doc.id;
+  try {
+    await getMessaging().send({
+      token,
+      data: { title: push.title, body: push.body, tag: push.tag },
+      webpush: { headers: { Urgency: 'high', TTL: '10800' } },
+    });
+    ok++;
+  } catch (e) {
+    bad++;
+    console.log('Gönderilemedi:', e.code || e.message);
+    if (/registration-token-not-registered|invalid-registration-token/.test(e.code || '')) await doc.ref.delete();
+  }
 }
+if (!ok) fail(`Bildirim hiçbir cihaza gönderilemedi (${bad} hata).`);
 if (!TEST) await metaRef.set({ [sentKey]: today, at: Date.now() }, { merge: true });
-console.log('Gönderildi:', mail.subject);
+console.log(`Gönderildi: ${push.title} (${ok} cihaz${bad ? ', ' + bad + ' hata' : ''})`);
 if (process.env.GITHUB_STEP_SUMMARY) {
   const { appendFileSync } = await import('node:fs');
-  appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Hatırlatma ${today}\n\nGönderildi: ${mail.subject}\n`);
+  appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Hatırlatma ${today}\n\nGönderildi: ${push.title} (${ok} cihaz)\n`);
 }
