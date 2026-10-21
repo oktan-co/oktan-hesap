@@ -300,6 +300,17 @@ nav svg{display:none}
 .fset>div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;font-size:13.5px;color:var(--muted)}
 .fset b{color:var(--ink);font-weight:500}
 .fset b.pos{color:var(--pos)} .fset b.neg{color:var(--neg)}
+.fnote{background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;color:var(--muted);display:grid;gap:4px}
+.fnote b{color:var(--ink);font-weight:500;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.fnote .fn-row{display:flex;justify-content:space-between;gap:12px}
+.fnote .fn-net{border-top:1px dashed var(--line);padding-top:6px;margin-top:2px;color:var(--ink)}
+.fnote .fn-net b{font-size:15px}
+.fnote .fn-lots{font-size:12.5px}
+.fnote .warn{color:var(--neg)}
+.what small.fsl{white-space:normal}
+.what small.fsl>span{white-space:nowrap}
+.fset .flots{display:block;padding:7px 0}
+.fset .flots>small{display:block;font-family:var(--f-num);font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;margin-top:3px}
 .fset input{width:80px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);text-align:right;font-family:var(--f-num)}
 @media (max-width:560px){.fset{padding-left:16px}}
 
@@ -837,16 +848,16 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
   <!-- FONLAR -->
   <section class="panel" data-panel="fon" hidden>
     <div class="box port">
-      <span class="eyebrow">Fon portföyü net değeri <button type="button" class="info" data-why aria-label="Ayrıntı">i</button></span>
+      <span class="eyebrow">Fon portföyü değeri <button type="button" class="info" data-why aria-label="Ayrıntı">i</button></span>
       <span class="big" id="fdTotal" style="color:var(--accent)">₺0,00</span>
       <span class="hint" id="fdPl"></span>
       <span class="fown" id="fdOwn"></span>
-      <span class="hint why" id="fdSub">Lot × güncel fiyat, stopaj düşülmüş</span>
+      <span class="hint why" id="fdSub">Lot × güncel fiyat (brüt)</span>
     </div>
     <div class="sec">
       <div class="sec-h"><h2>Pozisyonlarım</h2><span class="stamp" id="fdStamp"></span></div>
       <div class="box list" id="fdPos"></div>
-      <details class="howto"><summary>Nasıl çalışır?</summary><p class="hint">Güncel fiyatlar TEFAS verisinden otomatik gelir. Stopaj oranını fonun yanındaki ⚙ düğmesinden girersin; stopaj yalnızca kârdan kesilir.</p></details>
+      <details class="howto"><summary>Nasıl çalışır?</summary><p class="hint">Güncel fiyatlar TEFAS verisinden otomatik gelir. Değerler bankadaki gibi brüt gösterilir; stopaj sonrası net ayrıca yazar. Maliyet FIFO (ilk giren ilk çıkar) ile hesaplanır: satışta en eski alımlar düşülür. Stopaj oranını fonun yanındaki ⚙ düğmesinden girersin; stopaj yalnızca kârdan kesilir.</p></details>
       <div class="refrow"><button class="btn ghost" type="button" data-refresh hidden>Fiyatları şimdi güncelle</button><span class="msg" data-refmsg></span></div>
     </div>
     <div class="sec">
@@ -863,8 +874,10 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
           <label class="f"><span>Pay fiyatı (₺)</span><input id="fdPrice" class="num" inputmode="decimal" placeholder="0,000000" required></label>
           <label class="f"><span>Tarih</span><input id="fdDate" type="date" required></label>
         </div>
+        <label class="f" id="fdTaxF" hidden><span>Stopaj (₺) · boş bırakırsan otomatik</span><input id="fdTax" class="num" inputmode="decimal" placeholder="otomatik"></label>
         <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="fdCash" class="chk" checked> Tutarı bakiyeden düş / bakiyeye ekle</label>
         <p class="hint" id="fdCalc">Tutar: —</p>
+        <div class="fnote" id="fdNote" hidden></div>
         <button class="btn" type="submit" id="fdSubmit">Alımı ekle</button>
         <div class="msg" id="fdMsg"></div>
         <p class="hint">Bakiyene zaten yansımış eski bir alımı giriyorsan kutucuğu kaldır.</p>
@@ -1101,20 +1114,39 @@ function monthFlow(M){
   let inc=0,cashExp=0,cardPay=0;
   for(const t of S.tx){if(t.date.slice(0,7)!==M)continue;
     if(t.type==='income')inc+=t.amount;else if(t.type==='cardpay')cardPay+=t.amount;else if(!t.cardId)cashExp+=t.amount}
-  let fund=0;for(const t of S.fdtx){if(t.opening||t.date.slice(0,7)!==M)continue;fund+=t.side==='sell'?-t.units*t.price:t.units*t.price}
+  let fund=0;for(const t of S.fdtx){if(t.opening||t.date.slice(0,7)!==M)continue;fund+=t.side==='sell'?-sellNet(t):t.units*t.price}
   return {inc,cashExp,cardPay,fund,kalan:inc-cashExp-cardPay-fund};
 }
 function cashUpTo(M){let v=0;
   for(const t of S.tx){if(t.date.slice(0,7)>M)continue;if(t.type==='income')v+=t.amount;else if(t.type==='cardpay'||!t.cardId)v-=t.amount}
-  for(const t of S.fdtx){if(t.opening||t.date.slice(0,7)>M)continue;v+=t.side==='sell'?t.units*t.price:-t.units*t.price}return v}
-function fundPositions(){
-  const P={};const txs=[...S.fdtx].sort((a,b)=>a.date.localeCompare(b.date)||(a.created||0)-(b.created||0));
-  for(const t of txs){const o=t.owner||OWNERS[0],k=o+'|'+t.code;const p=P[k]||(P[k]={key:k,owner:o,code:t.code,units:0,cost:0,realized:0});
-    if(t.side==='sell'){const avg=p.units?p.cost/p.units:0;const u=Math.min(t.units,p.units);p.realized+=u*(t.price-avg);p.cost-=u*avg;p.units-=u}
-    else{p.units+=t.units;p.cost+=t.units*t.price}}
-  return Object.values(P).map(p=>{const pr=(S.fdp.items||{})[p.code];p.price=pr&&pr.price||null;p.value=p.price!=null?p.units*p.price:null;p.name=pr&&pr.name||'';p.pdate=pr&&pr.date||'';
-    p.tax=((S.settings.fundTax||{})[p.code])||0;p.gross=p.value!=null?p.value-p.cost:null;p.taxAmt=p.gross>0?p.gross*p.tax/100:0;p.netValue=p.value!=null?p.value-p.taxAmt:null;return p}).sort((a,b)=>OWNERS.indexOf(a.owner)-OWNERS.indexOf(b.owner)||(b.value||b.cost)-(a.value||a.cost));
-}
+  for(const t of S.fdtx){if(t.opening||t.date.slice(0,7)>M)continue;v+=t.side==='sell'?sellNet(t):-t.units*t.price}return v}
+/* Fonlar FIFO (ilk giren ilk çıkar) ile izlenir: satışta en eski alım lotları düşülür.
+   Stopaj yalnızca kârdan, fonun stopaj oranıyla kesilir; satış kaydında elle girilen stopaj (t.tax) varsa o kullanılır. */
+const r2=v=>Math.round(v*100)/100;
+function fifoTake(lots,units,price,rate){let rem=units,cost=0,sold=0;const used=[];
+  while(rem>1e-9&&lots.length){const l=lots[0],u=Math.min(rem,l.units);cost+=u*l.price;sold+=u;used.push({date:l.date,units:u,price:l.price});l.units-=u;rem-=u;if(l.units<1e-9)lots.shift()}
+  const gross=units*price,gain=sold*price-cost,auto=gain>0?r2(gain*(rate||0)/100):0;
+  return {sold,short:rem>1e-9?rem:0,cost,gross,gain,rate:rate||0,auto,tax:auto,net:gross-auto,used}}
+let FLC=null;
+function fundLedger(){const rates=S.settings.fundTax||{},key=JSON.stringify(rates);
+  if(FLC&&FLC.tx===S.fdtx&&FLC.fdp===S.fdp&&FLC.at===S.fdp.updatedAt&&FLC.key===key)return FLC.v;
+  const P={},sells={};const txs=[...S.fdtx].sort((a,b)=>a.date.localeCompare(b.date)||(a.created||0)-(b.created||0));
+  for(const t of txs){const o=t.owner||OWNERS[0],k=o+'|'+t.code;const p=P[k]||(P[k]={key:k,owner:o,code:t.code,lots:[],realized:0,realizedTax:0});
+    if(t.side==='sell'){const r=fifoTake(p.lots,t.units,t.price,rates[t.code]);
+      if(t.tax!=null&&isFinite(t.tax)&&t.tax>=0){r.tax=r2(t.tax);r.net=r.gross-r.tax;r.manual=true}
+      p.realized+=r.gain;p.realizedTax+=r.tax;sells[t.id]=r}
+    else p.lots.push({date:t.date,units:t.units,price:t.price})}
+  const pos=Object.values(P).map(p=>{p.units=p.lots.reduce((a,l)=>a+l.units,0);p.cost=p.lots.reduce((a,l)=>a+l.units*l.price,0);
+    const pr=(S.fdp.items||{})[p.code];p.price=pr&&pr.price||null;p.value=p.price!=null?p.units*p.price:null;p.name=pr&&pr.name||'';p.pdate=pr&&pr.date||'';
+    p.tax=rates[p.code]||0;p.gross=p.value!=null?p.value-p.cost:null;p.taxAmt=p.gross>0?r2(p.gross*p.tax/100):0;p.netValue=p.value!=null?p.value-p.taxAmt:null;return p})
+    .sort((a,b)=>OWNERS.indexOf(a.owner)-OWNERS.indexOf(b.owner)||(b.value||b.cost)-(a.value||a.cost));
+  FLC={tx:S.fdtx,fdp:S.fdp,at:S.fdp.updatedAt,key,v:{pos,sells}};return FLC.v}
+function fundPositions(){return fundLedger().pos}
+function sellInfo(t){return fundLedger().sells[t.id]||null}
+function sellNet(t){const i=sellInfo(t);return i?i.net:t.units*t.price}
+/** Yeni bir satışın FIFO önizlemesi (mevcut lotlar bozulmadan) */
+function sellPreview(owner,code,units,price){const p=fundPositions().find(x=>x.code===code&&x.owner===owner);if(!p)return null;
+  return {...fifoTake(p.lots.map(l=>({...l})),units,price,p.tax),have:p.units}}
 function holdValue(h){const src=h.src==='fiba'?S.fiba:S.harem;const p=(src.items||{})[h.prod];return p&&p.alis?h.qty*p.alis:null}
 
 /* ---------- render ---------- */
@@ -1218,6 +1250,8 @@ function saveFundEdit(id){const box=[...document.querySelectorAll('[data-feditbo
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){flash(msg,'Tarih seç.',true);return}
   if(!(units>0)||!(price>0)){flash(msg,'Lot ve pay fiyatı sıfırdan büyük olmalı.',true);return}
   const old=stripId(t),nw={...old,date,units,price,owner,side};
+  {const ti=box.querySelector('[data-fe=tax]'),tv=ti?ti.value.trim():'';
+   if(side!=='sell'||!tv)delete nw.tax;else{const v=parseNum(tv);if(!(v>=0)){flash(msg,'Stopaj tutarı geçersiz.',true);return}nw.tax=r2(v)}}
   if(JSON.stringify(nw)===JSON.stringify(old)){FEDIT=null;render();return}
   if(document.activeElement)document.activeElement.blur();FEDIT=null;render();
   db.collection('fundtx').doc(id).set(nw).catch(err=>showBanner(errText(err)));
@@ -1363,29 +1397,33 @@ function render0(){
 const FOPEN=new Set(),SWW=118;let FEDIT=null,FSWIPE=null;
 function renderFunds(FP,fv){
   const open=FP.filter(p=>p.units>1e-9);
-  const costT=open.reduce((a,p)=>a+p.cost,0), realized=FP.reduce((a,p)=>a+p.realized,0);
+  const costT=open.reduce((a,p)=>a+p.cost,0), realized=FP.reduce((a,p)=>a+p.realized,0), realTax=FP.reduce((a,p)=>a+p.realizedTax,0);
   const gross=open.reduce((a,p)=>a+(p.value??p.cost),0),taxT=open.reduce((a,p)=>a+p.taxAmt,0);
-  $('#fdTotal').textContent=money(fv);
+  $('#fdTotal').textContent=money(gross);
   const un=gross-costT;
-  $('#fdSub').textContent=open.length?`Brüt ${money(gross)} · brüt K/Z ${un>=0?'+':''}${money(un)} · potansiyel stopaj ${money(taxT)}${realized?` · gerçekleşen ${realized>=0?'+':''}${money(realized)}`:''}`:'Lot × güncel fiyat, stopaj düşülmüş';
-  {const net=un-taxT;$('#fdPl').innerHTML=open.length?`Stopaj sonrası <span class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</span> ${net>=0?'kâr':'zarar'}`:''}
+  $('#fdSub').textContent=open.length?`Lot × güncel fiyat (brüt, bankadaki gibi) · maliyet FIFO ${money(costT)} · brüt K/Z ${un>=0?'+':''}${money(un)} · potansiyel stopaj ${money(taxT)}${realized?` · satışlardan net ${realized-realTax>=0?'+':''}${money(realized-realTax)} kâr (stopaj ${money(realTax)})`:''}`:'Lot × güncel fiyat (brüt)';
+  {const net=un-taxT;$('#fdPl').innerHTML=open.length?`Stopaj sonrası net <b class="num">${money(fv)}</b> · <span class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</span> ${net>=0?'kâr':'zarar'}`:''}
   const st=lastCheck();$('#fdStamp').textContent=open.length?(st?stamp(st):'Fiyat bekleniyor'):'';
   const tb=$('#fdPos');if(!(document.activeElement&&tb.contains(document.activeElement))){
   const sgn=v=>v==null?'—':(v>=0?'+':'')+money(v),cls=v=>v==null?'mut':v>=0?'pos':'neg',px=v=>v.toLocaleString('tr-TR',{maximumFractionDigits:6});
-  const ownV=o=>open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.netValue??p.cost),0);
+  const ownV=o=>open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.value??p.cost),0),dmy=iso=>String(iso||'').split('-').reverse().join('.');
   const owners=[...new Set(open.map(p=>p.owner))];
   $('#fdOwn').innerHTML=open.length?owners.map(o=>`<span><i class="odot o${Math.max(0,OWNERS.indexOf(o))}"></i>${esc(o)} <b class="num">${money(ownV(o))}</b></span>`).join(''):'';
   const row=p=>{const pl=p.gross,net=pl==null?null:pl-p.taxAmt,kid=esc(p.key.replace(/[^A-Za-z0-9]/g,'_')),op=FOPEN.has(kid);
     return `<div class="row frow"><div class="mono fmono o${Math.max(0,OWNERS.indexOf(p.owner))}">${esc(p.code.slice(0,3))}</div>
-      <div class="what"><div>${esc(p.name||p.code)}</div><small>${NUM.format(p.units)} lot · <span class="${cls(net)}">${sgn(net)}</span></small></div>
-      <div class="amt">${p.netValue!=null?money(p.netValue):'<span class="mut">fiyat yok</span>'}</div>
+      <div class="what"><div>${esc(p.name||p.code)}</div><small>${NUM.format(p.units)} lot · <span class="${cls(pl)}">${sgn(pl)}</span> brüt</small></div>
+      <div class="amt">${p.value!=null?money(p.value):'<span class="mut">fiyat yok</span>'}</div>
       <button type="button" class="del fgear" data-fset="${kid}" aria-expanded="${op}" aria-label="${esc(p.owner+' '+p.code)} ayarları">⚙</button></div>
       <div class="fset" ${op?'':'hidden'} id="fs_${kid}" data-fkey="${esc(p.key)}">
+        <div><span>Alım tutarı <small class="unit">FIFO</small></span><b class="num">${money(p.cost)}</b></div>
         <div><span>Ortalama maliyet</span><b class="num">${px(p.cost/p.units)} ₺</b></div>
         <div><span>Güncel fiyat${p.pdate?` <small class="unit">${esc(p.pdate)}</small>`:''}</span><b class="num">${p.price!=null?px(p.price)+' ₺':'bekleniyor'}</b></div>
         <div><span>Brüt kâr/zarar</span><b class="num ${cls(pl)}">${sgn(pl)}</b></div>
         <div><label for="ft_${kid}">Stopaj oranı (%)</label><input id="ft_${kid}" data-ftax="${esc(p.code)}" inputmode="decimal" value="${esc(fmtIn(p.tax))}" placeholder="0" aria-label="${esc(p.code)} stopaj oranı"></div>
+        <div><span>Tahmini stopaj</span><b class="num">${p.taxAmt?'−'+money(p.taxAmt):money(0)}</b></div>
         <div><span>Net kâr/zarar</span><b class="num ${cls(net)}">${sgn(net)}</b></div>
+        <div><span>Stopaj sonrası değer</span><b class="num">${p.netValue!=null?money(p.netValue):'—'}</b></div>
+        <div class="flots"><span>Kalan alımlar <small class="unit">satışta önce en eskisi düşer</small></span>${p.lots.map(l=>`<small>${esc(dmy(l.date))} · ${NUM.format(l.units)} lot × ${px(l.price)} ₺</small>`).join('')}</div>
         <div><label for="fo_${kid}">Kimin adına</label><select id="fo_${kid}" data-fmove="${esc(p.key)}">${OWNERS.map(o=>`<option${o===p.owner?' selected':''}>${esc(o)}</option>`).join('')}</select></div>
       </div>`};
   tb.innerHTML=open.length?owners.map(o=>`<div class="fgrp"><span><i class="odot o${Math.max(0,OWNERS.indexOf(o))}"></i>${esc(o)}</span><b class="num">${money(ownV(o))}</b></div>`+open.filter(p=>p.owner===o).map(row).join('')).join('')
@@ -1394,12 +1432,12 @@ function renderFunds(FP,fv){
   const tx=[...S.fdtx].sort((a,b)=>b.date.localeCompare(a.date)||(b.created||0)-(a.created||0));
   {const fl=$('#fdList'),ae=document.activeElement;if(!(ae&&fl.contains(ae)&&ae.matches('input,select,textarea'))){
   const px6=v=>v.toLocaleString('tr-TR',{maximumFractionDigits:6});
-  fl.innerHTML=tx.length?tx.map(t=>{const d=new Date(t.date+'T00:00'),sell=t.side==='sell',ow=t.owner||OWNERS[0],oi=Math.max(0,OWNERS.indexOf(ow)),id=esc(t.id);
+  fl.innerHTML=tx.length?tx.map(t=>{const d=new Date(t.date+'T00:00'),sell=t.side==='sell',si=sell?sellInfo(t):null,ow=t.owner||OWNERS[0],oi=Math.max(0,OWNERS.indexOf(ow)),id=esc(t.id);
     return `<div class="swrow${FSWIPE===t.id?' open':''}" data-swid="${id}"><div class="swwrap">
     <div class="swact"><button type="button" class="swbtn" data-fedit="${id}" tabindex="-1">✎ Düzenle</button></div>
     <div class="row swfront" data-fopen="${id}"><div class="date"><b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short',year:'2-digit'}).format(d)}</div>
-    <div class="what"><div><span class="chip">${sell?'Satım':'Alım'}</span>${esc(t.code)}</div><small><i class="odot o${oi}"></i>${esc(ow)} · ${NUM.format(t.units)} lot × ${px6(t.price)} ₺${t.opening?' · bakiyeye yansıtılmadı':''}</small></div>
-    <div class="amt ${sell?'pos':''}">${sell?'+':'−'}${money(t.units*t.price)}</div><button class="del" data-del="fund" data-id="${id}" aria-label="İşlemi sil">✕</button></div></div>
+    <div class="what"><div><span class="chip">${sell?'Satım':'Alım'}</span>${esc(t.code)}</div><small><i class="odot o${oi}"></i>${esc(ow)} · ${NUM.format(t.units)} lot × ${px6(t.price)} ₺${t.opening?' · bakiyeye yansıtılmadı':''}</small>${si?`<small class="fsl"><span>Brüt ${money(si.gross)}</span> · <span>stopaj −${money(si.tax)}</span> · <span>kâr <span class="${si.gain>=0?'pos':'neg'}">${si.gain>=0?'+':''}${money(si.gain)}</span></span></small>`:''}</div>
+    <div class="amt ${sell?'pos':''}">${sell?'+':'−'}${money(si?si.net:t.units*t.price)}${si?'<small style="display:block;font-size:11.5px;font-family:var(--f-body);color:var(--muted)">hesaba geçen</small>':''}</div><button class="del" data-del="fund" data-id="${id}" aria-label="İşlemi sil">✕</button></div></div>
     ${FEDIT===t.id?`<div class="fedit" data-feditbox="${id}">
       <div class="fehead"><b>${esc(t.code)}</b> işlemini düzenle</div>
       <div class="segrow"><span class="eyebrow">Kimin adına</span><div class="seg" role="radiogroup" aria-label="Kimin adına">${OWNERS.map(o=>`<label><input type="radio" name="feOwner" data-fe="owner" value="${esc(o)}"${o===ow?' checked':''}>${esc(o)}</label>`).join('')}</div></div>
@@ -1409,11 +1447,13 @@ function renderFunds(FP,fv){
         <label class="f"><span>Lot (pay adedi)</span><input class="num" data-fe="units" inputmode="decimal" value="${esc(fmtIn(t.units))}"></label>
         <label class="f"><span>Pay fiyatı (₺)</span><input class="num" data-fe="price" inputmode="decimal" value="${esc(fmtIn(t.price))}"></label>
       </div>
+      ${sell?`<label class="f"><span>Stopaj (₺) · boş = otomatik${si?` (${money(si.auto)})`:''}</span><input class="num" data-fe="tax" inputmode="decimal" placeholder="otomatik" value="${si&&si.manual?esc(fmtIn(si.tax)):''}"></label>`:''}
       <p class="hint" data-fecalc>Tutar: ${money(t.units*t.price)}</p>
       <div class="refrow"><button type="button" class="btn" data-fesave="${id}">Kaydet</button><button type="button" class="btn ghost" data-fecancel>Vazgeç</button></div>
       <div class="msg"></div>
     </div>`:''}</div>`}).join('')
     :`<div class="empty">Henüz fon işlemi yok.</div>`;}}
+  fdSync();
 }
 function payOpts(sel){const o=[['','Kart seçilmedi'],['cash','Nakit / banka kartı'],...S.cards.map(c=>[c.id,c.name])];
   if(sel&&!o.some(x=>x[0]===sel))o.push([sel,'Silinmiş kart']);
@@ -1641,10 +1681,29 @@ function syncForm(){
   $('#txSubmit').textContent=t==='income'?'Geliri ekle':t==='cardpay'?'Ödemeyi ekle':'Gideri ekle';
 }
 function fdSync(){const sell=$('#fdSell').checked;$('#fdSubmit').textContent=sell?'Satımı ekle':'Alımı ekle';
-  const u=parseNum($('#fdUnits').value),p=parseNum($('#fdPrice').value);$('#fdCalc').textContent='Tutar: '+(u>0&&p>0?money(u*p):'—')}
+  const u=parseNum($('#fdUnits').value),p=parseNum($('#fdPrice').value);$('#fdCalc').textContent=(sell?'Brüt tutar: ':'Tutar: ')+(u>0&&p>0?money(u*p):'—');
+  $('#fdTaxF').hidden=!sell;
+  const owner=(document.querySelector('input[name="fdOwner"]:checked')||{}).value||OWNERS[0],code=$('#fdCode').value.trim().toLocaleUpperCase('en-US').replace(/[^A-Z0-9]/g,'');
+  const rate=((S.settings.fundTax||{})[code])||0,pct=v=>'%'+String(v).replace('.',','),note=$('#fdNote'),px=v=>v.toLocaleString('tr-TR',{maximumFractionDigits:6});
+  const dmy=iso=>String(iso||'').split('-').reverse().join('.'),row=(a,b,c='')=>`<div class="fn-row ${c}"><span>${a}</span><b>${b}</b></div>`;
+  if(!code){note.hidden=true;return}
+  if(!sell){note.hidden=false;note.innerHTML=`<span>Alımda stopaj kesilmez. ${rate?`${esc(code)} satarken yalnızca kârdan ${pct(rate)} stopaj kesilir; satış FIFO ile en eski alımlardan düşülür.`:`Satarken kârdan stopaj kesilir; oranı fonun ⚙ ayarından girebilirsin.`}</span>`;return}
+  const pv=sellPreview(owner,code,u,p);
+  if(!pv||!(pv.have>1e-9)){note.hidden=false;note.innerHTML=`<span class="warn">${esc(owner)} adına ${esc(code)} pozisyonu yok.</span>`;return}
+  if(!(u>0&&p>0)){note.hidden=false;note.innerHTML=`<span>${esc(owner)} adına ${NUM.format(pv.have)} lot ${esc(code)} var. Lot ve fiyatı girince stopaj ve hesaba geçecek net tutar burada hesaplanır.</span>`;return}
+  const tv=$('#fdTax').value.trim(),man=tv?parseNum(tv):NaN,tax=man>=0?r2(man):pv.auto,net=pv.gross-tax;
+  note.hidden=false;note.innerHTML=
+    (pv.short?`<span class="warn">${esc(owner)} adına yalnızca ${NUM.format(pv.have)} lot var; daha fazlası satılamaz.</span>`:'')+
+    `<div class="fn-lots">FIFO ile düşülecek alımlar: ${pv.used.map(l=>`${NUM.format(l.units)} lot · ${esc(dmy(l.date))} (${px(l.price)} ₺)`).join(', ')}</div>`+
+    row('Brüt satış',money(pv.gross))+row('FIFO maliyet',money(pv.cost))+
+    row('Kâr',`${pv.gain>=0?'+':''}${money(pv.gain)}`)+
+    row(man>=0?'Stopaj (elle girildi)':`Stopaj (${rate?pct(rate)+' × kâr':'oran girilmemiş'})`,'−'+money(tax))+
+    row('Hesaba geçecek net',money(net),'fn-net')+
+    (rate||man>=0?'':`<span class="warn">Bu fonun stopaj oranı girilmemiş; ⚙ ayarından gir.</span>`)}
 {let d=OWNERS[0];try{d=localStorage.getItem('kasa.fdOwner')||d}catch(e){}if(!OWNERS.includes(d))d=OWNERS[0];
  $('#fdOwners').innerHTML=OWNERS.map(o=>`<label><input type="radio" name="fdOwner" value="${esc(o)}"${o===d?' checked':''}>${esc(o)}</label>`).join('')}
-['#fdUnits','#fdPrice'].forEach(s=>$(s).addEventListener('input',fdSync));$$('input[name="fdSide"]').forEach(r=>r.addEventListener('change',fdSync));
+['#fdUnits','#fdPrice','#fdTax','#fdCode'].forEach(s=>$(s).addEventListener('input',fdSync));$$('input[name="fdSide"]').forEach(r=>r.addEventListener('change',fdSync));
+$('#fdOwners').addEventListener('change',fdSync);
 $('#fdDate').value=isoToday();
 $('#fdCode').addEventListener('change',()=>{const c=$('#fdCode').value.trim().toLocaleUpperCase('en-US');$('#fdCode').value=c;const pr=(S.fdp.items||{})[c];if(pr&&pr.price&&!$('#fdPrice').value){$('#fdPrice').value=fmtIn(pr.price);fdSync()}});
 $('#fdForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#fdMsg');if(!need(msg))return;
@@ -1653,10 +1712,11 @@ $('#fdForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$(
   if(!(units>0)||!(price>0)){flash(msg,'Lot ve pay fiyatı sıfırdan büyük olmalı.',true);return}
   if(!date){flash(msg,'Tarih seç.',true);return}
   if(side==='sell'){const p=fundPositions().find(x=>x.code===code&&x.owner===owner);if(!p||p.units+1e-9<units){flash(msg,`${owner} adına ${code} için ${p?NUM.format(p.units):0} lot var; daha fazlası satılamaz.`,true);return}}
-  try{const doc={code,side,units,price,date,owner,created:Date.now()};try{localStorage.setItem('kasa.fdOwner',owner)}catch(e){}if(!$('#fdCash').checked)doc.opening=true;
+  let tax=null;if(side==='sell'){const tv=$('#fdTax').value.trim();if(tv){tax=parseNum(tv);if(!(tax>=0)){flash(msg,'Stopaj tutarı geçersiz.',true);return}tax=r2(tax)}}
+  try{const doc={code,side,units,price,date,owner,created:Date.now()};if(tax!=null)doc.tax=tax;try{localStorage.setItem('kasa.fdOwner',owner)}catch(e){}if(!$('#fdCash').checked)doc.opening=true;
     await db.collection('fundtx').doc(uid()).set(doc);
     const isNew=!((S.fdp.items||{})[code]||{}).price;
-    $('#fdUnits').value='';$('#fdPrice').value='';fdSync();flash(msg,(side==='sell'?'Satım':'Alım')+' eklendi.'+(isNew?(ghReady()?' Güncel fiyatı getiriliyor…':' Güncel fiyatı bir sonraki otomatik güncellemede gelecek.'):''));
+    $('#fdUnits').value='';$('#fdPrice').value='';$('#fdTax').value='';fdSync();flash(msg,(side==='sell'?'Satım':'Alım')+' eklendi.'+(isNew?(ghReady()?' Güncel fiyatı getiriliyor…':' Güncel fiyatı bir sonraki otomatik güncellemede gelecek.'):''));
     if(isNew&&ghReady())refreshPrices()}catch(err){flash(msg,errText(err),true)}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-fset]');if(!b)return;const c=b.dataset.fset,box=document.getElementById('fs_'+c);if(!box)return;const o=box.hidden;box.hidden=!o;b.setAttribute('aria-expanded',o);if(o)FOPEN.add(c);else FOPEN.delete(c)});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-fown]');if(!b||!db)return;const t=S.fdtx.find(x=>x.id===b.dataset.fown);if(!t)return;

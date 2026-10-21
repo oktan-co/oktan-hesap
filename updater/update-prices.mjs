@@ -99,10 +99,24 @@ async function updateMetals(db, now, summary) {
 /* ---------------- fonlar ---------------- */
 const FUND_PAGES = JSON.parse(readFileSync(new URL('./funds.json', import.meta.url), 'utf8'));
 
+// Para piyasası fonları ertesi günün fiyatını akşam yayımlar (bankalar da bunu gösterir).
+// TEFAS'a bitiş tarihini birkaç gün ileri vererek bu fiyatı da alırız; olmazsa bugüne kadar sorarız.
 async function fromTefas(code, now) {
+  let lastErr = null;
+  for (const end of [addDaysIso(now.date, 3), now.date]) {
+    try {
+      const r = await tefasQuery(code, addDaysIso(now.date, -10), end);
+      if (r) return r;
+    } catch (e) { lastErr = e; }
+  }
+  if (lastErr) throw lastErr;
+  return null;
+}
+
+async function tefasQuery(code, startIso, endIso) {
   const body = new URLSearchParams({
     fontip: 'YAT', sfontur: '', fonkod: code, fongrup: '',
-    bastarih: ddmmyyyy(addDaysIso(now.date, -10)), bittarih: ddmmyyyy(now.date), fonturkod: '', fonunvantip: '',
+    bastarih: ddmmyyyy(startIso), bittarih: ddmmyyyy(endIso), fonturkod: '', fonunvantip: '',
   });
   const res = await fetch('https://www.tefas.gov.tr/api/DB/BindHistoryInfo', {
     method: 'POST', body,
