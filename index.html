@@ -747,7 +747,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <form class="box" id="alForm">
       <div class="grid">
         <label class="f"><span>Kimden / ne için</span><input id="alName" placeholder="ör. Maaş, Osman ceza" maxlength="60" required></label>
-        <label class="f"><span>Tutar (₺)</span><input id="alAmt" class="num" inputmode="decimal" placeholder="0,00" required></label>
+        <label class="f"><span>Tutar (₺)</span><input id="alAmt" class="num" inputmode="text" placeholder="0,00 (eksi için -50)" required></label>
         <label class="f"><span>Ne zaman alacağım (isteğe bağlı)</span><input id="alDate" type="date"></label>
       </div>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="alRepeat" class="chk"> Her ay tekrarla (ör. maaş) — tarihteki gün her ay kullanılır</label>
@@ -1549,17 +1549,17 @@ function renderAlacak(M){
   const L=alFor(M,false),t=L.reduce((a,o)=>a+o.amount,0);
   $('#alMonthLbl').textContent=monthName(M);$('#alSumLbl').textContent=monthName(M)+' alacak';
   const borc=S.st.filter(x=>!x.paid).reduce((a,x)=>a+x.amount,0),fk=t-borc;
-  $('#alSum').textContent=money(t);$('#alBorc').textContent=money(borc);$('#alFark').textContent=(fk<0?'−':'+')+money(Math.abs(fk));$('#alFark').className=fk<0?'neg':'pos';
+  $('#alSum').textContent=money(t);$('#alSum').className=t<0?'neg':'pos';$('#alBorc').textContent=money(borc);$('#alFark').textContent=(fk<0?'−':'+')+money(Math.abs(fk));$('#alFark').className=fk<0?'neg':'pos';
   $('#alTotal').innerHTML=L.length?`${L.length} alacak · ${money(t)}`:'';
   const when=o=>{if(!o.date)return 'Tarihsiz · her an alınabilir';const d=new Date(o.date+'T00:00'),n=daysTo(o.date);
     return (o.rec?'Her ay · ':'')+d.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})+(n<0?' · gecikti':n===0?' · bugün':n<=31?` · ${n} gün sonra`:'')};
   const box=$('#alList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input,select'))return;
   box.innerHTML=L.length?L.map(o=>{const a=o.a,ed=ALEDIT===a.id,id=esc(a.id),late=o.date&&o.date<isoToday();
     return `<div class="row strow${ed?' on':''}" data-alopen="${id}" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${o.rec?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small class="${late?'neg':''}">${esc(when(o))} <span class="stedit">✎</span></small></div>
-    <div class="amt">${money(o.amount)}</div><button class="del" ${o.rec?`data-aldone="${id}" data-m="${M}" aria-label="Bu ayki tahsil edildi"`:`data-del="al" data-id="${id}" aria-label="Alacağı sil"`}>${o.rec?'✓':'✕'}</button></div>
+    <div class="amt${o.amount<0?' neg':''}">${money(o.amount)}</div><button class="del" ${o.rec?`data-aldone="${id}" data-m="${M}" aria-label="Bu ayki tahsil edildi"`:`data-del="al" data-id="${id}" aria-label="Alacağı sil"`}>${o.rec?'✓':'✕'}</button></div>
     ${ed?`<div class="fedit" data-aleditbox="${id}"><div class="grid">
       <label class="f"><span>Kimden / ne için</span><input data-ae="name" value="${esc(a.name)}" maxlength="60"></label>
-      <label class="f"><span>Tutar (₺)</span><input class="num" data-ae="amount" inputmode="decimal" value="${esc(fmtIn(a.amount))}"></label>
+      <label class="f"><span>Tutar (₺)</span><input class="num" data-ae="amount" inputmode="text" value="${esc(fmtIn(a.amount))}"></label>
       <label class="f"><span>${a.repeat?'Başlangıç tarihi (gün her ay kullanılır)':'Ne zaman (boş = her an)'}</span><input type="date" data-ae="date" value="${esc(a.date||'')}"></label></div>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" class="chk" data-ae="repeat"${a.repeat?' checked':''}> Her ay tekrarla</label>
       <div class="refrow"><button type="button" class="btn" data-alsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-alcancel>Vazgeç</button>${a.repeat?`<button type="button" class="btn ghost neg" data-alseriesdel="${id}" style="margin-left:auto">Tamamen sil</button>`:''}</div><div class="msg"></div></div>`:''}`}).join('')
@@ -1584,7 +1584,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-alcancel]')){ALEDIT=null;render();return}
   const sv=e.target.closest('[data-alsave]');if(sv){const id=sv.dataset.alsave,box=[...document.querySelectorAll('[data-aleditbox]')].find(b=>b.dataset.aleditbox===id),a=S.al.find(x=>x.id===id);if(!box||!a||!db)return;
     const v=k=>box.querySelector(`[data-ae=${k}]`).value,name=v('name').trim(),amount=parseNum(v('amount')),rp=box.querySelector('[data-ae=repeat]').checked;
-    if(!name||!(amount>0)){flash(box.querySelector('.msg'),'İsim ve sıfırdan büyük tutar gir.',true);return}
+    if(!name||!Number.isFinite(amount)||amount===0){flash(box.querySelector('.msg'),'İsim ve sıfırdan farklı bir tutar gir (eksi de olabilir).',true);return}
     const old=stripId(a),nw={...old,name,amount:Math.round(amount*100)/100,date:v('date')||(rp?isoToday():''),repeat:rp,done:old.done||{}};if(!rp){delete nw.repeat;delete nw.done}
     if(document.activeElement)document.activeElement.blur();ALEDIT=null;render();
     db.collection('alacak').doc(id).set(nw).catch(err=>showBanner(errText(err)));toast('Alacak güncellendi.',()=>db.collection('alacak').doc(id).set(old));return}
@@ -1950,7 +1950,7 @@ $('#spAddAll').addEventListener('click',async()=>{const msg=$('#spImMsg');if(!ne
   catch(err){renderSpRev();flash(msg,(ok?ok+' harcama eklendi, kalanlar eklenemedi. ':'')+errText(err),true)}finally{b.disabled=false}});
 
 $('#alForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#alMsg');if(!need(msg))return;
-  const name=$('#alName').value.trim(),amt=parseNum($('#alAmt').value),rep=$('#alRepeat').checked,date=$('#alDate').value||(rep?isoToday():'');if(!name||!(amt>0)){flash(msg,'İsim ve sıfırdan büyük tutar gir.',true);return}
+  const name=$('#alName').value.trim(),amt=parseNum($('#alAmt').value),rep=$('#alRepeat').checked,date=$('#alDate').value||(rep?isoToday():'');if(!name||!Number.isFinite(amt)||amt===0){flash(msg,'İsim ve sıfırdan farklı bir tutar gir (eksi de olabilir).',true);return}
   try{await db.collection('alacak').doc(uid()).set(rep?{name,amount:amt,date,repeat:true,done:{},created:Date.now()}:{name,amount:amt,date,created:Date.now()});$('#alName').value='';$('#alAmt').value='';$('#alDate').value='';$('#alRepeat').checked=false;flash(msg,'Alacak eklendi.')}catch(err){flash(msg,errText(err),true)}});
 $('#cardForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#cardMsg');if(!need(msg))return;
   const name=$('#cName').value.trim(),lim=parseNum($('#cLimit').value),debt=parseNum($('#cDebt').value),day=parseInt($('#cDay').value,10);
@@ -2172,7 +2172,7 @@ function startData(fs){
   on(db.collection('cards'),s=>{got();S.cards=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render()});
   on(db.collection('holdings'),s=>{got();S.hold=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render()});
   on(db.collection('spend'),s=>{got();S.sp=list(s).filter(x=>x.amount>0&&x.date);render()});
-  on(db.collection('alacak'),s=>{got();S.al=list(s).filter(a=>a.amount>0).sort((a,b)=>(a.created||0)-(b.created||0));render()});
+  on(db.collection('alacak'),s=>{got();S.al=list(s).filter(a=>Number.isFinite(a.amount)&&a.amount!==0).sort((a,b)=>(a.created||0)-(b.created||0));render()});
   on(db.collection('statements'),s=>{got();S.st=list(s).filter(x=>x.amount>0||x.pending);render()});
   on(db.collection('fundtx'),s=>{got();S.fdtx=list(s).filter(t=>t.code&&t.units>0&&t.price>0&&t.date);render()});
   on(db.doc('prices/funds'),s=>{S.fdp=s.exists?s.data():{items:{}};render()});
