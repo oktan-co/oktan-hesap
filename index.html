@@ -1103,7 +1103,7 @@ function applyCats(){const raw=S.settings.spGroups;const key=JSON.stringify(Arra
   const sc=$('#spCat');if(sc){const v=sc.value;sc.innerHTML=spCatOpts(v)}
   renderCatEditor()}
 const S={pstat:{},ai:{},sp:[],tx:[],cards:[],hold:[],fdtx:[],fdp:{items:{}},al:[],st:[],harem:{items:{}},fiba:{items:{}},settings:{},month:mk(today),tab:'ozet'};
-S.yt='maden';try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'?(S.yt=t,'yatirim'):t}catch(e){}
+S.yt='maden';try{const gm=sessionStorage.getItem('kasa.month');if(/^\d{4}-\d\d$/.test(gm||''))S.month=gm}catch(e){}try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'?(S.yt=t,'yatirim'):t}catch(e){}
 let db=null;
 
 /* ---------- money logic ---------- */
@@ -1345,7 +1345,7 @@ $('#toastUndo').addEventListener('click',()=>{const u=toastUndo;hideToast();if(u
 function syncHide(){const b=$('#hideBtn');const l=HIDE?'Tutarları göster':'Tutarları gizle';b.setAttribute('aria-pressed',HIDE);b.setAttribute('aria-label',l);b.title=l}
 $('#hideBtn').addEventListener('click',()=>{HIDE=!HIDE;try{localStorage.setItem('kasa.hide',HIDE?'1':'0')}catch(e){}syncHide();render()});
 syncHide();
-function render(){try{render0()}catch(e){showBanner('Ekran çizilirken hata: '+(e&&e.message||e));console.error(e)}}
+function render(){try{sessionStorage.setItem('kasa.month',S.month)}catch(e){}try{render0()}catch(e){showBanner('Ekran çizilirken hata: '+(e&&e.message||e));console.error(e)}}
 function render0(){
   applyCats();
   const M=S.month, CH=charges();
