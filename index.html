@@ -1819,12 +1819,15 @@ async function shrinkImage(blob){ // büyük telefon fotoğraflarını 2000px'e 
     const c=document.createElement('canvas');c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
     return await new Promise(r=>c.toBlob(r,'image/jpeg',.85))}catch(e){return blob}}
 const b64=blob=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=no;r.readAsDataURL(blob)});
-async function geminiCall(model,key,parts,signal){
+async function geminiCall(model,key,parts,signal,maxTok=32768){
+  const gc={temperature:0,responseMimeType:'application/json'};if(maxTok)gc.maxOutputTokens=maxTok;
   const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',signal,
     headers:{'Content-Type':'application/json','x-goog-api-key':key},
-    body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{temperature:0,responseMimeType:'application/json',maxOutputTokens:32768}})});
+    body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:gc})});
   let j=null;try{j=await res.json()}catch(e){}
   if(!res.ok){const m=(j&&j.error&&j.error.message)||'';
+    // Model bu kadar uzun çıktıyı desteklemiyorsa sınırsız (varsayılan) dene
+    if(res.status===400&&maxTok&&/output.?token|max.?output/i.test(m))return geminiCall(model,key,parts,signal,0);
     if(res.status===429)throw aiErr('rate_limited',m);
     if(res.status===500||res.status===503||res.status===504)throw aiErr('busy',m);
     if(res.status===404)throw aiErr('no_model',m);
@@ -2125,7 +2128,7 @@ $('#aiTest').addEventListener('click',async()=>{const msg=$('#aiMsg');const key=
     try{txt=(await geminiCall(m,key,[{text:'Sadece şu JSON dizisini döndür: [{"ok":true}]'}])).txt}
     catch(e){if(e.code!=='no_model')throw e;m=await pickFlashModel(key);if(!m)throw e;txt=(await geminiCall(m,key,[{text:'Sadece şu JSON dizisini döndür: [{"ok":true}]'}])).txt}
     flash(msg,'Çalışıyor ✓ (model: '+m+')'+(m!==model?' — bu modeli kaydetmek için Model alanına yazıp Kaydet’e bas.':''))}
-  catch(e){flash(msg,spErr[e.code]||('Hata: '+(e.message||e.code)),true)}});
+  catch(e){console.error(e);flash(msg,(spErr[e.code]||'Hata')+(e.message&&e.message!==e.code?' ['+String(e.message).slice(0,140)+']':''),true)}});
 $('#ghForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#ghMsg');if(!need(msg))return;
   const repo=$('#ghRepo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\/+$/,'');
   if(repo&&!/^[\w.-]+\/[\w.-]+$/.test(repo)){flash(msg,'Depoyu kullanıcı/depo biçiminde yaz.',true);return}
