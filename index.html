@@ -1822,10 +1822,11 @@ const b64=blob=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(S
 async function geminiCall(model,key,parts,signal){
   const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',signal,
     headers:{'Content-Type':'application/json','x-goog-api-key':key},
-    body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{temperature:0,responseMimeType:'application/json'}})});
+    body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{temperature:0,responseMimeType:'application/json',maxOutputTokens:32768}})});
   let j=null;try{j=await res.json()}catch(e){}
   if(!res.ok){const m=(j&&j.error&&j.error.message)||'';
     if(res.status===429)throw aiErr('rate_limited',m);
+    if(res.status===500||res.status===503||res.status===504)throw aiErr('busy',m);
     if(res.status===404)throw aiErr('no_model',m);
     if(res.status===400&&/api key/i.test(m))throw aiErr('bad_key',m);
     if(res.status===403)throw aiErr('bad_key',m);
@@ -1835,7 +1836,12 @@ async function geminiCall(model,key,parts,signal){
   if(!c){throw aiErr('refused',(j&&j.promptFeedback&&j.promptFeedback.blockReason)||'')}
   const txt=((c.content&&c.content.parts)||[]).map(p=>p.text||'').join('').trim();
   if(!txt)throw aiErr('refused',c.finishReason||'');
-  return txt}
+  return {txt,cut:c.finishReason==='MAX_TOKENS'}}
+/* Cevap uzunluk sınırında kesilirse, tamamlanmış kayıtları kurtar */
+function parseAiJson(txt,cut){const t=txt.replace(/^```(?:json)?\s*|\s*```$/g,'');
+  try{return JSON.parse(t)}catch(e){}
+  if(cut||t.trim().startsWith('[')){const i=t.lastIndexOf('}');if(i>0){try{return JSON.parse(t.slice(0,i+1).replace(/,\s*$/,'')+']')}catch(e){}}}
+  throw aiErr('invalid_json')}
 async function pickFlashModel(key){ // model adı kalktıysa güncel bir flash modeli bul
   const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':key}});
   const j=await r.json().catch(()=>({}));const ms=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace(/^models\//,''));
@@ -1845,13 +1851,13 @@ const geminiSampler={async json(prompt,opts={}){
   let model=(S.ai.model||'').trim()||'gemini-flash-latest';
   const parts=[{text:prompt}];
   for(const f of (opts.images||[])){const sm=await shrinkImage(f);parts.push({inline_data:{mime_type:sm.type||'image/jpeg',data:await b64(sm)}})}
-  let txt;
-  try{txt=await geminiCall(model,key,parts,opts.signal)}
-  catch(e){if(e.name==='AbortError')throw aiErr('cancelled');
-    if(e.code!=='no_model')throw e;
+  let r;
+  const call=async()=>{try{return await geminiCall(model,key,parts,opts.signal)}catch(e){if(e.name==='AbortError')throw aiErr('cancelled');throw e}};
+  try{try{r=await call()}catch(e){if(e.code!=='busy')throw e;await new Promise(ok=>setTimeout(ok,2500));r=await call()}}
+  catch(e){if(e.code!=='no_model')throw e;
     const alt=await pickFlashModel(key);if(!alt||alt===model)throw e;
-    model=alt;txt=await geminiCall(model,key,parts,opts.signal)}
-  try{return JSON.parse(txt.replace(/^```(?:json)?\s*|\s*```$/g,''))}catch(e){throw aiErr('invalid_json')}}};
+    model=alt;r=await call()}
+  return parseAiJson(r.txt,r.cut)}};
 function syncAI(){const on=!!(S.ai.geminiKey||'').trim();spAI=on?{s:geminiSampler,lim:AI_LIM}:null;$('#spPhotoTab').hidden=!on;
   $('#spFile').accept='image/*,application/pdf,.pdf';if(!on&&$('#spPhotoTab').getAttribute('aria-selected')==='true')setSpTab('manual')}
 function setSpTab(t){$$('[data-sptab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.sptab===t));$$('[data-sppane]').forEach(p=>p.hidden=p.dataset.sppane!==t)}
@@ -1885,13 +1891,21 @@ $('#spClear').addEventListener('click',()=>{spRows=[];renderSpRev();$('#spImMsg'
 $('#spStop').addEventListener('click',()=>spCtl&&spCtl.abort());
 const spErr={not_granted:'Önce sağ üstteki ⚙ Ayarlar → Fotoğraf bölümüne Gemini API anahtarını gir.',bad_key:'Gemini API anahtarı geçersiz. Sağ üstteki ⚙ Ayarlar → Fotoğraf bölümünden kontrol et.',no_model:'Gemini modeli bulunamadı. ⚙ Ayarlar → Fotoğraf bölümünde model alanını boş bırakmayı dene.',
   image_rejected:'Bu dosya okunamadı. Başka bir fotoğraf dene (JPEG/PNG).',rate_limited:'Gemini ücretsiz kullanım sınırına ulaşıldı. Bir dakika sonra (ya da yarın) tekrar dene.',refused:'Bu fotoğraf işlenemedi. Başka bir fotoğraf dene.',
-  invalid_json:'Fotoğraf okunamadı. Tekrar dene ya da daha net bir fotoğraf seç.',session_expired:'Oturum süresi doldu, yeniden giriş yap.'};
+  invalid_json:'Dosya okunamadı. Tekrar dene ya da daha net bir fotoğraf seç.',busy:'Gemini şu an yoğun. Bir iki dakika sonra tekrar dene.',session_expired:'Oturum süresi doldu, yeniden giriş yap.'};
 let pdfLib=null;
 function loadPdfJs(){if(pdfLib)return pdfLib;pdfLib=new Promise((ok,no)=>{const s=document.createElement('script');
   s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
   s.onload=()=>{const L=window.pdfjsLib;if(!L){no(new Error('pdf'));return}L.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';ok(L)};
   s.onerror=()=>{pdfLib=null;no(new Error('pdf'))};document.head.appendChild(s)});return pdfLib}
-async function readPdf(file,maxImgs){const L=await loadPdfJs();const doc=await L.getDocument({data:await file.arrayBuffer()}).promise;
+async function openPdf(L,file){ // bankaların şifreli ekstreleri için parola sorar
+  const buf=await file.arrayBuffer();let pw;
+  for(let t=0;t<3;t++){
+    try{return await L.getDocument({data:buf.slice(0),password:pw}).promise}
+    catch(e){if(!e||e.name!=='PasswordException')throw e;
+      pw=prompt((e.code===2?'Parola yanlış. ':'')+'Bu PDF şifreli ('+file.name+'). Parolayı yaz (bankalar çoğunlukla TC kimlik no ya da doğum tarihi kullanır):');
+      if(pw===null){const c=new Error('cancel');c.name='PdfCancelled';throw c}}}
+  const c=new Error('pw');c.name='PasswordException';throw c}
+async function readPdf(file,maxImgs){const L=await loadPdfJs();const doc=await openPdf(L,file);
   let text='';const n=Math.min(doc.numPages,15);
   for(let i=1;i<=n;i++){const pg=await doc.getPage(i);const tc=await pg.getTextContent();
     const lines={};for(const it of tc.items){const y=Math.round(it.transform[5]);(lines[y]=lines[y]||[]).push(it)}
@@ -1909,7 +1923,9 @@ async function spHandle(all){if(!all.length||!spAI)return;if(spCtl)return;$('#sp
   const pdfs=all.filter(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name));
   try{if(pdfs.length){msg.textContent='PDF açılıyor…';
       for(const p of pdfs){const r=await readPdf(p,maxI);if(r.text)pdfText+=r.text;else files.push(...r.imgs)}}}
-  catch(err){flash(msg,'PDF açılamadı. Şifreli olabilir; ekran görüntüsü almayı dene.',true);$('#spStop').hidden=true;spCtl=null;return}
+  catch(err){console.error(err);const n=err&&err.name;
+    flash(msg,n==='PdfCancelled'?'':n==='PasswordException'?'PDF parolası doğrulanamadı.':err&&err.message==='pdf'?'PDF okuyucu yüklenemedi. İnternet bağlantını kontrol edip sayfayı yenile.':'PDF açılamadı (dosya bozuk olabilir). Ekran görüntüsü almayı dene.',n!=='PdfCancelled');
+    $('#spStop').hidden=true;spCtl=null;return}
   files=[...files,...all.filter(f=>!pdfs.includes(f))].slice(0,maxI);
   if(!files.length&&!pdfText){flash(msg,'Dosyada okunacak bir şey bulunamadı.',true);$('#spStop').hidden=true;spCtl=null;return}
   msg.textContent='Okunuyor… (birkaç saniye ile bir dakika sürebilir)';
@@ -2106,8 +2122,8 @@ $('#aiForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$(
 $('#aiTest').addEventListener('click',async()=>{const msg=$('#aiMsg');const key=$('#aiKey').value.trim();if(!key){flash(msg,'Önce anahtarı yapıştır.',true);return}
   msg.className='msg';msg.textContent='Deneniyor…';
   try{const model=$('#aiModel').value.trim()||'gemini-flash-latest';let m=model,txt;
-    try{txt=await geminiCall(m,key,[{text:'Sadece şu JSON dizisini döndür: [{"ok":true}]'}])}
-    catch(e){if(e.code!=='no_model')throw e;m=await pickFlashModel(key);if(!m)throw e;txt=await geminiCall(m,key,[{text:'Sadece şu JSON dizisini döndür: [{"ok":true}]'}])}
+    try{txt=(await geminiCall(m,key,[{text:'Sadece şu JSON dizisini döndür: [{"ok":true}]'}])).txt}
+    catch(e){if(e.code!=='no_model')throw e;m=await pickFlashModel(key);if(!m)throw e;txt=(await geminiCall(m,key,[{text:'Sadece şu JSON dizisini döndür: [{"ok":true}]'}])).txt}
     flash(msg,'Çalışıyor ✓ (model: '+m+')'+(m!==model?' — bu modeli kaydetmek için Model alanına yazıp Kaydet’e bas.':''))}
   catch(e){flash(msg,spErr[e.code]||('Hata: '+(e.message||e.code)),true)}});
 $('#ghForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#ghMsg');if(!need(msg))return;
