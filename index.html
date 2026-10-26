@@ -1855,8 +1855,8 @@ async function flashCandidates(key){
     const j=await r.json().catch(()=>({}));
     const ver=n=>{const m=/gemini-(\d+(?:\.\d+)?)/.exec(n);return m?parseFloat(m[1]):0};
     return (j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace(/^models\//,''))
-      .filter(n=>/flash/.test(n)&&!/lite|image|tts|live|thinking|exp|audio|robotics|computer/.test(n)&&!/latest$/.test(n))
-      .sort((a,b)=>ver(b)-ver(a)||(a<b?1:-1)).slice(0,5)}catch(e){return []}}
+      .filter(n=>/flash/.test(n)&&!/image|tts|live|thinking|exp|audio|robotics|computer/.test(n)&&!/latest$/.test(n))
+      .sort((a,b)=>(/lite/.test(a)-/lite/.test(b))||ver(b)-ver(a)||(a<b?1:-1)).slice(0,6)}catch(e){return []}}
 const geminiSampler={async json(prompt,opts={}){
   const key=(S.ai.geminiKey||'').trim();if(!key)throw aiErr('not_granted');
   const chain=((S.ai.model||'').split(/[,\n]/).map(x=>x.trim()).filter(Boolean));if(!chain.length)chain.push('gemini-flash-latest');
@@ -1868,9 +1868,9 @@ const geminiSampler={async json(prompt,opts={}){
     if(i>=chain.length&&extra===null)break;
     const m=i<chain.length?chain[i]:extra[i-chain.length];
     try{let r;
-      try{r=await call(m)}catch(e){if(e.code!=='busy')throw e;await new Promise(ok=>setTimeout(ok,2000));r=await call(m)}
+      try{r=await call(m)}catch(e){if(e.code!=='busy')throw e;await new Promise(ok=>setTimeout(ok,2000));r=await call(m)} // kota dolduysa (rate_limited) bekleme, doğrudan sıradaki modele
       return parseAiJson(r.txt,r.cut)}
-    catch(e){lastErr=e;if(e.code!=='busy'&&e.code!=='no_model')throw e;
+    catch(e){lastErr=e;if(e.code!=='busy'&&e.code!=='no_model'&&e.code!=='rate_limited')throw e;
       if(i===chain.length-1&&extra===null){extra=(await flashCandidates(key)).filter(n=>!chain.includes(n))}}}
   throw lastErr||aiErr('busy')}};
 function syncAI(){const on=!!(S.ai.geminiKey||'').trim();spAI=on?{s:geminiSampler,lim:AI_LIM}:null;$('#spPhotoTab').hidden=!on;
