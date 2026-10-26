@@ -967,7 +967,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <p class="hint">Ekstre fotoğraflarını ve PDF'lerini okumak için ücretsiz Gemini API anahtarı gerekir. Anahtarı <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> adresinden alıp buraya yapıştır. Anahtar yalnızca senin hesabının okuyabildiği veritabanı kaydında saklanır.</p>
       <div class="grid">
         <label class="f"><span>Gemini API anahtarı</span><input id="aiKey" type="password" autocomplete="off" placeholder="AQ.… ya da AIza…"></label>
-        <label class="f"><span>Model (boş bırakabilirsin)</span><input id="aiModel" autocomplete="off" placeholder="gemini-flash-latest"></label>
+        <label class="f"><span>Model (boş bırakabilirsin; yedek için virgülle: model1, model2)</span><input id="aiModel" autocomplete="off" placeholder="gemini-flash-latest"></label>
       </div>
       <div class="refrow"><button class="btn" type="submit">Kaydet</button><button class="btn ghost" type="button" id="aiTest">Anahtarı dene</button></div>
       <div class="msg" id="aiMsg"></div>
@@ -1849,18 +1849,30 @@ async function pickFlashModel(key){ // model adı kalktıysa güncel bir flash m
   const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':key}});
   const j=await r.json().catch(()=>({}));const ms=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace(/^models\//,''));
   return ms.find(n=>n==='gemini-flash-latest')||ms.filter(n=>/flash/.test(n)&&!/lite|image|tts|live|thinking|exp|preview/.test(n)).sort().reverse()[0]||null}
+/* Yedek zinciri: önce Ayarlar'daki model(ler) (virgülle ayrılabilir: "a, b, c"), sonra hesabın görebildiği Flash modeller yeniden eskiye */
+async function flashCandidates(key){
+  try{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':key}});
+    const j=await r.json().catch(()=>({}));
+    const ver=n=>{const m=/gemini-(\d+(?:\.\d+)?)/.exec(n);return m?parseFloat(m[1]):0};
+    return (j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace(/^models\//,''))
+      .filter(n=>/flash/.test(n)&&!/lite|image|tts|live|thinking|exp|audio|robotics|computer/.test(n)&&!/latest$/.test(n))
+      .sort((a,b)=>ver(b)-ver(a)||(a<b?1:-1)).slice(0,5)}catch(e){return []}}
 const geminiSampler={async json(prompt,opts={}){
   const key=(S.ai.geminiKey||'').trim();if(!key)throw aiErr('not_granted');
-  let model=(S.ai.model||'').trim()||'gemini-flash-latest';
+  const chain=((S.ai.model||'').split(/[,\n]/).map(x=>x.trim()).filter(Boolean));if(!chain.length)chain.push('gemini-flash-latest');
   const parts=[{text:prompt}];
   for(const f of (opts.images||[])){const sm=await shrinkImage(f);parts.push({inline_data:{mime_type:sm.type||'image/jpeg',data:await b64(sm)}})}
-  let r;
-  const call=async()=>{try{return await geminiCall(model,key,parts,opts.signal)}catch(e){if(e.name==='AbortError')throw aiErr('cancelled');throw e}};
-  try{try{r=await call()}catch(e){if(e.code!=='busy')throw e;await new Promise(ok=>setTimeout(ok,2500));r=await call()}}
-  catch(e){if(e.code!=='no_model')throw e;
-    const alt=await pickFlashModel(key);if(!alt||alt===model)throw e;
-    model=alt;r=await call()}
-  return parseAiJson(r.txt,r.cut)}};
+  const call=async m=>{try{return await geminiCall(m,key,parts,opts.signal)}catch(e){if(e.name==='AbortError')throw aiErr('cancelled');throw e}};
+  let extra=null,lastErr=null;
+  for(let i=0;i<chain.length||(extra&&i<chain.length+extra.length);i++){
+    if(i>=chain.length&&extra===null)break;
+    const m=i<chain.length?chain[i]:extra[i-chain.length];
+    try{let r;
+      try{r=await call(m)}catch(e){if(e.code!=='busy')throw e;await new Promise(ok=>setTimeout(ok,2000));r=await call(m)}
+      return parseAiJson(r.txt,r.cut)}
+    catch(e){lastErr=e;if(e.code!=='busy'&&e.code!=='no_model')throw e;
+      if(i===chain.length-1&&extra===null){extra=(await flashCandidates(key)).filter(n=>!chain.includes(n))}}}
+  throw lastErr||aiErr('busy')}};
 function syncAI(){const on=!!(S.ai.geminiKey||'').trim();spAI=on?{s:geminiSampler,lim:AI_LIM}:null;$('#spPhotoTab').hidden=!on;
   $('#spFile').accept='image/*,application/pdf,.pdf';if(!on&&$('#spPhotoTab').getAttribute('aria-selected')==='true')setSpTab('manual')}
 function setSpTab(t){$$('[data-sptab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.sptab===t));$$('[data-sppane]').forEach(p=>p.hidden=p.dataset.sppane!==t)}
@@ -2124,7 +2136,7 @@ $('#aiForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$(
   try{await db.doc('settings/ai').set({geminiKey:$('#aiKey').value.trim(),model:$('#aiModel').value.trim()},{merge:true});flash(msg,'Kaydedildi.')}catch(err){flash(msg,errText(err),true)}});
 $('#aiTest').addEventListener('click',async()=>{const msg=$('#aiMsg');const key=$('#aiKey').value.trim();if(!key){flash(msg,'Önce anahtarı yapıştır.',true);return}
   msg.className='msg';msg.textContent='Deneniyor…';
-  try{const model=$('#aiModel').value.trim()||'gemini-flash-latest';let m=model,txt;
+  try{const model=$('#aiModel').value.split(/[,\n]/)[0].trim()||'gemini-flash-latest';let m=model,txt;
     try{txt=(await geminiCall(m,key,[{text:'Sadece şu JSON dizisini döndür: [{"ok":true}]'}])).txt}
     catch(e){if(e.code!=='no_model')throw e;m=await pickFlashModel(key);if(!m)throw e;txt=(await geminiCall(m,key,[{text:'Sadece şu JSON dizisini döndür: [{"ok":true}]'}])).txt}
     flash(msg,'Çalışıyor ✓ (model: '+m+')'+(m!==model?' — bu modeli kaydetmek için Model alanına yazıp Kaydet’e bas.':''))}
