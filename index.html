@@ -1012,7 +1012,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 45 · 30 Eki 02:54</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 46 · 30 Eki 02:58</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1872,16 +1872,15 @@ async function flashCandidates(key){
       .filter(n=>/flash/.test(n)&&!/image|tts|live|thinking|exp|audio|robotics|computer/.test(n)&&!/latest$/.test(n))
       .sort((a,b)=>(/lite/.test(a)-/lite/.test(b))||ver(b)-ver(a)||(a<b?1:-1)).slice(0,6)}catch(e){return []}}
 const FB_CODES=new Set(['busy','no_model','rate_limited','timeout','refused','invalid_json']); // bu hatalarda sıradaki (bir alt) modele geçilir
+const DEFAULT_CHAIN=['gemini-3.6-flash','gemini-3.5-flash','gemini-2.5-flash']; // Ayarlar'da model yoksa sırayla bunlar denenir
 const MAX_MODELS=3; // zincir uzadıkça iptal edilen istekler ücretsiz kotayı yer; en çok 3 model dene
 const geminiSampler={lastModel:'',async json(prompt,opts={}){
   const key=(S.ai.geminiKey||'').trim();if(!key)throw aiErr('not_granted');
   const parts=[{text:prompt}];
   for(const f of (opts.images||[])){const sm=await shrinkImage(f);parts.push({inline_data:{mime_type:sm.type||'image/jpeg',data:await b64(sm)}})}
-  /* Zincir: Ayarlar'daki model(ler) varsa onlar önce; yoksa hesabın görebildiği en yeni Flash'tan eskiye. En çok 3 model. */
+  /* Zincir: Ayarlar'daki model(ler) varsa onlar önce, sonra varsayılan zincir. En çok 3 model. */
   let chain=((S.ai.model||'').split(/[,\n]/).map(x=>x.trim()).filter(Boolean));
-  if(chain.length<MAX_MODELS){const more=(await flashCandidates(key)).filter(n=>!chain.includes(n));chain=[...chain,...more]}
-  if(!chain.length)chain.push('gemini-flash-latest');
-  chain=chain.slice(0,MAX_MODELS);
+  chain=[...chain,...DEFAULT_CHAIN.filter(n=>!chain.includes(n))].slice(0,MAX_MODELS);
   /* Süre sınırı: kısa okumada 15 sn; uzun PDF metni ve çok görselde uzar (en çok 45 sn) */
   const limitMs=Math.min(45,15+Math.floor(prompt.length/2000)+5*(opts.images||[]).length)*1000;
   let lastErr=null,partial=null,partialModel='';
