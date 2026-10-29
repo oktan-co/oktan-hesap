@@ -817,9 +817,12 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <form class="inner" id="stForm">
         <div class="grid">
           <label class="f"><span>Kart</span><select id="stCard"></select></label>
+          <label class="f"><span>Ekstre kesim tarihi</span><input id="stCut" type="date"></label>
+          <label class="f"><span>Kesimden kaç gün sonra</span><input id="stGap" class="num" type="number" inputmode="numeric" min="0" max="60" value="10"></label>
           <label class="f"><span>Son ödeme tarihi</span><input id="stDate" type="date"></label>
           <label class="f"><span>Tutar (₺)</span><input id="stAmt" class="num" inputmode="decimal" placeholder="0,00" required></label>
         </div>
+        <p class="hint" id="stCalc" style="margin:0 0 10px"></p>
         <label class="f"><span>Not (isteğe bağlı)</span><input id="stNote" placeholder="ör. nakit avans" maxlength="40"></label>
         <button class="btn" type="submit">Ekle</button>
         <div class="msg" id="stMsg"></div>
@@ -1012,7 +1015,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 46 · 30 Eki 02:58</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 47 · 30 Eki 03:08</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1661,6 +1664,7 @@ function renderCards(M,CH){
    pl.innerHTML=pd.length?pd.map(o=>stRow(o.x,true)).join(''):'<div class="empty">Henüz ödenmiş ekstre yok. Ekstreyi ödeyip kutucuğunu işaretlediğinde burada birikir.</div>';}
   const keep=$('#stCard').value;$('#stCard').innerHTML=S.cards.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')||'<option value="">Önce kart ekle</option>';
   if(S.cards.some(c=>c.id===keep))$('#stCard').value=keep;
+  if(!$('#stGap').dataset.t)stSyncGap();
 }
 function addDays(iso,n){const d=new Date(iso+'T00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function renderMetals(pv){
@@ -1797,11 +1801,31 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-stam
 document.addEventListener('change',async e=>{const inp=e.target.closest('[data-kday]');if(!inp||!db)return;const c=S.cards.find(k=>k.id===inp.dataset.kday);if(!c)return;
   const v=parseInt(inp.value,10);if(!(v>=1&&v<=31)){inp.value=c.dueDay||'';return}
   try{await db.collection('cards').doc(c.id).set({...stripId(c),dueDay:v})}catch(err){showBanner(errText(err))}});
+/* Son ödeme = ekstre kesim tarihi + N gün; hafta sonu ya da resmi tatile denk gelirse sonraki iş günü */
+const HOL_FIX=['01-01','04-23','05-01','05-19','07-15','08-30','10-29'];
+const HOL_DIN={'2026':['03-20','03-21','03-22','05-27','05-28','05-29','05-30'],'2027':['03-09','03-10','03-11','05-16','05-17','05-18','05-19']}; // dini bayramlar (Diyanet takvimi); yeni yıl eklenince buraya yaz
+const isoAdd=(iso,n)=>{const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+function holName(iso){const d=new Date(iso+'T00:00:00Z'),w=d.getUTCDay();if(w===0||w===6)return 'hafta sonu';
+  const md=iso.slice(5);if(HOL_FIX.includes(md)||(HOL_DIN[iso.slice(0,4)]||[]).includes(md))return 'resmi tatil';return ''}
+function dueFromCut(cut,gap){let raw=isoAdd(cut,gap),d=raw,why='';while(holName(d)){why=why||holName(d);d=isoAdd(d,1)}return {raw,due:d,moved:d!==raw,why}}
+const trLong=iso=>new Date(iso+'T00:00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
+function stCalc(){const cut=$('#stCut').value,gap=parseInt($('#stGap').value,10),h=$('#stCalc');
+  if(!cut||!(gap>=0)){h.textContent='';return}
+  const r=dueFromCut(cut,gap);$('#stDate').value=r.due;
+  h.textContent=r.moved?`Kesim + ${gap} gün = ${trLong(r.raw)} (${r.why}) → son ödeme ${trLong(r.due)}`:`Kesim + ${gap} gün = son ödeme ${trLong(r.due)}`+(+r.due.slice(0,4)>2027?' · bayram tarihleri bu yıl için tabloda yok, tatile denk gelirse elle düzelt.':'')}
+function stSyncGap(){const c=S.cards.find(x=>x.id===$('#stCard').value);$('#stGap').value=(c&&c.gap>=0?c.gap:10)}
+$('#stCut').addEventListener('change',stCalc);
+$('#stGap').addEventListener('input',()=>{$('#stGap').dataset.t='1';stCalc()});
+$('#stCard').addEventListener('change',()=>{delete $('#stGap').dataset.t;stSyncGap();stCalc()});
+$('#stDate').addEventListener('change',()=>{if($('#stCut').value)$('#stCalc').textContent='Son ödeme tarihini elle değiştirdin.'});
 $('#stDate').value=isoToday();
 $('#stForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#stMsg');if(!need(msg))return;
   const amt=parseNum($('#stAmt').value);if(!$('#stCard').value){flash(msg,'Önce bir kart ekle.',true);return}
   if(!(amt>0)){flash(msg,'Ekstre tutarını gir (ör. 25.615,97).',true);return}
-  try{await db.collection('statements').doc(uid()).set({cardId:$('#stCard').value,due:$('#stDate').value||'',note:$('#stNote').value.trim(),amount:amt,paid:false,created:Date.now()});$('#stAmt').value='';$('#stNote').value='';flash(msg,'Ekstre eklendi.')}catch(err){flash(msg,errText(err),true)}});
+  try{const cutV=$('#stCut').value,gapV=parseInt($('#stGap').value,10);
+    await db.collection('statements').doc(uid()).set({cardId:$('#stCard').value,due:$('#stDate').value||'',note:$('#stNote').value.trim(),amount:amt,paid:false,created:Date.now(),...(cutV?{cut:cutV}:{})});
+    {const c=S.cards.find(x=>x.id===$('#stCard').value);if(c&&gapV>=0&&gapV!==(c.gap>=0?c.gap:10))db.collection('cards').doc(c.id).update({gap:gapV}).catch(()=>{})}
+    $('#stCut').value='';$('#stCalc').textContent='';$('#stAmt').value='';$('#stNote').value='';flash(msg,'Ekstre eklendi.')}catch(err){flash(msg,errText(err),true)}});
 $('#spCat').innerHTML=SP_GROUPS.map(([g,cs])=>`<optgroup label="${esc(g)}">${cs.map(c=>`<option>${esc(c)}</option>`).join('')}</optgroup>`).join('');$('#spDate').value=isoToday();
 {const sy=()=>{$('#spRepeatL').hidden=$('#spPay').value!=='cash'};$('#spPay').addEventListener('change',sy);setInterval(sy,1500);sy()}
 $('#spForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#spMsg');if(!need(msg))return;
