@@ -212,6 +212,16 @@ form.inner{display:grid;gap:12px;padding:14px 16px}
 .imrow input,.imrow select{width:100%;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
 .imrow input.num{text-align:right;font-family:var(--f-num)}
 @media (max-width:640px){.imrow{grid-template-columns:1fr 1fr auto}.imrow .imnote,.imrow select[data-f=cat]{grid-column:1/3}}
+.imrow.dupx{box-shadow:inset 4px 0 0 var(--neg);background:color-mix(in srgb,var(--neg) 7%,transparent)}
+.imrow.dupn{box-shadow:inset 4px 0 0 var(--gold);background:color-mix(in srgb,var(--gold) 9%,transparent)}
+.imrow.skipped input:not([data-f=skip]),.imrow.skipped select{opacity:.45}
+.imdup{grid-column:1/-1;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:13px}
+.imdup b{font-weight:600}.imdup.x b{color:var(--neg)}.imdup.n b{color:var(--gold)}
+.imdup label{display:flex;gap:6px;align-items:center;font-weight:600;cursor:pointer}
+.imdup input{width:auto!important;padding:0!important}
+.imdupbar{margin:0;padding:10px 16px;font-size:13px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--gold) 12%,transparent)}
+.imdupbar.x{background:color-mix(in srgb,var(--neg) 10%,transparent)}
+.imgrp{padding:8px 16px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line);background:var(--sunk)}
 
 /* cards */
 .ccard{display:grid;gap:12px;padding:14px 16px}
@@ -1884,23 +1894,52 @@ document.addEventListener('click',e=>{const g=e.target.closest('[data-gocat]');i
   const ps=e.target.closest('[data-spstep]');if(ps){S.month=addM(S.month,+ps.dataset.spstep);render()}});
 const spCatOpts=sel=>SP_GROUPS.map(([g,cs])=>`<optgroup label="${esc(g)}">${cs.map(c=>`<option${c===sel?' selected':''}>${esc(c)}</option>`).join('')}</optgroup>`).join('');
 const fmt2=n=>n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
-function renderSpRev(){
-  const live=spRows.filter(r=>!r.gone);
-  $('#spRev').innerHTML=live.length?spRows.map((r,i)=>r.gone?'':`<div class="imrow" data-im="${i}">
+const DUP_MODE='inline'; // 'inline': kopya satırı yerinde işaretlenir · 'group': kopyalar ayrı bölümde
+const dmyS=iso=>String(iso||'').split('-').reverse().join('.');
+const dayDiff=(a,b)=>Math.abs(Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/864e5;
+/* Aynı tutar + aynı yön + aynı ödeme kaynağı: aynı gün = kesin kopya, ±2 gün = olası kopya.
+   Her mevcut kayıt yalnızca bir satırla eşleşir; böylece aynı gün iki gerçek aynı harcama korunur. */
+function computeDups(){const pay=$('#spImPay').value||'';const used=new Set();
+  const cands=S.sp.filter(x=>String(x.pay||'')===pay);const live=spRows.filter(r=>!r.gone);
+  for(const r of live)r.dup=null;
+  for(const tol of [0,2])for(const r of live){if(r.dup||!/^\d{4}-\d{2}-\d{2}$/.test(r.date))continue;
+    const c=Math.round((parseNum(r.amountTxt)||0)*100);if(!(c>0))continue;
+    const ex=cands.find(x=>!used.has(x.id)&&Math.round(x.amount*100)===c&&!!x.refund===(r.type==='iade')&&dayDiff(x.date,r.date)<=tol);
+    if(ex){used.add(ex.id);r.dup={lvl:tol===0?'x':'n',ex}}}
+  for(const r of live)if(!r.skipSet)r.skip=!!(r.dup&&r.dup.lvl==='x')}
+function spRowHtml(r,i){const d=r.dup;
+  return `<div class="imrow${d?(d.lvl==='x'?' dupx':' dupn'):''}${r.skip?' skipped':''}" data-im="${i}">
     <input type="date" data-f="date" value="${esc(r.date)}" aria-label="Tarih">
     <input class="num" data-f="amount" inputmode="decimal" value="${esc(r.amountTxt)}" aria-label="Tutar">
     <input class="imnote" data-f="note" value="${esc(r.note)}" maxlength="60" placeholder="Açıklama" aria-label="Açıklama">
     <select data-f="cat" aria-label="Kategori">${spCatOpts(r.cat)}</select>
     <select data-f="type" aria-label="Tür"><option value=""${r.type==='iade'?'':' selected'}>Harcama</option><option value="iade"${r.type==='iade'?' selected':''}>İade</option></select>
-    <button class="del" type="button" data-imdel="${i}" aria-label="Satırı çıkar">✕</button></div>`).join(''):'';
+    <button class="del" type="button" data-imdel="${i}" aria-label="Satırı çıkar">✕</button>
+    ${d?`<div class="imdup ${d.lvl}"><span><b>${d.lvl==='x'?'Zaten kayıtlı':'Olası kopya'}</b> · ${esc(dmyS(d.ex.date))}${d.ex.note?' · '+esc(d.ex.note):''} · ${money(d.ex.amount)}</span><label><input type="checkbox" data-f="skip"${r.skip?' checked':''}> Atla (ekleme)</label></div>`:''}</div>`}
+function renderSpRev(){
+  const live=spRows.filter(r=>!r.gone);computeDups();
+  const dups=live.filter(r=>r.dup),nx=dups.filter(r=>r.dup.lvl==='x').length;
+  let html='';
+  if(live.length){
+    if(dups.length)html+=`<p class="imdupbar${nx===live.length?' x':''}">${nx===live.length?'Bu ekstredeki tüm kayıtlar zaten ekli görünüyor; aynı ekstreyi tekrar yüklemiş olabilirsin.':`${dups.length} satır mevcut kayıtlarla eşleşiyor (${nx} kesin, ${dups.length-nx} olası). Kesin olanlar varsayılan olarak atlanır.`} <button type="button" class="linkbtn" data-dupall="1">Hepsini ekle</button> · <button type="button" class="linkbtn" data-dupall="0">Kopyaları atla</button></p>`;
+    if(DUP_MODE==='group'&&dups.length){
+      html+=spRows.map((r,i)=>r.gone||r.dup?'':spRowHtml(r,i)).join('')+`<div class="imgrp">Olası kopyalar (${dups.length})</div>`+spRows.map((r,i)=>r.gone||!r.dup?'':spRowHtml(r,i)).join('')}
+    else html+=spRows.map((r,i)=>r.gone?'':spRowHtml(r,i)).join('')}
+  $('#spRev').innerHTML=html;
   $('#spRevFoot').hidden=!live.length;
   renderSpSum();
 }
-$('#spRev').addEventListener('input',e=>{const row=e.target.closest('[data-im]');if(!row)return;const r=spRows[+row.dataset.im];const f=e.target.dataset.f;
+$('#spRev').addEventListener('input',e=>{const row=e.target.closest('[data-im]');if(!row)return;const r=spRows[+row.dataset.im];const f=e.target.dataset.f;if(f==='skip')return;
   if(f==='amount')r.amountTxt=e.target.value;else r[f]=e.target.value;renderSpSum()});
-$('#spRev').addEventListener('change',e=>{const row=e.target.closest('[data-im]');if(!row)return;spRows[+row.dataset.im][e.target.dataset.f==='amount'?'amountTxt':e.target.dataset.f]=e.target.value;renderSpSum()});
-function renderSpSum(){const live=spRows.filter(r=>!r.gone);const ia=live.filter(r=>r.type==='iade');const net=live.reduce((a,r)=>a+(r.type==='iade'?-1:1)*(parseNum(r.amountTxt)||0),0);
-  $('#spRevSum').textContent=live.length?`${live.length-ia.length} harcama${ia.length?` · ${ia.length} iade`:''} · net ${money(net)}`:''}
+$('#spRev').addEventListener('change',e=>{const row=e.target.closest('[data-im]');if(!row)return;const r=spRows[+row.dataset.im],f=e.target.dataset.f;
+  if(f==='skip'){r.skip=e.target.checked;r.skipSet=true;renderSpRev();return}
+  r[f==='amount'?'amountTxt':f]=e.target.value;if(['date','amount','type'].includes(f)){r.skipSet=false;renderSpRev()}else renderSpSum()});
+$('#spRev').addEventListener('click',e=>{const b=e.target.closest('[data-dupall]');if(!b)return;const skip=b.dataset.dupall==='1'?false:true;
+  for(const r of spRows)if(!r.gone&&r.dup){r.skip=skip;r.skipSet=true}renderSpRev()});
+$('#spImPay').addEventListener('change',()=>{for(const r of spRows)r.skipSet=false;renderSpRev()});
+function renderSpSum(){const all=spRows.filter(r=>!r.gone),sk=all.filter(r=>r.skip).length,live=all.filter(r=>!r.skip);const ia=live.filter(r=>r.type==='iade');const net=live.reduce((a,r)=>a+(r.type==='iade'?-1:1)*(parseNum(r.amountTxt)||0),0);
+  $('#spRevSum').textContent=all.length?`${live.length-ia.length} harcama${ia.length?` · ${ia.length} iade`:''}${sk?` · ${sk} atlanacak`:''} · net ${money(net)}`:'';
+  const b=$('#spAddAll');if(b)b.textContent=sk?`Ekle (${live.length})`:'Hepsini ekle'}
 $('#spRev').addEventListener('click',e=>{const b=e.target.closest('[data-imdel]');if(!b)return;spRows[+b.dataset.imdel].gone=true;renderSpRev()});
 $('#spClear').addEventListener('click',()=>{spRows=[];renderSpRev();$('#spImMsg').textContent=''});
 $('#spStop').addEventListener('click',()=>spCtl&&spCtl.abort());
@@ -1973,11 +2012,13 @@ Sadece JSON dizisi döndür: [{"date":"2026-10-18","amount":245.9,"note":"Migros
 {let qt;$('#fQ').addEventListener('input',()=>{clearTimeout(qt);qt=setTimeout(()=>{if($('#fQ').value.trim())$('#spListFold').open=true;render()},200)})}
 $('#fClear').addEventListener('click',()=>{$('#fPay').value='';$('#fCat').value='';$('#fFrom').value='';$('#fTo').value='';$('#fQ').value='';render()});
 $('#spAddAll').addEventListener('click',async()=>{const msg=$('#spImMsg');if(!need(msg))return;
-  const live=spRows.filter(r=>!r.gone);
+  const live=spRows.filter(r=>!r.gone&&!r.skip);
+  if(!live.length){flash(msg,'Eklenecek satır kalmadı (hepsi atlanacak olarak işaretli).',true);return}
   for(const r of live){const a=parseNum(r.amountTxt);if(!(a>0)||!/^\d{4}-\d{2}-\d{2}$/.test(r.date)){flash(msg,'Her satırda geçerli bir tarih ve sıfırdan büyük tutar olmalı.',true);return}}
-  const b=$('#spAddAll');b.disabled=true;let ok=0;
-  try{for(const r of live){await db.collection('spend').doc(uid()).set({amount:Math.round(parseNum(r.amountTxt)*100)/100,cat:r.cat,date:r.date,note:r.note.trim(),pay:$('#spImPay').value,refund:r.type==='iade',created:Date.now()});r.gone=true;ok++}
-    spRows=[];renderSpRev();flash(msg,ok+' harcama eklendi.')}
+  const b=$('#spAddAll');b.disabled=true;let ok=0;const added=[];
+  try{for(const r of live){const nid=uid();added.push(nid);await db.collection('spend').doc(nid).set({amount:Math.round(parseNum(r.amountTxt)*100)/100,cat:r.cat,date:r.date,note:r.note.trim(),pay:$('#spImPay').value,refund:r.type==='iade',created:Date.now()});r.gone=true;ok++}
+    const skippedN=spRows.filter(r=>!r.gone&&r.skip).length;spRows=[];renderSpRev();flash(msg,ok+' harcama eklendi'+(skippedN?`, ${skippedN} kopya atlandı`:'')+'.');
+    if(added.length)toast(ok+' harcama eklendi.',async()=>{for(const id of added)await db.collection('spend').doc(id).delete()},10000)}
   catch(err){renderSpRev();flash(msg,(ok?ok+' harcama eklendi, kalanlar eklenemedi. ':'')+errText(err),true)}finally{b.disabled=false}});
 
 $('#alForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#alMsg');if(!need(msg))return;
