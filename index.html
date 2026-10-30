@@ -1031,7 +1031,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 49 · 30 Eki 03:20</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 50 · 30 Eki 03:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1342,6 +1342,13 @@ document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,sele
   if(e.key==='n'||e.key==='N'){e.preventDefault();setTab('harcama');const f=$('#spAddFold');f.open=true;setSpTab('manual');setTimeout(()=>{f.scrollIntoView({block:'nearest'});$('#spAmt').focus()},50)}
   else if(e.key==='/'){e.preventDefault();setTab('harcama');setTimeout(()=>$('#fQ').focus(),50)}});
 WIDE.addEventListener?.('change',()=>{setTab(S.tab);render()});
+/* Kredi taksitleri: açık taksitten sonrakiler henüz kayıt değil (öncekini ödeyince açılıyor). Aylık hesapta görünsün diye M ayına kadar olanları öngör. */
+function loanProjection(M){const out=[];
+  for(const c of S.cards){if(c.kind!=='loan'||!c.dueDay||!(c.inst>0))continue;
+    const mine=S.st.filter(x=>x.cardId===c.id&&x.n>0);if(!mine.some(x=>!x.paid))continue;
+    let last=mine.reduce((a,x)=>x.n>a.n?x:a,mine[0]);let n=last.n,due=last.due;
+    while(n<(c.total||0)&&due){n++;due=nextDue(due,c.dueDay);if(due.slice(0,7)>M)break;out.push({cardId:c.id,due,amount:c.inst,n})}}
+  return out}
 function renderOzSide(){if(!WIDE.matches)return;renderOzExtra();const td=isoToday(),cn=id=>(S.cards.find(c=>c.id===id)||{}).name||'Kart';
   const up=S.st.filter(x=>!x.paid&&x.due).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
   $('#ozUpcoming').innerHTML=up.length?up.map(x=>{const n=daysTo(x.due),d=new Date(x.due+'T00:00');return `<div class="row" style="grid-template-columns:auto minmax(0,1fr) auto"><div class="date"><b>${String(d.getDate()).padStart(2,'0')}</b>${new Intl.DateTimeFormat('tr-TR',{month:'short'}).format(d)}</div><div class="what"><div>${esc(cn(x.cardId))}</div><small class="${n<0?'neg':''}">${n<0?'gecikti':n===0?'bugün son gün':n+' gün kaldı'}</small></div><div class="amt">${x.amount>0?money(x.amount):'<span class="mut">tutar yok</span>'}</div></div>`}).join(''):'<div class="empty">Açık ekstre yok.</div>';
@@ -1391,10 +1398,11 @@ function render0(){
   const alT=alTotalNow();
   const alM=alFor(M,true).reduce((a,o)=>a+o.amount,0),alLater=Math.max(0,S.al.filter(x=>!x.repeat&&x.date&&x.date.slice(0,7)>M).reduce((a,x)=>a+x.amount,0));
   const dueList=S.st.filter(x=>!x.paid&&x.due&&x.due.slice(0,7)<=M&&(M!==mk(today)||true));
-  const dueThis=dueList.reduce((a,x)=>a+(x.amount||0),0);const kalan=alM+fv-dueThis;
+  const proj=loanProjection(M),projSum=proj.reduce((a,x)=>a+x.amount,0);
+  const dueThis=dueList.reduce((a,x)=>a+(x.amount||0),0)+projSum;const kalan=alM+fv-dueThis;
   $('#sKalan').textContent=money(kalan);$('#sKalan').className='big '+(kalan<0?'neg':'');
   $('#sGelir').textContent=money(alM);$('#sGelirSub').textContent=alLater>0.004?`+${money(alLater)} sonraki aylarda`:'';$('#sFon').textContent=money(fv);$('#sKartHar').textContent=money(dueThis);
-  const pend=dueList.filter(x=>!(x.amount>0)).length;$('#sKartSub').textContent=dueList.length?`${dueList.length} ekstre${pend?` · ${pend} tanesinin tutarı girilmedi`:''}`:'';
+  const pend=dueList.filter(x=>!(x.amount>0)).length;$('#sKartSub').textContent=(dueList.length||proj.length)?`${dueList.length} ekstre${proj.length?` · ${proj.length} kredi taksiti (öngörülen)`:''}${pend?` · ${pend} tanesinin tutarı girilmedi`:''}`:'';
   $('#nMaden').textContent=money(pv+fv);$('#nYatSub').textContent=`altın ${money(pv)} · fon ${money(fv)}`;renderInvest(pv,fv,FP);$('#nAlacak').textContent=money(alT);
   const ana=cashUpTo(M)+alT+pv+fv-debt;$('#nAna').textContent=money(ana);
   {const cash=cashUpTo(mk(today));maybeSnap({ana:cash+alT+pv+fv-debt,bakiye:cash,alacak:alT,maden:pv,fon:fv,borc:debt,
@@ -1669,10 +1677,10 @@ function renderCards(M,CH){
     const loan=c.kind==='loan',paidN=loan?(c.paidBase||0)+paid.length:0,rem=loan?Math.max(0,(c.total||0)-paidN):0,loanDone=loan&&rem===0;
     return `<article class="ktile"><div class="ktile-h"><div class="mono${two?' m2':''}" aria-hidden="true">${esc(mono(c.name))}</div>
       <div style="min-width:0"><h3>${esc(c.name)}${loan?' <span class="kbadge">Kredi</span>':''}</h3><small>${loan?(loanDone?'Kredi bitti ✓':'Her ayın '+(c.dueDay||'?')+(c.dueDay?daySuffix(c.dueDay):'')+' · taksit '+(paidN+1)+'/'+c.total):(c.dueDay?'Son ödeme her ayın '+c.dueDay+daySuffix(c.dueDay):'Son ödeme günü girilmemiş')+(c.limit?' · limit '+money(c.limit):'')}</small></div>
-      <div class="kdebt"><b class="${(loan?rem*(c.inst||0):deb)>0?'neg':'mut'}">${money(loan?rem*(c.inst||0):deb)}</b><span>${loan?'kalan borç':'açık borç'}</span></div></div>
+      <div class="kdebt"><b class="${(loan?(rem?c.inst||0:0):deb)>0?'neg':'mut'}">${money(loan?(rem?c.inst||0:0):deb)}</b><span>${loan?'aylık taksit':'açık borç'}</span></div></div>
       ${op.length?op.map(x=>stRow(x)).join(''):`<div class="row" style="grid-template-columns:1fr"><span class="hint">${loan?(loanDone?'Tüm taksitler ödendi.':'Açık taksit yok.'):'Açık ekstre yok.'}</span></div>`}
       ${loan&&c.total?`<div class="kbar"><i style="width:${Math.min(100,Math.round(paidN/c.total*100))}%"></i></div>`:''}
-      <div class="kfoot"><span>${loan?(rem?rem+' taksit kaldı · aylık '+money(c.inst||0)+' · toplam kalan '+money(rem*(c.inst||0)):''):(spend?'Bu ay karta yazılan harcama '+money(spend):'')}</span>
+      <div class="kfoot"><span>${loan?(rem?'Kalan borç '+money(rem*(c.inst||0))+' · '+rem+' taksit kaldı':''):(spend?'Bu ay karta yazılan harcama '+money(spend):'')}</span>
         <details><summary>${loan?'Kredi ayarları':'Kart ayarları'}</summary><div class="kset">
           <label>Son ödeme günü <input id="kd_${esc(c.id)}" data-kday="${esc(c.id)}" inputmode="numeric" value="${c.dueDay||''}"></label>
           <button class="del" data-del="card" data-id="${esc(c.id)}" aria-label="Sil">${loan?'Krediyi sil':'Kartı sil'}</button></div>
