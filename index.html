@@ -1015,7 +1015,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 47 · 30 Eki 03:08</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 48 · 30 Eki 03:04</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1641,7 +1641,10 @@ function renderCards(M,CH){
   if(next){const n=daysTo(next.due);$('#kNext').textContent=money(next.amount);$('#kNextSub').textContent=`${cname(next.cardId)} · ${new Date(next.due+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'})} · ${n<0?'gecikti':n===0?'bugün':n+' gün kaldı'}`}
   else{$('#kNext').textContent='—';$('#kNextSub').textContent=''}
   {const o=$('#oNext');if(next){o.hidden=false;$('#oNextAmt').textContent=money(next.amount);$('#oNextSub').textContent=$('#kNextSub').textContent}else o.hidden=true}
-  $('#cardList').innerHTML=S.cards.length?S.cards.map(c=>{
+  /* En yakın son ödemesi olan kart üstte; açık ekstresi olmayanlar sonda (kendi sırasıyla) */
+  const nearDue=c=>{const d=S.st.filter(x=>x.cardId===c.id&&!x.paid&&x.due).map(x=>x.due).sort()[0];return d||'9999-99-99'};
+  const cardsSorted=S.cards.map((c,i)=>({c,i,d:nearDue(c)})).sort((a,b)=>a.d.localeCompare(b.d)||a.i-b.i).map(x=>x.c);
+  $('#cardList').innerHTML=S.cards.length?cardsSorted.map(c=>{
     const mine=S.st.filter(x=>x.cardId===c.id);const op=mine.filter(x=>!x.paid).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
     const paid=mine.filter(x=>x.paid).sort((a,b)=>(b.due||'').localeCompare(a.due||''));
     const deb=op.reduce((a,x)=>a+(x.amount||0),0);const spend=CH.filter(z=>z.cardId===c.id&&z.month===M).reduce((a,z)=>a+z.amount,0);
