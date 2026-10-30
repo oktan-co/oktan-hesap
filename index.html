@@ -46,6 +46,7 @@ img{max-width:100%}
   --accent:#71c3a3; --accent-ink:#0d1a15; --gold:#e1b558; --silver:#b5bec9; --neg:#ef7d6f; --pos:#71cf98; color-scheme:dark}
 
 *{box-sizing:border-box}
+#siteUpd{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:center;gap:12px;background:#fef3c7;color:#92400e;border-bottom:1px solid #d97706;padding:calc(7px + env(safe-area-inset-top,0px)) 12px 7px;font-size:14px;font-weight:700}#siteUpd button{border:0;border-radius:14px;background:#d97706;color:#fff;padding:6px 16px;font-weight:700;font-size:14px;cursor:pointer}body.upd{padding-top:44px}
 .updbar{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:10px 14px 0;padding:10px 12px;border-radius:10px;background:var(--sunk);border:1px solid var(--line);font-size:14px}.updbar[hidden]{display:none}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
@@ -1033,7 +1034,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 51 · 31 Eki 01:40</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 52 · 31 Eki 01:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -2352,6 +2353,20 @@ function renderUpdate(){const b=$('#updBar');if(!b||!NATIVE||typeof NATIVE.updat
   $('#updGo').onclick=()=>{if(busy)return;try{NATIVE.startUpdate()}catch(e){}setTimeout(renderUpdate,600);setTimeout(renderUpdate,3000)}}
 function checkUpdate(){if(!NATIVE||typeof NATIVE.checkUpdate!=='function')return;try{NATIVE.checkUpdate()}catch(e){return}setTimeout(renderUpdate,2500)}
 checkUpdate();document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkUpdate();if(NATIVE)nativeUI()}});
+
+/* ---------- güncelleme şeridi ----------
+   Açık kalan sayfa eski sürümde kalır. Sunucudaki index.html'in sürüm etiketi (#appVer) çalışandan farklıysa
+   üstte "Yeni sürüm var · Güncelle" şeridi çıkar. Kendiliğinden yenilemez; dokununca yenilenir, aynı sekmede kalırsın. */
+const verOf=t=>{const m=String(t).match(/id="appVer"[^>]*>([^<]*)</);return m?m[1].trim():''};
+function siteUpdCheck(){if($('#siteUpd'))return;const cur=($('#appVer')||{}).textContent;if(!cur)return;
+  fetch('index.html',{cache:'reload'}).then(r=>r.ok?r.text():'').then(t=>{const v=verOf(t);if(v&&v!==cur.trim())siteUpdBar(v)}).catch(()=>{})}
+function siteUpdBar(v){if($('#siteUpd'))return;const d=document.createElement('div');d.id='siteUpd';
+  d.innerHTML=`<span>Yeni sürüm mevcut (${esc(v.split('·')[0].trim())})</span><button type="button">Güncelle</button>`;
+  document.body.appendChild(d);document.body.classList.add('upd');
+  d.querySelector('button').onclick=()=>{d.querySelector('button').textContent='Yükleniyor…';
+    fetch('index.html',{cache:'reload'}).catch(()=>{}).finally(()=>location.reload())}}
+setTimeout(siteUpdCheck,15000);setInterval(siteUpdCheck,5*60*1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)siteUpdCheck()});
 
 /* ---------- backup ---------- */
 const COLLS=['tx','cards','holdings','spend','alacak','statements','fundtx','history','prices','settings'];
