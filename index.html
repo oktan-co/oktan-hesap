@@ -221,6 +221,8 @@ form.inner{display:grid;gap:12px;padding:14px 16px}
 .imdup input{width:auto!important;padding:0!important}
 .imdupbar{margin:0;padding:10px 16px;font-size:13px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--gold) 12%,transparent)}
 .imdupbar.x{background:color-mix(in srgb,var(--neg) 10%,transparent)}
+.kbar{height:6px;border-radius:99px;background:var(--sunk);margin:2px 16px 12px;overflow:hidden}.kbar i{display:block;height:100%;background:var(--accent)}
+.kbadge{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--sunk);color:var(--muted);margin-left:6px;vertical-align:middle}
 .imgrp{padding:8px 16px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line);background:var(--sunk)}
 
 /* cards */
@@ -828,6 +830,20 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         <div class="msg" id="stMsg"></div>
       </form>
     </details>
+    <details class="fold"><summary>Kredi / nakit avans ekle</summary>
+      <form class="inner" id="loanForm">
+        <div class="grid">
+          <label class="f"><span>Ad</span><input id="lnName" placeholder="ör. Nakit avans" maxlength="40" required></label>
+          <label class="f"><span>Aylık taksit (₺)</span><input id="lnInst" class="num" inputmode="decimal" placeholder="0,00" required></label>
+          <label class="f"><span>Toplam taksit</span><input id="lnTotal" class="num" type="number" inputmode="numeric" min="1" max="360" required></label>
+          <label class="f"><span>Ödenen taksit</span><input id="lnPaid" class="num" type="number" inputmode="numeric" min="0" max="360" value="0"></label>
+          <label class="f"><span>Ayın kaçı ödenir</span><input id="lnDay" class="num" type="number" inputmode="numeric" min="1" max="31" required></label>
+        </div>
+        <p class="hint" style="margin:0 0 10px">Taksit satırındaki kutuyu işaretleyince o ay ödenmiş sayılır, sonraki taksit kendiliğinden açılır.</p>
+        <button class="btn" type="submit">Kredi ekle</button>
+        <div class="msg" id="lnMsg"></div>
+      </form>
+    </details>
     <details class="fold"><summary>Yeni kart ekle</summary>
       <form class="inner" id="cardForm">
         <div class="grid">
@@ -1015,7 +1031,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 48 · 30 Eki 03:04</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 49 · 30 Eki 03:20</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1116,6 +1132,7 @@ function applyCats(){const raw=S.settings.spGroups;const key=JSON.stringify(Arra
   SP_GROUPS=CAT_GROUPS.map(x=>[x.g,x.c]);NOT_MINE=new Set(CAT_GROUPS.filter(x=>x.nm).flatMap(x=>x.c));SP_CATS=SP_GROUPS.flatMap(g=>g[1]);
   const sc=$('#spCat');if(sc){const v=sc.value;sc.innerHTML=spCatOpts(v)}
   renderCatEditor()}
+const cardsOnly=()=>S.cards.filter(c=>c.kind!=='loan'); // krediler 'cards' koleksiyonunda kind:'loan' ile durur; harcama ödeme seçeneklerinde görünmez
 const S={pstat:{},ai:{},sp:[],tx:[],cards:[],hold:[],fdtx:[],fdp:{items:{}},al:[],st:[],harem:{items:{}},fiba:{items:{}},settings:{},month:mk(today),tab:'ozet'};
 S.yt='maden';try{const gm=sessionStorage.getItem('kasa.month');if(/^\d{4}-\d\d$/.test(gm||''))S.month=gm}catch(e){}try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'?(S.yt=t,'yatirim'):t}catch(e){}
 let db=null;
@@ -1416,7 +1433,7 @@ function render0(){
   $('#txCard').innerHTML=S.cards.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')||'<option value="">Önce kart ekle</option>';
   if(S.cards.some(c=>c.id===keepCard))$('#txCard').value=keepCard;
   const keepM=$('#txMethod').value;
-  $('#txMethod').innerHTML='<option value="cash">Nakit / Banka kartı</option>'+S.cards.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  $('#txMethod').innerHTML='<option value="cash">Nakit / Banka kartı</option>'+cardsOnly().map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
   if([...$('#txMethod').options].some(o=>o.value===keepM))$('#txMethod').value=keepM;
   syncForm();
   // metals
@@ -1483,7 +1500,7 @@ function renderFunds(FP,fv){
     :`<div class="empty">Henüz fon işlemi yok.</div>`;}}
   fdSync();
 }
-function payOpts(sel){const o=[['','Kart seçilmedi'],['cash','Nakit / banka kartı'],...S.cards.map(c=>[c.id,c.name])];
+function payOpts(sel){const o=[['','Kart seçilmedi'],['cash','Nakit / banka kartı'],...cardsOnly().map(c=>[c.id,c.name])];
   if(sel&&!o.some(x=>x[0]===sel))o.push([sel,'Silinmiş kart']);
   return o.map(([v,n])=>`<option value="${esc(v)}"${v===sel?' selected':''}>${esc(n)}</option>`).join('')}
 const sgn=x=>x.refund?-x.amount:x.amount;
@@ -1512,7 +1529,7 @@ function renderSpend(M){
   const ce=Object.entries(cats).filter(([,v])=>Math.abs(v)>0.004).sort((a,b)=>b[1]-a[1]),mx=ce.length&&ce[0][1]>0?ce[0][1]:1;
   $('#spBars').innerHTML=ce.length?ce.map(([k,v])=>{const n=cur.filter(x=>x.cat===k).length;return `<div class="bar gocat" data-gocat="${esc(k)}" role="button" tabindex="0" title="${esc(k)} harcamalarını göster"><span>${esc(k)}<small>%${Math.round(v/tot*100)} · ${n} kayıt ›</small></span><span class="num">${money(v)}</span><div class="track"><div class="fill" style="width:${Math.max(0,v/mx*100).toFixed(1)}%"></div></div></div>`}).join('')
     :`<p class="empty" style="padding:6px">${esc(monthName(M))} için harcama yok. Yukarıdan ilk harcamanı ekle.</p>`;
-  {const k=$('#fPay').value;$('#fPayTabs').innerHTML=[['','Tümü'],...S.cards.map(c=>[c.id,c.name]),['cash','Nakit'],['none','Kart seçilmedi']].map(([v,n])=>`<button type="button" role="tab" data-fpay="${esc(v)}" aria-selected="${v===k}">${esc(n)}</button>`).join('');
+  {const k=$('#fPay').value;$('#fPayTabs').innerHTML=[['','Tümü'],...cardsOnly().map(c=>[c.id,c.name]),['cash','Nakit'],['none','Kart seçilmedi']].map(([v,n])=>`<button type="button" role="tab" data-fpay="${esc(v)}" aria-selected="${v===k}">${esc(n)}</button>`).join('');
    const ce=$('#fCat'),kc=ce.value;ce.innerHTML='<option value="">Tümü</option>'+SP_GROUPS.map(([g,cs])=>`<optgroup label="${esc(g)}">${cs.map(c=>`<option${c===kc?' selected':''}>${esc(c)}</option>`).join('')}</optgroup>`).join('');}
   if(0){const el=$('#fPay'),k=el.value;el.innerHTML=[['','Tümü'],...S.cards.map(c=>[c.id,c.name]),['cash','Nakit / banka kartı'],['none','Kart seçilmedi']].map(([v,n])=>`<option value="${esc(v)}"${v===k?' selected':''}>${esc(n)}</option>`).join('');}
   const fp=$('#fPay').value,ff=$('#fFrom').value,ft=$('#fTo').value,fq=$('#fQ').value.trim().toLocaleLowerCase('tr-TR'),fc=$('#fCat').value,fon=!!(fp||ff||ft||fq||fc);
@@ -1649,14 +1666,16 @@ function renderCards(M,CH){
     const paid=mine.filter(x=>x.paid).sort((a,b)=>(b.due||'').localeCompare(a.due||''));
     const deb=op.reduce((a,x)=>a+(x.amount||0),0);const spend=CH.filter(z=>z.cardId===c.id&&z.month===M).reduce((a,z)=>a+z.amount,0);
     const two=/^merve/i.test(c.name);
+    const loan=c.kind==='loan',paidN=loan?(c.paidBase||0)+paid.length:0,rem=loan?Math.max(0,(c.total||0)-paidN):0,loanDone=loan&&rem===0;
     return `<article class="ktile"><div class="ktile-h"><div class="mono${two?' m2':''}" aria-hidden="true">${esc(mono(c.name))}</div>
-      <div style="min-width:0"><h3>${esc(c.name)}</h3><small>${c.dueDay?'Son ödeme her ayın '+c.dueDay+daySuffix(c.dueDay):'Son ödeme günü girilmemiş'}${c.limit?' · limit '+money(c.limit):''}</small></div>
-      <div class="kdebt"><b class="${deb>0?'neg':'mut'}">${money(deb)}</b><span>açık borç</span></div></div>
-      ${op.length?op.map(x=>stRow(x)).join(''):'<div class="row" style="grid-template-columns:1fr"><span class="hint">Açık ekstre yok.</span></div>'}
-      <div class="kfoot"><span>${spend?'Bu ay karta yazılan harcama '+money(spend):''}</span>
-        <details><summary>Kart ayarları</summary><div class="kset">
+      <div style="min-width:0"><h3>${esc(c.name)}${loan?' <span class="kbadge">Kredi</span>':''}</h3><small>${loan?(loanDone?'Kredi bitti ✓':'Her ayın '+(c.dueDay||'?')+(c.dueDay?daySuffix(c.dueDay):'')+' · taksit '+(paidN+1)+'/'+c.total):(c.dueDay?'Son ödeme her ayın '+c.dueDay+daySuffix(c.dueDay):'Son ödeme günü girilmemiş')+(c.limit?' · limit '+money(c.limit):'')}</small></div>
+      <div class="kdebt"><b class="${(loan?rem*(c.inst||0):deb)>0?'neg':'mut'}">${money(loan?rem*(c.inst||0):deb)}</b><span>${loan?'kalan borç':'açık borç'}</span></div></div>
+      ${op.length?op.map(x=>stRow(x)).join(''):`<div class="row" style="grid-template-columns:1fr"><span class="hint">${loan?(loanDone?'Tüm taksitler ödendi.':'Açık taksit yok.'):'Açık ekstre yok.'}</span></div>`}
+      ${loan&&c.total?`<div class="kbar"><i style="width:${Math.min(100,Math.round(paidN/c.total*100))}%"></i></div>`:''}
+      <div class="kfoot"><span>${loan?(rem?rem+' taksit kaldı · aylık '+money(c.inst||0)+' · toplam kalan '+money(rem*(c.inst||0)):''):(spend?'Bu ay karta yazılan harcama '+money(spend):'')}</span>
+        <details><summary>${loan?'Kredi ayarları':'Kart ayarları'}</summary><div class="kset">
           <label>Son ödeme günü <input id="kd_${esc(c.id)}" data-kday="${esc(c.id)}" inputmode="numeric" value="${c.dueDay||''}"></label>
-          <button class="del" data-del="card" data-id="${esc(c.id)}" aria-label="Kartı sil">Kartı sil</button></div>
+          <button class="del" data-del="card" data-id="${esc(c.id)}" aria-label="Sil">${loan?'Krediyi sil':'Kartı sil'}</button></div>
 </details></div>
     </article>`}).join('')
     :`<div class="box empty">Henüz kart yok. Aşağıdan kartını ekle.</div>`;
@@ -1665,8 +1684,8 @@ function renderCards(M,CH){
    $('#paidCount').textContent=pd.length?`${pd.length} ödeme · ${yr}: ${money(yt)}`:'';
    const pl=$('#paidList'),ae=document.activeElement;if(!(ae&&pl.contains(ae)&&ae.matches('input,select')))
    pl.innerHTML=pd.length?pd.map(o=>stRow(o.x,true)).join(''):'<div class="empty">Henüz ödenmiş ekstre yok. Ekstreyi ödeyip kutucuğunu işaretlediğinde burada birikir.</div>';}
-  const keep=$('#stCard').value;$('#stCard').innerHTML=S.cards.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')||'<option value="">Önce kart ekle</option>';
-  if(S.cards.some(c=>c.id===keep))$('#stCard').value=keep;
+  const keep=$('#stCard').value;$('#stCard').innerHTML=cardsOnly().map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')||'<option value="">Önce kart ekle</option>';
+  if(cardsOnly().some(c=>c.id===keep))$('#stCard').value=keep;
   if(!$('#stGap').dataset.t)stSyncGap();
 }
 function addDays(iso,n){const d=new Date(iso+'T00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -1792,10 +1811,14 @@ document.addEventListener('change',async e=>{const cb=e.target.closest('[data-st
   try{if(cb.checked){const pid=uid();await db.collection('tx').doc(pid).set({type:'cardpay',cardId:x.cardId,amount:x.amount,date:x.due&&x.due<=isoToday()?x.due:isoToday(),note:x.note||'Ekstre ödemesi',cat:'Kart ödemesi',created:Date.now()});
       await db.collection('statements').doc(x.id).set({...stripId(x),paid:true,payTx:pid});
       const card=S.cards.find(c=>c.id===x.cardId);
-      if(card&&card.dueDay&&x.due){const nd=nextDue(x.due,card.dueDay);
+      if(card&&card.kind==='loan'){const n=x.n||0;
+        if(n<(card.total||0)&&card.dueDay&&x.due&&!S.st.some(s=>s.id!==x.id&&s.cardId===x.cardId&&!s.paid&&s.n===n+1))
+          await db.collection('statements').doc(uid()).set({cardId:x.cardId,due:nextDue(x.due,card.dueDay),amount:card.inst||0,pending:false,paid:false,note:`${n+1}. taksit`,n:n+1,created:Date.now()})}
+      else if(card&&card.dueDay&&x.due){const nd=nextDue(x.due,card.dueDay);
         if(!S.st.some(s=>s.id!==x.id&&s.cardId===x.cardId&&s.due&&s.due.slice(0,7)===nd.slice(0,7)))
           await db.collection('statements').doc(uid()).set({cardId:x.cardId,due:nd,amount:0,pending:true,paid:false,note:'',created:Date.now()})}}
-    else{if(x.payTx)await db.collection('tx').doc(x.payTx).delete();await db.collection('statements').doc(x.id).set({...stripId(x),paid:false,payTx:null})}}
+    else{if(x.payTx)await db.collection('tx').doc(x.payTx).delete();await db.collection('statements').doc(x.id).set({...stripId(x),paid:false,payTx:null});
+      const lc=S.cards.find(c=>c.id===x.cardId);if(lc&&lc.kind==='loan')for(const o of S.st.filter(o=>o.cardId===x.cardId&&!o.paid&&o.n===(x.n||0)+1))await db.collection('statements').doc(o.id).delete()}}
   catch(err){showBanner(errText(err));cb.checked=!cb.checked}finally{cb.disabled=false}});
 const stripId=o=>{const{id,...r}=o;return r};
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-stamt]');if(!b||!db)return;const x=S.st.find(s=>s.id===b.dataset.stamt);if(!x)return;
@@ -2071,6 +2094,15 @@ $('#spAddAll').addEventListener('click',async()=>{const msg=$('#spImMsg');if(!ne
 $('#alForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#alMsg');if(!need(msg))return;
   const name=$('#alName').value.trim(),amt=parseNum($('#alAmt').value),rep=$('#alRepeat').checked,date=$('#alDate').value||(rep?isoToday():'');if(!name||!Number.isFinite(amt)||amt===0){flash(msg,'İsim ve sıfırdan farklı bir tutar gir (eksi de olabilir).',true);return}
   try{await db.collection('alacak').doc(uid()).set(rep?{name,amount:amt,date,repeat:true,done:{},created:Date.now()}:{name,amount:amt,date,created:Date.now()});$('#alName').value='';$('#alAmt').value='';$('#alDate').value='';$('#alRepeat').checked=false;flash(msg,'Alacak eklendi.')}catch(err){flash(msg,errText(err),true)}});
+$('#loanForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#lnMsg');if(!need(msg))return;
+  const name=$('#lnName').value.trim(),inst=parseNum($('#lnInst').value),total=parseInt($('#lnTotal').value,10),paidBase=parseInt($('#lnPaid').value,10)||0,day=parseInt($('#lnDay').value,10);
+  if(!name||!(inst>0)||!(total>=1)||!(day>=1&&day<=31)){flash(msg,'Ad, aylık taksit, toplam taksit ve ödeme gününü gir.',true);return}
+  if(paidBase<0||paidBase>total){flash(msg,'Ödenen taksit, toplam taksitten fazla olamaz.',true);return}
+  const id=uid(),instR=Math.round(inst*100)/100;
+  try{await db.collection('cards').doc(id).set({name,kind:'loan',inst:instR,total,paidBase,dueDay:day,limit:0,openingDebt:0,startMonth:S.month,created:Date.now()});
+    if(paidBase<total){const td=isoToday();let due=td.slice(0,8)+String(Math.min(day,new Date(+td.slice(0,4),+td.slice(5,7),0).getDate())).padStart(2,'0');if(due<td)due=nextDue(td,day);
+      await db.collection('statements').doc(uid()).set({cardId:id,due,amount:instR,pending:false,paid:false,note:`${paidBase+1}. taksit`,n:paidBase+1,created:Date.now()})}
+    ['#lnName','#lnInst','#lnTotal','#lnDay'].forEach(q=>$(q).value='');$('#lnPaid').value='0';flash(msg,'Kredi eklendi.')}catch(err){flash(msg,errText(err),true)}});
 $('#cardForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#cardMsg');if(!need(msg))return;
   const name=$('#cName').value.trim(),lim=parseNum($('#cLimit').value),debt=parseNum($('#cDebt').value),day=parseInt($('#cDay').value,10);
   if(!name){flash(msg,'Kart adını yaz.',true);return}
