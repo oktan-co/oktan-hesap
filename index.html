@@ -46,6 +46,7 @@ img{max-width:100%}
   --accent:#71c3a3; --accent-ink:#0d1a15; --gold:#e1b558; --silver:#b5bec9; --neg:#ef7d6f; --pos:#71cf98; color-scheme:dark}
 
 *{box-sizing:border-box}
+.updbar{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:10px 14px 0;padding:10px 12px;border-radius:10px;background:var(--sunk);border:1px solid var(--line);font-size:14px}.updbar[hidden]{display:none}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
 .wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -596,6 +597,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 
 <main class="wrap">
   <div id="banner" class="banner" hidden></div>
+  <div id="updBar" class="updbar" hidden></div>
 
   <!-- ÖZET -->
   <section class="panel" data-panel="ozet">
@@ -1013,7 +1015,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="box setf" data-setpane="bil" hidden>
       <p class="hint">Kart son ödeme günü yaklaşınca telefonuna bildirim gelir: son ödemeden 1 gün önce ve son gün öğlen 12 civarı; hâlâ ödenmemişse son gün akşam 21:00, 22:00, 23:00 ve 23:30'da. Ekstreyi uygulamada ödendi diye işaretlersen o ekstre için bildirim kesilir.</p>
       <p class="hint" id="ntInfo"></p>
-      <div class="refrow"><button class="btn" type="button" id="ntOn">Bildirimleri aç</button></div>
+      <div class="refrow"><button class="btn" type="button" id="ntOn">Bildirimleri aç</button> <button class="btn ghost" type="button" id="ntTest" hidden>Deneme bildirimi</button></div>
       <div class="msg" id="ntMsg"></div>
     </div>
     <div class="box setf" data-setpane="kat" hidden>
@@ -1031,7 +1033,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 50 · 30 Eki 03:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 51 · 31 Eki 01:40</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1136,6 +1138,8 @@ const cardsOnly=()=>S.cards.filter(c=>c.kind!=='loan'); // krediler 'cards' kole
 const S={pstat:{},ai:{},sp:[],tx:[],cards:[],hold:[],fdtx:[],fdp:{items:{}},al:[],st:[],harem:{items:{}},fiba:{items:{}},settings:{},month:mk(today),tab:'ozet'};
 S.yt='maden';try{const gm=sessionStorage.getItem('kasa.month');if(/^\d{4}-\d\d$/.test(gm||''))S.month=gm}catch(e){}try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'?(S.yt=t,'yatirim'):t}catch(e){}
 let db=null;
+// Android uygulamasının (APK) içinde açıldıysa telefonla konuşan köprü; tarayıcıda null
+const NATIVE=window.OktanNative||null,APP_LOGIN=/[?&]app-login=1/.test(location.search);
 
 /* ---------- money logic ---------- */
 // Each card expense spreads across `inst` monthly installments starting in its own month.
@@ -2276,11 +2280,11 @@ $('#ghForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$(
 
 /* ---------- bildirimler ---------- */
 const fcmReady=()=>!!(window.firebase&&firebase.messaging&&window.VAPID_KEY&&!/BURAYA/.test(window.VAPID_KEY));
-function notifUI(){const p=('Notification' in window)?Notification.permission:'yok',b=$('#ntOn'),i=$('#ntInfo');
+function notifUI(){if(NATIVE){nativeUI();return}const p=('Notification' in window)?Notification.permission:'yok',b=$('#ntOn'),i=$('#ntInfo');
   b.hidden=(p==='yok'||p==='denied');b.textContent=p==='granted'?'Bu cihazı yeniden kaydet':'Bildirimleri aç';
   i.textContent=p==='granted'?'Bu cihazda bildirimler açık ✓':p==='denied'?'Bildirim izni kapalı. Telefon ya da tarayıcı ayarlarından bu uygulama için bildirime izin ver.':p==='yok'?'Bu tarayıcı bildirimi desteklemiyor. iPhone’da önce uygulamayı Paylaş → Ana Ekrana Ekle ile ekleyip Ana ekran simgesinden aç.':'Bu cihaz henüz kayıtlı değil.'}
 async function notifSync(loud){const msg=$('#ntMsg');
-  if(!('Notification' in window)||Notification.permission!=='granted'||!db||!fcmReady())return;
+  if(NATIVE)return;if(!('Notification' in window)||Notification.permission!=='granted'||!db||!fcmReady())return;
   try{if(!(await firebase.messaging.isSupported()))return;
     const reg=await navigator.serviceWorker.ready;
     const tok=await firebase.messaging().getToken({vapidKey:window.VAPID_KEY,serviceWorkerRegistration:reg});
@@ -2289,12 +2293,65 @@ async function notifSync(loud){const msg=$('#ntMsg');
     await db.collection('devices').doc(tok).set({token:tok,user:(u&&u.email)||'',ua:navigator.userAgent.slice(0,140),at:Date.now()});
     if(loud)flash(msg,'Bildirimler açıldı ✓');
   }catch(err){if(loud)flash(msg,'Cihaz kaydedilemedi ('+(err.code||err.message)+')',true)}}
-$('#ntOn').addEventListener('click',async()=>{const msg=$('#ntMsg');if(!need(msg))return;
+$('#ntOn').addEventListener('click',async()=>{const msg=$('#ntMsg');
+  if(NATIVE){try{NATIVE.fixPermissions()}catch(e){}setTimeout(nativeUI,1500);setTimeout(nativeUI,5000);return}
+  if(!need(msg))return;
   try{if(!fcmReady()){flash(msg,'Bildirim kurulumu henüz tamamlanmadı.',true);return}
     if(!(await firebase.messaging.isSupported())){flash(msg,'Bu cihaz bildirimi desteklemiyor.',true);return}
     const p=await Notification.requestPermission();notifUI();
     if(p!=='granted'){flash(msg,'Bildirim izni verilmedi.',true);return}
     await notifSync(true);notifUI()}catch(err){flash(msg,'Bildirim açılamadı ('+(err.code||err.message)+')',true)}});
+
+/* ---------- Android uygulaması (APK) ----------
+   Son ödeme hatırlatmaları telefonun kendi alarmına kurulur. Plan her değişiklikte hesaplanıp
+   alarmPlans/{uid} belgesine yazılır; telefondaki uygulama oradan okur (bilgisayardan girilen ekstre de telefona gelir). */
+function nativeUI(){if(!NATIVE)return;let st={};try{st=JSON.parse(NATIVE.status())}catch(e){}
+  const ok=st.notif&&st.exact&&st.battery,b=$('#ntOn');
+  $('#ntInfo').textContent=ok?`Telefon alarmı hazır ✓ · ${st.count||0} hatırlatma kurulu · uygulama ${st.version||''}`
+    :!st.notif?'Bildirim izni kapalı. Aşağıdaki düğmeyle aç.':!st.exact?'"Alarm ve hatırlatıcılar" izni kapalı. Aşağıdaki düğmeyle aç.'
+    :'Pil kısıtlaması açık; hatırlatmalar gecikebilir. Aşağıdaki düğmeyle "Kısıtlanmamış" yap.';
+  b.hidden=!!ok;b.textContent='İzinleri düzelt';$('#ntTest').hidden=false}
+$('#ntTest').addEventListener('click',()=>{if(!NATIVE)return;try{NATIVE.test();flash($('#ntMsg'),'5 saniye içinde deneme bildirimi gelecek.')}catch(e){}});
+const PLAN_SLOTS=[['11:55',''],['21:00','late'],['22:00','late'],['23:00','late'],['23:30','late']];
+function buildAlarmPlan(uidv){
+  const TRYf=new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',minimumFractionDigits:2,maximumFractionDigits:2});
+  const money=v=>TRYf.format(Math.round((v||0)*100)/100),addD=(iso,n)=>{const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+  const name=id=>(S.cards.find(c=>c.id===id)||{}).name||'Kart';
+  const open=S.st.filter(x=>!x.paid&&x.due&&(x.amount>0||x.pending)).map(x=>({card:name(x.cardId),due:x.due,amount:x.amount>0?x.amount:null}));
+  const amt=x=>x.amount!=null?money(x.amount):'tutar henüz girilmedi',sum=l=>l.reduce((a,x)=>a+(x.amount||0),0);
+  const head=(l,lbl,em)=>`${em} ${lbl}: ${l.length===1?`${l[0].card} ${l[0].amount!=null?money(l[0].amount):'(tutar girilmedi)'}`:`${l.length} kart · ${money(sum(l))}`}`;
+  const t0=istNow(),alarms=[],now=Date.now();
+  for(let i=0;i<=45;i++){const D=addD(t0,i),Dt=open.filter(x=>x.due===D),Dm=open.filter(x=>x.due===addD(D,1));
+    for(const [hm,late] of PLAN_SLOTS){const ts=Date.parse(`${D}T${hm}:00+03:00`);if(ts<=now)continue;
+      let title='',body=[];
+      if(late){if(!Dt.length)continue;const left=24*60-(+hm.slice(0,2)*60+ +hm.slice(3)),kal=left>=60?`${Math.floor(left/60)} saat${left%60?' '+left%60+' dk':''}`:`${left} dk`;
+        title=head(Dt,'HÂLÂ ÖDENMEDİ','⏰');if(Dt.length>1)body.push(...Dt.map(x=>`• ${x.card}: ${amt(x)}`));body.push(`Bugün son gün · gün bitimine ${kal} kaldı`)}
+      else if(Dt.length){title=head(Dt,'BUGÜN SON GÜN','🔴')+(Dm.length?` · yarın ${Dm.length} kart daha`:'');if(Dt.length>1)body.push(...Dt.map(x=>`• ${x.card}: ${amt(x)}`));
+        if(Dm.length)body.push('Yarın son gün: '+Dm.map(x=>`${x.card}: ${amt(x)}`).join(', '))}
+      else if(Dm.length){title=head(Dm,'YARIN SON GÜN','⚠️');if(Dm.length>1)body.push(...Dm.map(x=>`• ${x.card}: ${amt(x)}`))}
+      else continue;
+      body.push('Ödedikten sonra uygulamada ekstreyi işaretle.');
+      alarms.push({id:`${D}/${hm}`,ts,kind:'odeme',title,body:body.join('\n'),urgent:!!Dt.length})}}
+  return {uid:uidv,made:now,alarms}}
+function istNow(){const p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`}
+let planT=null,planSig='';
+function queuePlan(){clearTimeout(planT);planT=setTimeout(syncPlan,1500)}
+function syncPlan(){const u=window.firebase&&firebase.auth&&firebase.auth().currentUser;
+  if(!u||!db||!LOADED.has('statements')||!LOADED.has('cards'))return;
+  let plan;try{plan=buildAlarmPlan(u.uid)}catch(e){console.warn('plan',e);return}
+  const json=JSON.stringify(plan);
+  if(NATIVE)try{NATIVE.setPlan(json)}catch(e){}
+  const sig=JSON.stringify(plan.alarms);if(sig===planSig)return;planSig=sig;
+  db.collection('alarmPlans').doc(u.uid).set({json,updatedAt:Date.now()},{merge:true}).catch(e=>{planSig='';console.warn('alarmPlans',e.code)})}
+setInterval(queuePlan,30*60*1000);
+function renderUpdate(){const b=$('#updBar');if(!b||!NATIVE||typeof NATIVE.updateInfo!=='function')return;
+  let u={};try{u=JSON.parse(NATIVE.updateInfo())}catch(e){}
+  if(!u.available){b.hidden=true;return}
+  const busy=u.state==='downloading',note=u.state==='izin'?'İzni verip geri dön, sonra tekrar Güncelle’ye bas.':u.state==='error'?'İndirilemedi, tekrar dene.':'';
+  b.hidden=false;b.innerHTML=`<span>Yeni sürüm var (${esc(u.name)}). ${esc(note)}</span><button type="button" class="btn" id="updGo">${busy?'İniyor…':'Güncelle'}</button>`;
+  $('#updGo').onclick=()=>{if(busy)return;try{NATIVE.startUpdate()}catch(e){}setTimeout(renderUpdate,600);setTimeout(renderUpdate,3000)}}
+function checkUpdate(){if(!NATIVE||typeof NATIVE.checkUpdate!=='function')return;try{NATIVE.checkUpdate()}catch(e){return}setTimeout(renderUpdate,2500)}
+checkUpdate();document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkUpdate();if(NATIVE)nativeUI()}});
 
 /* ---------- backup ---------- */
 const COLLS=['tx','cards','holdings','spend','alacak','statements','fundtx','history','prices','settings'];
@@ -2302,6 +2359,7 @@ $('#bkDown').addEventListener('click',async()=>{const msg=$('#bkMsg');if(!need(m
   try{const out={format:'oktan-backup-1',exportedAt:Date.now(),collections:{}};
     for(const c of COLLS){const snap=await db.collection(c).get();out.collections[c]={};
       snap.forEach(d=>{if(c==='settings'&&d.id==='ai')return;out.collections[c][d.id]=d.data()})}
+    if(NATIVE&&typeof NATIVE.saveText==='function'){NATIVE.saveText('oktan-yedek-'+isoToday()+'.json',JSON.stringify(out,null,1));flash(msg,'Yedek İndirilenler klasörüne kaydedildi.');return}
     const url=URL.createObjectURL(new Blob([JSON.stringify(out,null,1)],{type:'application/json'}));
     const a=document.createElement('a');a.href=url;a.download='oktan-yedek-'+isoToday()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
     flash(msg,'Yedek indirildi.')}catch(err){flash(msg,errText(err),true)}});
@@ -2328,11 +2386,11 @@ function startData(fs){
   const on=(ref,fn)=>unsub.push(ref.onSnapshot(s=>{if(!(s.metadata&&s.metadata.fromCache))LOADED.add(ref.path);fn(s)},err));
   on(db.collection('history'),s=>{S.hist=list(s).sort((a,b)=>a.id.localeCompare(b.id));if(S.tab==='gecmis')renderHist()});
   on(db.collection('tx'),s=>{got();S.tx=list(s).filter(t=>t.date&&t.amount>0);render()});
-  on(db.collection('cards'),s=>{got();S.cards=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render()});
+  on(db.collection('cards'),s=>{got();S.cards=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render();queuePlan()});
   on(db.collection('holdings'),s=>{got();S.hold=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render()});
   on(db.collection('spend'),s=>{got();S.sp=list(s).filter(x=>x.amount>0&&x.date);render()});
   on(db.collection('alacak'),s=>{got();S.al=list(s).filter(a=>Number.isFinite(a.amount)&&a.amount!==0).sort((a,b)=>(a.created||0)-(b.created||0));render()});
-  on(db.collection('statements'),s=>{got();S.st=list(s).filter(x=>x.amount>0||x.pending);render()});
+  on(db.collection('statements'),s=>{got();S.st=list(s).filter(x=>x.amount>0||x.pending);render();queuePlan()});
   on(db.collection('fundtx'),s=>{got();S.fdtx=list(s).filter(t=>t.code&&t.units>0&&t.price>0&&t.date);render()});
   on(db.doc('prices/funds'),s=>{S.fdp=s.exists?s.data():{items:{}};render()});
   on(db.doc('prices/harem'),s=>{S.harem=s.exists?s.data():{items:{}};render()});
@@ -2342,6 +2400,20 @@ function startData(fs){
   on(db.doc('settings/ai'),s=>{S.ai=s.exists?s.data():{};syncAI();syncRefresh();fillSettings();setTimeout(autoRefresh,3000)});
   setTimeout(()=>notifSync(false),3000);
 }
+/* Chrome'da açılan "?app-login=1" sayfası: Google ile giriş yapar, anahtarı Android uygulamasına geri verir.
+   Ayrı bir Firebase örneği kullanır; Chrome'daki normal oturumu değiştirmez. */
+function appLoginPage(cfg,prov){
+  const a2=firebase.initializeApp(cfg,'applogin').auth();a2.languageCode='tr';
+  const back=t=>{const url='intent://login?t='+encodeURIComponent(t)+'#Intent;scheme=oktanhesap;package=co.oktan.hesap;end';
+    showGate('Giriş tamam. Uygulamaya dönmek için aşağıdaki düğmeye bas.');
+    const g0=$('#gIn'),g=g0.cloneNode(false);g0.replaceWith(g);g.hidden=false;g.textContent='Uygulamaya dön';g.onclick=e=>{e.preventDefault();location.href=url};
+    location.href=url};
+  const done=r=>{const t=r&&r.credential&&r.credential.idToken;if(t)back(t);else if(r&&r.user)$('#gateMsg').textContent='Giriş anahtarı alınamadı, tekrar dene.'};
+  a2.setPersistence(firebase.auth.Auth.Persistence.SESSION).then(()=>a2.getRedirectResult()).then(done).catch(e=>{$('#gateMsg').textContent='Giriş yapılamadı ('+e.code+').'});
+  showGate('Oktan Hesap Android uygulaması için Google hesabınla giriş yap.');
+  $('#gIn').addEventListener('click',async()=>{try{done(await a2.signInWithPopup(prov))}catch(e){
+    if(['auth/popup-blocked','auth/operation-not-supported-in-environment','auth/cancelled-popup-request'].includes(e.code)){a2.signInWithRedirect(prov);return}
+    if(e.code!=='auth/popup-closed-by-user')$('#gateMsg').textContent='Giriş yapılamadı ('+e.code+').'}})}
 function showGate(text,signedIn){$('#app').hidden=true;$('#gate').hidden=false;$('#gateMsg').textContent=text;$('#gIn').hidden=!!signedIn;$('#gOut').hidden=!signedIn}
 (function boot(){
   const cfg=window.FIREBASE_CONFIG;
@@ -2351,14 +2423,18 @@ function showGate(text,signedIn){$('#app').hidden=true;$('#gate').hidden=false;$
   try{fs.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}
   const auth=firebase.auth();auth.languageCode='tr';
   const prov=new firebase.auth.GoogleAuthProvider();prov.setCustomParameters({prompt:'select_account'});
-  $('#gIn').addEventListener('click',async()=>{try{await auth.signInWithPopup(prov)}catch(e){
+  if(APP_LOGIN&&!NATIVE){appLoginPage(cfg,prov);return}
+  // Android uygulamasında Google girişi Chrome'da yapılır, anahtar uygulamaya geri gelir
+  window.__appLogin=t=>auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(t)).catch(e=>{$('#gateMsg').textContent='Giriş yapılamadı ('+e.code+'). Tekrar dene.'});
+  $('#gIn').addEventListener('click',async()=>{if(NATIVE){try{NATIVE.login()}catch(e){}return}try{await auth.signInWithPopup(prov)}catch(e){
     if(['auth/popup-blocked','auth/operation-not-supported-in-environment','auth/cancelled-popup-request'].includes(e.code)){auth.signInWithRedirect(prov);return}
     if(e.code!=='auth/popup-closed-by-user')$('#gateMsg').textContent='Giriş yapılamadı ('+e.code+').'}});
   const out=async()=>{stopData();await auth.signOut()};
   $('#gOut').addEventListener('click',out);$('#signOut').addEventListener('click',out);
   auth.getRedirectResult().catch(e=>{$('#gateMsg').textContent='Giriş yapılamadı ('+e.code+').'});
   auth.onAuthStateChanged(u=>{
-    if(!u){stopData();S.ai={};syncAI();showGate('Devam etmek için Google hesabınla giriş yap.');return}
+    if(NATIVE)try{u?NATIVE.setSession(u.uid,u.refreshToken):NATIVE.clearSession()}catch(e){}
+    if(!u){stopData();S.ai={};syncAI();planSig='';showGate('Devam etmek için Google hesabınla giriş yap.');return}
     $('#setUser').textContent=u.email||'';
     $('#gate').hidden=true;$('#app').hidden=false;setTab(S.tab);render();startData(fs)});
 })();

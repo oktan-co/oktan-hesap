@@ -44,9 +44,16 @@ if (!push) { console.log('Bugün ya da yarın son ödemesi olan ödenmemiş ekst
 if (DRY) { console.log('[DRY]', push.title, '\n' + push.body); process.exit(0); }
 
 const devices = await db.collection('devices').get();
-if (devices.empty) fail('Kayıtlı cihaz yok. Uygulamada ⚙ Ayarlar → Bildirim → "Bildirimleri aç" ile telefonu kaydet.');
+// Android uygulaması (APK) kuruluysa telefonlar hatırlatmayı kendi alarmıyla gösterir;
+// aynı bildirim Chrome'dan ikinci kez gelmesin diye Android tarayıcılarına gönderilmez (bilgisayara gider).
+const plans = await db.collection('alarmPlans').get();
+const nativeOn = plans.docs.some(d => Date.now() - (d.data().nativeAt || 0) < 24 * 3600e3);
+const targets = devices.docs.filter(d => !(nativeOn && /Android/i.test(d.data().ua || '')));
+if (nativeOn) console.log(`Telefon uygulaması etkin: ${devices.size - targets.length} Android tarayıcısı atlandı.`);
+if (!targets.length && nativeOn) { if (!TEST) await metaRef.set({ [sentKey]: today, at: Date.now() }, { merge: true }); console.log('Bildirim telefon alarmıyla gösterilecek.'); process.exit(0); }
+if (!targets.length) fail('Kayıtlı cihaz yok. Uygulamada ⚙ Ayarlar → Bildirim → "Bildirimleri aç" ile telefonu kaydet.');
 let ok = 0, bad = 0;
-for (const doc of devices.docs) {
+for (const doc of targets) {
   const token = doc.data().token || doc.id;
   try {
     await getMessaging().send({
