@@ -769,7 +769,8 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         <div><span class="eyebrow">Fark</span><b id="alFark">—</b></div>
       </div>
     </div>
-    <form class="box" id="alForm">
+    <details class="fold" id="alAddFold"><summary>+ Alacak ekle</summary>
+    <form class="inner" id="alForm">
       <div class="grid">
         <label class="f"><span>Kimden / ne için</span><input id="alName" placeholder="ör. Maaş, Osman ceza" maxlength="60" required></label>
         <label class="f"><span>Tutar (₺)</span><input id="alAmt" class="num" inputmode="text" placeholder="0,00 (eksi için -50)" required></label>
@@ -779,9 +780,22 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <p class="hint">Tarih girmezsen "her an alabilirim" sayılır ve her ayda görünür. Tarih girersen o ayda görünür. "Her ay tekrarla" seçersen her ay kendiliğinden yeniden gelir.</p>
       <button class="btn" type="submit">Alacak ekle</button>
       <div class="msg" id="alMsg"></div>
-    </form>
+    </form></details>
     <div class="sec">
       <div class="sec-h"><h2>Alacaklarım</h2><span class="hint" id="alTotal"></span></div>
+      <div class="box filt pad" id="alFilt" style="display:grid;gap:10px;margin-bottom:12px">
+        <label class="search"><span aria-hidden="true">⌕</span><input id="alQ" type="search" placeholder="Alacak ara (ör. Dominos, Osman, 1200)" aria-label="Alacak ara" autocomplete="off"></label>
+        <details class="morefilt" id="alMoreFilt"><summary>Tarih, durum, tür</summary><div class="mf">
+          <div class="grid">
+            <label class="f"><span>Başlangıç tarihi</span><input id="alFFrom" type="date"></label>
+            <label class="f"><span>Bitiş tarihi</span><input id="alFTo" type="date"></label>
+            <label class="f"><span>Durum</span><select id="alFSt"><option value="">Tümü</option><option value="open">Açık</option><option value="paid">Tahsil edilen</option></select></label>
+            <label class="f"><span>Tür</span><select id="alFType"><option value="">Tümü</option><option value="sp">Harcamadan gelen</option><option value="manual">Elle eklenen</option><option value="rep">Her ay</option></select></label>
+          </div>
+          <p class="hint" style="margin:0">Tarih: açık alacakta alacağın tarihi, tahsil edilende tahsil tarihi.</p>
+        </div></details>
+        <div id="alFBar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap" hidden><button class="btn ghost" type="button" id="alFClear">Filtreyi temizle</button><span class="hint" id="alFSum"></span></div>
+      </div>
       <div class="box list" id="alList"></div>
       <p class="hint">Alacağın eline geçince ✓ ile tahsil edildi yap; alttaki "Tahsil edilenler"e tarihiyle taşınır (para başka bir yere yazılmaz). "Her ay" olanlarda ✓ o ayınkini kapatır, sonraki ay yeniden gelir. Yanlış girdiysen alacağa dokunup "Sil" de.</p>
       <details class="fold" id="alPaidFold"><summary><span>Tahsil edilenler <span class="hint" id="alPaidN"></span></span></summary><div class="list" id="alPaidList"></div></details>
@@ -1045,7 +1059,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 55 · 4 Kas 00:05</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 56 · 4 Kas 00:20</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1624,6 +1638,7 @@ function renderAlacak(M){
   const when=o=>{if(!o.date)return 'Tarihsiz · her an alınabilir';const d=new Date(o.date+'T00:00'),n=daysTo(o.date);
     return (o.rec?'Her ay · ':'')+d.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})+(n<0?' · gecikti':n===0?' · bugün':n<=31?` · ${n} gün sonra`:'')};
   renderAlPaid();
+  if(renderAlFilter())return;
   const box=$('#alList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input,select'))return;
   box.innerHTML=L.length?L.map(o=>{const a=o.a,ed=ALEDIT===a.id,id=esc(a.id),late=o.date&&o.date<isoToday();
     return `<div class="row strow${ed?' on':''}" data-alopen="${id}" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${o.rec?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small class="${late?'neg':''}">${esc(a.src&&!o.date?'Harcamadan · '+(a.srcDate?new Date(a.srcDate+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):a.srcCat||''):when(o))} <span class="stedit">✎</span></small></div>
@@ -1644,6 +1659,39 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{const c=e.target.closest('[data-sprepeat]');if(!c||!db)return;const x=S.sp.find(v=>v.id===c.dataset.sprepeat);if(!x)return;const nw={...stripId(x)};
   if(c.checked){nw.repeat=true;delete nw.stop}else delete nw.repeat;db.collection('spend').doc(x.id).set(nw).catch(err=>showBanner(errText(err)))});
 let ALEDIT=null,ALPEDIT=null;
+/* Alacak arama/filtre: açıkken ay seçimi yok sayılır, açık ve tahsil edilenler tek listede (tüm aylar). */
+const AF_IDS=['alQ','alFFrom','alFTo','alFSt','alFType'];
+function renderAlFilter(){
+  const q=$('#alQ').value.trim().toLocaleLowerCase('tr-TR'),ff=$('#alFFrom').value,ft=$('#alFTo').value,st=$('#alFSt').value,ty=$('#alFType').value,on=!!(q||ff||ft||st||ty);
+  $('#alFBar').hidden=!on;$('#alPaidFold').hidden=on;try{sessionStorage.setItem('kasa.alf',JSON.stringify(AF_IDS.map(i=>$('#'+i).value)))}catch(e){}
+  if(!on)return false;
+  const M=mk(today),items=[];
+  for(const a of S.al){
+    if(a.repeat){if(!(a.done&&a.done[M])&&M>=(a.date||isoToday()).slice(0,7))items.push({a,open:true,date:alDay(a,M),m:M});
+      for(const [m,ts] of Object.entries(a.done||{}))if(Number.isFinite(ts))items.push({a,open:false,date:alIso(ts),m})}
+    else items.push({a,open:!a.paid,date:a.paid||a.date||''})}
+  const L=items.filter(i=>{const a=i.a;
+    if(st&&(st==='open')!==i.open)return false;
+    if(ty==='sp'&&!a.src)return false;if(ty==='manual'&&(a.src||a.repeat))return false;if(ty==='rep'&&!a.repeat)return false;
+    if((ff||ft)&&!i.date)return false;if(ff&&i.date<ff)return false;if(ft&&i.date>ft)return false;
+    if(q&&![a.name,a.srcCat,String(a.amount).replace('.',','),pmoney(a.amount)].join(' ').toLocaleLowerCase('tr-TR').includes(q))return false;
+    return true}).sort((x,y)=>(y.date||'9').localeCompare(x.date||'9'));
+  const ot=L.filter(i=>i.open).reduce((s,i)=>s+i.a.amount,0),pt=L.filter(i=>!i.open).reduce((s,i)=>s+i.a.amount,0);
+  $('#alFSum').textContent=`${L.length} kayıt · açık ${money(ot)} · tahsil edilen ${money(pt)}`;
+  $('#alTotal').textContent='filtreli';
+  const box=$('#alList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input,select'))return true;
+  box.innerHTML=L.length?L.map(i=>{const a=i.a,id=esc(a.id);
+    const sub=i.open?`<span class="sptag al" style="margin:0 4px 0 0">Açık</span>${i.date?esc(alLong(i.date)):'Tarihsiz'}`:`<span class="sptag ok" style="margin:0 4px 0 0">Tahsil</span>${esc(alLong(i.date))}`;
+    const btn=i.open?(a.repeat?`<button class="del ok" data-aldone="${id}" data-m="${i.m}" aria-label="Bu ayki tahsil edildi">✓</button>`:`<button class="del ok" data-alpaid="${id}" aria-label="Tahsil edildi">✓</button>`)
+      :`<button class="del" data-alundo="${id}"${a.repeat?` data-m="${i.m}"`:''} aria-label="Geri al" title="Geri al">↩</button>`;
+    return `<div class="row" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${a.repeat?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small>${sub}</small></div><div class="amt${a.amount<0?' neg':''}${i.open?'':' mut'}">${money(a.amount)}</div>${btn}</div>`}).join('')
+    :'<div class="empty">Filtreye uyan alacak yok.</div>';
+  return true}
+{try{const v=JSON.parse(sessionStorage.getItem('kasa.alf')||'null');if(Array.isArray(v)){AF_IDS.forEach((k,i)=>{if(v[i])$('#'+k).value=v[i]});if(v.slice(1).some(Boolean))$('#alMoreFilt').open=true}}catch(e){}
+ let qt;$('#alQ').addEventListener('input',()=>{clearTimeout(qt);qt=setTimeout(render,200)});
+ ['alFFrom','alFTo','alFSt','alFType'].forEach(k=>$('#'+k).addEventListener('change',render));
+ $('#alFClear').addEventListener('click',()=>{AF_IDS.forEach(k=>$('#'+k).value='');render()});
+ const f=$('#alAddFold');try{if(localStorage.getItem('kasa.aladd')==='1')f.open=true}catch(e){}f.addEventListener('toggle',()=>{try{localStorage.setItem('kasa.aladd',f.open?'1':'0')}catch(e){}})}
 const alIso=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const alLong=iso=>new Date(iso+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});
 /* Tahsil edilenler: tek seferlikler a.paid (tarih) ile, "her ay" olanlar a.done[ay] (zaman damgası) ile buraya düşer. Yalnız kayıt; likit tarafına gelir yazılmaz. */
