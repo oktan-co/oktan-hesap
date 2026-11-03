@@ -189,6 +189,10 @@ form.inner{display:grid;gap:12px;padding:14px 16px}
 .alsend{border:1px solid var(--line);background:var(--surface);color:var(--accent);font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;cursor:pointer}
 .alsend:hover{background:var(--sunk)}.alsend.arm{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.alsend:disabled{opacity:.5}
 .alacts{display:flex;gap:2px;align-items:center}
+#hbForm.acct .hbb{display:none}
+.hbsub2{display:block;font-size:12px;color:var(--muted);font-family:var(--f-body);text-align:right;margin-top:2px}
+#hbClosedFold{margin-top:12px}#hbClosed{border-top:1px solid var(--line)}
+.hbclose{display:grid;gap:8px;border-top:1px dashed var(--line);padding-top:10px;margin-top:4px}
 .alsort{display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--line);background:var(--sunk);border-radius:10px 10px 0 0;overflow-x:auto}
 .alsort button{border:0;background:none;font:600 12px/1.2 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;padding:6px 8px;border-radius:6px;white-space:nowrap}
 .alsort button.on{color:var(--ink);background:var(--surface)}
@@ -627,18 +631,18 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="kalan">
         <span class="eyebrow">Bu ay kalan <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span>
         <span class="big" id="sKalan">₺0,00</span>
-        <span class="hint why" id="sKalanHint">Alacaklar (tarihsizler ve bu aya kadar olanlar) + fonlar − bu ay ödenecek kart ekstreleri · altın ve gümüş hariç</span>
+        <span class="hint why" id="sKalanHint">Alacaklar (tarihsizler ve bu aya kadar olanlar) + fonlar + hesap &amp; bono − bu ay ödenecek kart ekstreleri · altın ve gümüş hariç</span>
       </div>
       <div class="flow k3">
         <div><span class="eyebrow">Alacaklar</span><b class="pos" id="sGelir">—</b><small class="hint" id="sGelirSub"></small></div>
-        <div><span class="eyebrow">Fonlar (net)</span><b class="pos" id="sFon">—</b></div>
+        <div><span class="eyebrow">Fon, hesap &amp; bono</span><b class="pos" id="sFon">—</b><small class="hint" id="sFonSub"></small></div>
         <div><span class="eyebrow">Bu ay ödenecek</span><b class="neg" id="sKartHar">—</b><small class="hint" id="sKartSub"></small></div>
       </div>
     </div>
 
     <div class="box">
       <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
-        <span class="hint why">Bakiye + alacaklar + yatırımlar (altın, gümüş ve stopaj sonrası fonlar) − borçlar</span></div>
+        <span class="hint why">Bakiye + alacaklar + yatırımlar (altın, gümüş, stopaj sonrası fonlar, hesap &amp; bono) − borçlar</span></div>
       <div class="flow">
         <div><span class="eyebrow">Bakiye</span><b id="nNakit">—</b></div>
         <div><span class="eyebrow">Alacaklar</span><b id="nAlacak">—</b></div>
@@ -909,6 +913,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="tabs chips ysub" role="tablist" aria-label="Yatırım türü">
       <button type="button" role="tab" data-ytab="maden" aria-selected="true">Altın &amp; gümüş</button>
       <button type="button" role="tab" data-ytab="fon" aria-selected="false">Fonlar</button>
+      <button type="button" role="tab" data-ytab="hesap" aria-selected="false">Hesap &amp; bono</button>
     </div>
   </section>
 
@@ -967,6 +972,42 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </div>
     <div class="mgroups" id="metalGroups"></div>
     <p class="hint">Fiyatlar doviz.com'dan 20 dakikada bir otomatik gelir ve elle değiştirilemez. Satımda girdiğin tutar bakiyene eklenmez.</p>
+  </section>
+
+  <!-- HESAP & BONO -->
+  <section class="panel" data-panel="hesap" hidden>
+    <div class="box port">
+      <span class="eyebrow">Hesap &amp; bono · bugünkü değer</span>
+      <span class="big" id="hbTotal" style="color:var(--pos)">₺0,00</span>
+      <span class="hint" id="hbSub">Hesap bakiyeleri + bonoların bugüne kadar işlemiş net faiziyle değeri</span>
+    </div>
+    <details class="fold" id="hbAddFold"><summary>+ Hesap ya da bono ekle</summary>
+    <form class="inner" id="hbForm">
+      <div class="seg" role="radiogroup" aria-label="Tür"><label><input type="radio" name="hbKind" value="bono" checked>Bono / vadeli</label><label><input type="radio" name="hbKind" value="acct">Hesap (bakiye)</label></div>
+      <p class="hint" id="hbMoveNote" hidden></p>
+      <div class="grid">
+        <label class="f"><span>Adı</span><input id="hbName" placeholder="ör. N Kolay Bono, Ziraat vadesiz" maxlength="60" required></label>
+        <label class="f"><span id="hbAmtL">Anapara (₺)</span><input id="hbAmt" class="num" inputmode="decimal" placeholder="0,00" required></label>
+        <label class="f hbb"><span>Yıllık faiz (%)</span><input id="hbRate" class="num" inputmode="decimal" placeholder="ör. 38"></label>
+        <label class="f hbb"><span>Alış tarihi</span><input id="hbStart" type="date"></label>
+        <label class="f hbb"><span>Vade (gün)</span><input id="hbDays" class="num" inputmode="numeric" placeholder="ör. 92"></label>
+        <label class="f hbb"><span>Stopaj (%)</span><input id="hbTax" class="num" inputmode="decimal" placeholder="vadeye göre"></label>
+        <label class="f hbb"><span>Vade sonu tutarı (isteğe bağlı)</span><input id="hbEnd" class="num" inputmode="decimal" placeholder="bankanın gösterdiği"></label>
+      </div>
+      <p class="hint hbb" id="hbCalc">Faiz, gün ve anaparayı girince vade sonu hesaplanır.</p>
+      <button class="btn" type="submit">Ekle</button>
+      <div class="msg" id="hbMsg"></div>
+    </form></details>
+    <div class="sec">
+      <div class="sec-h"><h2>Bonolar</h2><span class="hint" id="hbBonoN"></span></div>
+      <div class="box list" id="hbBono"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h"><h2>Hesaplar</h2><span class="hint" id="hbAcctN"></span></div>
+      <div class="box list" id="hbAcct"></div>
+    </div>
+    <details class="fold" id="hbClosedFold"><summary><span>Kapanan bonolar <span class="hint" id="hbClosedN"></span></span></summary><div class="list" id="hbClosed"></div></details>
+    <p class="hint">Bono değeri: anapara × faiz × gün ÷ 365, stopaj düşülerek; her gün işler. Bankanın gösterdiği vade sonu tutarını girersen hesap yerine o kullanılır. Stopaj vadeye göre otomatik gelir (180 güne kadar %17,5 · 1 yıla kadar %15 · üstü %10), değiştirebilirsin. Hesap ve bonolar "Bu ay kalan" ve ana bakiyeye girer.</p>
   </section>
 
   <!-- GEÇMİŞ (başlıktaki grafik düğmesi) -->
@@ -1062,7 +1103,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 60 · 4 Kas 00:40</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 61 · 4 Kas 01:20</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1166,8 +1207,8 @@ function applyCats(){const raw=S.settings.spGroups;const key=JSON.stringify(Arra
   renderCatEditor()}
 function ownOpts(sel){return '<option value="">Benim</option>'+[...NOT_MINE].map(c=>`<option${c===sel?' selected':''}>${esc(c)}</option>`).join('')}
 const cardsOnly=()=>S.cards.filter(c=>c.kind!=='loan'); // krediler 'cards' koleksiyonunda kind:'loan' ile durur; harcama ödeme seçeneklerinde görünmez
-const S={pstat:{},ai:{},sp:[],tx:[],cards:[],hold:[],fdtx:[],fdp:{items:{}},al:[],st:[],harem:{items:{}},fiba:{items:{}},settings:{},month:mk(today),tab:'ozet'};
-S.yt='maden';try{const gm=sessionStorage.getItem('kasa.month');if(/^\d{4}-\d\d$/.test(gm||''))S.month=gm}catch(e){}try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'?(S.yt=t,'yatirim'):t}catch(e){}
+const S={pstat:{},ai:{},sp:[],tx:[],cards:[],hold:[],fdtx:[],fdp:{items:{}},al:[],hb:[],st:[],harem:{items:{}},fiba:{items:{}},settings:{},month:mk(today),tab:'ozet'};
+S.yt='maden';try{const gm=sessionStorage.getItem('kasa.month');if(/^\d{4}-\d\d$/.test(gm||''))S.month=gm}catch(e){}try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden'||y==='hesap')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','hesap','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'||t==='hesap'?(S.yt=t,'yatirim'):t}catch(e){}
 let db=null;
 // Android uygulamasının (APK) içinde açıldıysa telefonla konuşan köprü; tarayıcıda null
 const NATIVE=window.OktanNative||null,APP_LOGIN=/[?&]app-login=1/.test(location.search);
@@ -1230,14 +1271,14 @@ function sellPreview(owner,code,units,price){const p=fundPositions().find(x=>x.c
 function holdValue(h){const src=h.src==='fiba'?S.fiba:S.harem;const p=(src.items||{})[h.prod];return p&&p.alis?h.qty*p.alis:null}
 
 /* ---------- render ---------- */
-function setTab(t){if(t==='fon'||t==='maden'){S.yt=t;t='yatirim'}if(t!=='gecmis')S.prevTab=t;S.tab=t;try{localStorage.setItem('kasa.tab',t);localStorage.setItem('kasa.yt',S.yt)}catch(e){}
+function setTab(t){if(t==='fon'||t==='maden'||t==='hesap'){S.yt=t;t='yatirim'}if(t!=='gecmis')S.prevTab=t;S.tab=t;try{localStorage.setItem('kasa.tab',t);localStorage.setItem('kasa.yt',S.yt)}catch(e){}
   $$('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
   $$('[data-ytab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.ytab===S.yt));
-  $$('[data-panel]').forEach(p=>p.hidden=!(p.dataset.panel===t||(t==='yatirim'&&(p.dataset.panel===S.yt||(WIDE.matches&&(p.dataset.panel==='fon'||p.dataset.panel==='maden'))))));
+  $$('[data-panel]').forEach(p=>p.hidden=!(p.dataset.panel===t||(t==='yatirim'&&(p.dataset.panel===S.yt||(WIDE.matches&&(p.dataset.panel==='fon'||p.dataset.panel==='maden'||p.dataset.panel==='hesap'))))));
   document.querySelector('main').classList.toggle('yat2',t==='yatirim'&&WIDE.matches);
   $('#histBtn').setAttribute('aria-pressed',t==='gecmis');if(t==='gecmis')renderHist();}
 /* ---------- servet geçmişi ---------- */
-const LOADED=new Set(),SNAP_NEED=['tx','cards','holdings','alacak','statements','fundtx','prices/funds','prices/harem','prices/fiba','settings/main'];
+const LOADED=new Set(),SNAP_NEED=['tx','cards','holdings','alacak','hesap','statements','fundtx','prices/funds','prices/harem','prices/fiba','settings/main'];
 let snapJ='',snapT=null,snapFn=null;
 function maybeSnap(v,incomplete){if(!db||incomplete||!SNAP_NEED.every(k=>LOADED.has(k)))return;
   const r2=x=>Math.round(x*100)/100,r={};for(const [k,x] of Object.entries(v))r[k]=typeof x==='number'?r2(x):Object.fromEntries(Object.entries(x).map(([a,b])=>[a,r2(b)]));
@@ -1359,11 +1400,11 @@ function delStmt(id){const x=S.st.find(s=>s.id===id);if(!x||!db)return;const old
   (async()=>{if(pt)await db.collection('tx').doc(pt.id).delete();await db.collection('statements').doc(id).delete()})().catch(err=>showBanner(errText(err)));
   toast(x.paid?'Ödenmiş ekstre ve ödeme kaydı silindi.':'Ekstre silindi.',async()=>{await db.collection('statements').doc(id).set(old);if(pt)await db.collection('tx').doc(pt.id).set(oldPt)})}
 /* ---------- yatırımlar özeti ---------- */
-function renderInvest(pv,fv,FP){const tot=pv+fv;$('#yTotal').textContent=money(tot);
+function renderInvest(pv,fv,FP,hv){hv=hv||0;const tot=pv+fv+hv;$('#yTotal').textContent=money(tot);
   let mpl=0,mc=0;for(const h of S.hold){const v=holdValue(h);if(h.cost&&v!=null){mpl+=v-h.cost;mc++}}
   const open=FP.filter(p=>p.units>1e-9),fpl=open.reduce((a,p)=>a+(p.gross==null?0:p.gross-p.taxAmt),0),pl=mpl+fpl;
   $('#yPl').innerHTML=(mc||open.length)?`Toplam kâr/zarar <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':'−'}${money(Math.abs(pl))}</span>${HIDE?'':` <span class="hint">(altın ${mpl>=0?'+':'−'}${money(Math.abs(mpl))} · fon ${fpl>=0?'+':'−'}${money(Math.abs(fpl))})</span>`}`:'';
-  const parts=[['Altın & gümüş',pv,'var(--gold)'],['Fonlar',fv,'var(--accent)']].filter(x=>x[1]>0.5);
+  const parts=[['Altın & gümüş',pv,'var(--gold)'],['Fonlar',fv,'var(--accent)'],['Hesap & bono',hv,'var(--pos)']].filter(x=>x[1]>0.5);
   $('#yDist').innerHTML=tot>0?parts.map(([n,v,c])=>`<i style="flex:${v};background:${c}" title="${esc(n)}"></i>`).join(''):'';
   $('#yLegend').innerHTML=tot>0?parts.map(([n,v,c])=>`<span><i style="background:${c}"></i>${esc(n)} <b class="num">${money(v)}</b> <span class="hint">%${Math.round(v/tot*100)}</span></span>`).join(''):'';
   const by=o=>open.filter(p=>p.owner===o).reduce((a,p)=>a+(p.netValue??p.cost),0);
@@ -1434,13 +1475,13 @@ function render0(){
   const alM=alFor(M,true).reduce((a,o)=>a+o.amount,0),alLater=Math.max(0,alOpen().filter(x=>!x.repeat&&x.date&&x.date.slice(0,7)>M).reduce((a,x)=>a+x.amount,0));
   const dueList=S.st.filter(x=>!x.paid&&x.due&&x.due.slice(0,7)<=M&&(M!==mk(today)||true));
   const proj=loanProjection(M),projSum=proj.reduce((a,x)=>a+x.amount,0);
-  const dueThis=dueList.reduce((a,x)=>a+(x.amount||0),0)+projSum;const kalan=alM+fv-dueThis;
+  const dueThis=dueList.reduce((a,x)=>a+(x.amount||0),0)+projSum;const hv=hbValue();const kalan=alM+fv+hv-dueThis;
   $('#sKalan').textContent=money(kalan);$('#sKalan').className='big '+(kalan<0?'neg':'');
-  $('#sGelir').textContent=money(alM);$('#sGelirSub').textContent=alLater>0.004?`+${money(alLater)} sonraki aylarda`:'';$('#sFon').textContent=money(fv);$('#sKartHar').textContent=money(dueThis);
+  $('#sGelir').textContent=money(alM);$('#sGelirSub').textContent=alLater>0.004?`+${money(alLater)} sonraki aylarda`:'';$('#sFon').textContent=money(fv+hv);$('#sFonSub').textContent=hv>0.004?`fon ${money(fv)} · hesap & bono ${money(hv)}`:'';$('#sKartHar').textContent=money(dueThis);
   const pend=dueList.filter(x=>!(x.amount>0)).length;$('#sKartSub').textContent=(dueList.length||proj.length)?`${dueList.length} ekstre${proj.length?` · ${proj.length} kredi taksiti (öngörülen)`:''}${pend?` · ${pend} tanesinin tutarı girilmedi`:''}`:'';
-  $('#nMaden').textContent=money(pv+fv);$('#nYatSub').textContent=`altın ${money(pv)} · fon ${money(fv)}`;renderInvest(pv,fv,FP);$('#nAlacak').textContent=money(alT);
-  const ana=cashUpTo(M)+alT+pv+fv-debt;$('#nAna').textContent=money(ana);
-  {const cash=cashUpTo(mk(today));maybeSnap({ana:cash+alT+pv+fv-debt,bakiye:cash,alacak:alT,maden:pv,fon:fv,borc:debt,
+  $('#nMaden').textContent=money(pv+fv+hv);$('#nYatSub').textContent=`altın ${money(pv)} · fon ${money(fv)}${hv>0.004?` · hesap & bono ${money(hv)}`:''}`;renderInvest(pv,fv,FP,hv);renderHB();$('#nAlacak').textContent=money(alT);
+  const ana=cashUpTo(M)+alT+pv+fv+hv-debt;$('#nAna').textContent=money(ana);
+  {const cash=cashUpTo(mk(today));maybeSnap({ana:cash+alT+pv+fv+hv-debt,bakiye:cash,alacak:alT,maden:pv,fon:fv,hesap:hv,borc:debt,
     fonBy:Object.fromEntries(OWNERS.map(o=>[o,FP.filter(p=>p.owner===o&&p.units>1e-9).reduce((a,p)=>a+(p.netValue??p.cost),0)]))},S.hold.some(h=>holdValue(h)==null))}
   if(S.tab==='gecmis')renderHist();
   renderOzSide();
@@ -1680,7 +1721,7 @@ const alEditBox=a=>{const id=esc(a.id);return `<div class="fedit" data-aleditbox
       <label class="f"><span>Tutar (₺)</span><input class="num" data-ae="amount" inputmode="text" value="${esc(fmtIn(a.amount))}"></label>
       <label class="f"><span>${a.repeat?'Başlangıç tarihi (gün her ay kullanılır)':'Ne zaman (boş = her an)'}</span><input type="date" data-ae="date" value="${esc(a.date||'')}"></label></div>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" class="chk" data-ae="repeat"${a.repeat?' checked':''}> Her ay tekrarla</label>
-      <div class="refrow"><button type="button" class="btn" data-alsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-alcancel>Vazgeç</button><button type="button" class="btn ghost neg" data-alseriesdel="${id}" style="margin-left:auto">${a.repeat?'Tamamen sil':'Sil'}</button></div><div class="msg"></div></div>`};
+      <div class="refrow"><button type="button" class="btn" data-alsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-alcancel>Vazgeç</button>${a.repeat?'':`<button type="button" class="btn ghost" data-almove="${id}">Hesap &amp; bonoya taşı</button>`}<button type="button" class="btn ghost neg" data-alseriesdel="${id}" style="margin-left:auto">${a.repeat?'Tamamen sil':'Sil'}</button></div><div class="msg"></div></div>`};
 /* Alacak arama/filtre: açıkken ay seçimi yok sayılır, açık ve tahsil edilenler tek listede (tüm aylar). */
 const AF_IDS=['alQ','alFFrom','alFTo','alFSt','alFType'];
 function renderAlFilter(){
@@ -2504,7 +2545,7 @@ setTimeout(siteUpdCheck,15000);setInterval(siteUpdCheck,5*60*1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)siteUpdCheck()});
 
 /* ---------- backup ---------- */
-const COLLS=['tx','cards','holdings','spend','alacak','statements','fundtx','history','prices','settings'];
+const COLLS=['tx','cards','holdings','spend','alacak','hesap','statements','fundtx','history','prices','settings'];
 $('#bkDown').addEventListener('click',async()=>{const msg=$('#bkMsg');if(!need(msg))return;msg.className='msg';msg.textContent='Hazırlanıyor…';
   try{const out={format:'oktan-backup-1',exportedAt:Date.now(),collections:{}};
     for(const c of COLLS){const snap=await db.collection(c).get();out.collections[c]={};
@@ -2523,6 +2564,102 @@ $('#bkFile').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
   try{for(let i=0;i<writes.length;i+=400){const b=db.batch();for(const [c,id,v] of writes.slice(i,i+400))b.set(db.collection(c).doc(id),v);await b.commit();msg.textContent=`Yükleniyor… ${Math.min(i+400,writes.length)}/${writes.length}`}
     flash(msg,writes.length+' kayıt yüklendi.')}catch(err){flash(msg,errText(err),true)}});
 
+
+/* ---------- Hesap & bono ---------- */
+const hbDefTax=d=>d<=180?17.5:d<=365?15:10;
+const dBetween=(a,b)=>Math.round((new Date(b+'T00:00')-new Date(a+'T00:00'))/864e5);
+function bonoInfo(b){const days=Math.max(1,b.days||1),start=b.start||isoToday(),end=isoAdd(start,days),tax=Number.isFinite(b.tax)?b.tax:hbDefTax(days);
+  const gross=b.amount*(b.rate||0)/100*days/365,calcEnd=b.amount+gross*(1-tax/100),endNet=b.endAmt>0?b.endAmt:calcEnd;
+  const el=Math.min(days,Math.max(0,dBetween(start,isoToday()))),now=b.amount+(endNet-b.amount)*el/days;
+  return {days,start,end,tax,gross,endNet,now:Math.round(now*100)/100,left:days-el,matured:el>=days}}
+const hbOpen=()=>S.hb.filter(x=>!x.closed);
+function hbValue(){return hbOpen().reduce((a,x)=>a+(x.kind==='bono'?bonoInfo(x).now:x.amount),0)}
+let HBEDIT=null,HBMOVE=null;try{HBEDIT=sessionStorage.getItem('kasa.hbedit')||null}catch(e){}
+const setHBEdit=v=>{HBEDIT=v;try{v?sessionStorage.setItem('kasa.hbedit',v):sessionStorage.removeItem('kasa.hbedit')}catch(e){}};
+const dLong=iso=>new Date(iso+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});
+const pct=v=>String(Math.round(v*100)/100).replace('.',',');
+function renderHB(){
+  const B=hbOpen().filter(x=>x.kind==='bono').map(b=>({b,i:bonoInfo(b)})).sort((x,y)=>x.i.end.localeCompare(y.i.end)),A=hbOpen().filter(x=>x.kind!=='bono'),C=S.hb.filter(x=>x.closed).sort((a,b)=>b.closed.localeCompare(a.closed));
+  const bv=B.reduce((a,x)=>a+x.i.now,0),av=A.reduce((a,x)=>a+x.amount,0),ben=B.reduce((a,x)=>a+x.i.endNet,0);
+  $('#hbTotal').textContent=money(bv+av);
+  $('#hbSub').textContent=(B.length||A.length)?`bono ${money(bv)} (vade sonunda ${money(ben)}) · hesap ${money(av)}`:'Hesap bakiyeleri + bonoların bugüne kadar işlemiş net faiziyle değeri';
+  $('#hbBonoN').textContent=B.length?`${B.length} bono · ${money(bv)}`:'';$('#hbAcctN').textContent=A.length?`${A.length} hesap · ${money(av)}`:'';
+  const ae=document.activeElement,busy=el=>ae&&el.contains(ae)&&ae.matches('input,select');
+  const acctOpts=A.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
+  const bb=$('#hbBono');if(!busy(bb))bb.innerHTML=B.length?B.map(({b,i})=>{const id=esc(b.id),ed=HBEDIT===b.id;
+    const st=i.matured?'<span class="sptag ok" style="margin:0 4px 0 0">Vadesi geldi</span>':`${i.left} gün kaldı`;
+    return `<div class="row strow${ed?' on':''}" data-hbopen="${id}" style="grid-template-columns:minmax(0,1fr) auto"><div class="what"><div class="alname">${esc(b.name)}</div><small style="white-space:normal">${st} · vade ${esc(dLong(i.end))} · %${pct(b.rate||0)} · ${i.days} gün <span class="stedit">✎</span></small></div>
+      <div class="amt pos">${money(i.now)}<small class="hbsub2">vade sonu ${money(i.endNet)}</small></div></div>
+      ${ed?`<div class="fedit" data-hbbox="${id}"><div class="grid">
+        <label class="f"><span>Adı</span><input data-hf="name" value="${esc(b.name)}" maxlength="60"></label>
+        <label class="f"><span>Anapara (₺)</span><input class="num" data-hf="amount" inputmode="decimal" value="${esc(fmtIn(b.amount))}"></label>
+        <label class="f"><span>Yıllık faiz (%)</span><input class="num" data-hf="rate" inputmode="decimal" value="${esc(fmtIn(b.rate))}"></label>
+        <label class="f"><span>Alış tarihi</span><input type="date" data-hf="start" value="${esc(i.start)}"></label>
+        <label class="f"><span>Vade (gün)</span><input class="num" data-hf="days" inputmode="numeric" value="${i.days}"></label>
+        <label class="f"><span>Stopaj (%)</span><input class="num" data-hf="tax" inputmode="decimal" value="${esc(fmtIn(i.tax))}"></label>
+        <label class="f"><span>Vade sonu tutarı (boş = hesapla)</span><input class="num" data-hf="endAmt" inputmode="decimal" value="${b.endAmt>0?esc(fmtIn(b.endAmt)):''}" placeholder="${esc(fmtIn(Math.round(i.endNet*100)/100))}"></label></div>
+        <p class="hint" style="margin:0">Brüt faiz ${money(i.gross)} · stopaj −${money(i.gross*i.tax/100)} · net ${money(i.endNet-b.amount)}${b.endAmt>0?' (vade sonu tutarı elle girildi)':''}</p>
+        <div class="refrow"><button type="button" class="btn" data-hbsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-hbcancel>Vazgeç</button><button type="button" class="btn ghost neg" data-hbdel="${id}" style="margin-left:auto">Sil</button></div>
+        <div class="hbclose"><b style="font-size:14px">Bonoyu kapat</b><div class="grid">
+          <label class="f"><span>Eline geçen (₺)</span><input class="num" data-hf="closeAmt" inputmode="decimal" value="${esc(fmtIn(i.matured?Math.round(i.endNet*100)/100:i.now))}"></label>
+          <label class="f"><span>Hangi hesaba geçti</span><select data-hf="closeTo"><option value="">Hiçbiri (sadece kapat)</option>${acctOpts}</select></label></div>
+          <div class="refrow"><button type="button" class="btn ghost" data-hbclose="${id}">${i.matured?'Vadesi doldu, kapat':'Erken çektim, kapat'}</button></div></div>
+        <div class="msg"></div></div>`:''}`}).join(''):'<div class="empty">Henüz bono yok.</div>';
+  const ab=$('#hbAcct');if(!busy(ab))ab.innerHTML=A.length?A.map(a=>{const id=esc(a.id),ed=HBEDIT===a.id;
+    return `<div class="row strow${ed?' on':''}" data-hbopen="${id}" style="grid-template-columns:minmax(0,1fr) auto"><div class="what"><div class="alname">${esc(a.name)}</div><small>${a.upd?'Güncellendi: '+esc(dLong(a.upd)):'Bakiye'} <span class="stedit">✎</span></small></div><div class="amt">${money(a.amount)}</div></div>
+      ${ed?`<div class="fedit" data-hbbox="${id}"><div class="grid"><label class="f"><span>Adı</span><input data-hf="name" value="${esc(a.name)}" maxlength="60"></label><label class="f"><span>Bakiye (₺)</span><input class="num" data-hf="amount" inputmode="decimal" value="${esc(fmtIn(a.amount))}"></label></div>
+        <div class="refrow"><button type="button" class="btn" data-hbsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-hbcancel>Vazgeç</button><button type="button" class="btn ghost neg" data-hbdel="${id}" style="margin-left:auto">Sil</button></div><div class="msg"></div></div>`:''}`}).join(''):'<div class="empty">Henüz hesap yok.</div>';
+  $('#hbClosedN').textContent=C.length?`· ${C.length}`:'';
+  $('#hbClosed').innerHTML=C.length?C.map(b=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${esc(b.name)}</div><small>Kapandı: ${esc(dLong(b.closed))} · anapara ${money(b.amount)}${b.closedTo?' · '+esc(((S.hb.find(x=>x.id===b.closedTo)||{}).name)||'hesaba'):''}</small></div><div class="amt mut">${money(b.closedAmt||0)}</div><button class="del" data-hbreopen="${esc(b.id)}" aria-label="Geri al" title="Geri al">↩</button></div>`).join(''):'<div class="empty">Kapanan bono yok.</div>';
+}
+function hbSyncForm(){const k=document.querySelector('input[name=hbKind]:checked').value;$('#hbForm').classList.toggle('acct',k==='acct');$('#hbAmtL').textContent=k==='acct'?'Bakiye (₺)':'Anapara (₺)';
+  if(k!=='bono')return;const amt=parseNum($('#hbAmt').value),r=parseNum($('#hbRate').value),d=Math.round(parseNum($('#hbDays').value)),st=$('#hbStart').value||isoToday();
+  const tx=$('#hbTax').value.trim()?parseNum($('#hbTax').value):(d>0?hbDefTax(d):NaN);$('#hbTax').placeholder=d>0?fmtIn(hbDefTax(d))+' (otomatik)':'vadeye göre';
+  if(amt>0&&r>0&&d>0){const i=bonoInfo({amount:amt,rate:r,days:d,start:st,tax:tx,endAmt:parseNum($('#hbEnd').value)});
+    $('#hbCalc').textContent=`Vade: ${dLong(i.end)} · brüt faiz ${money(i.gross)} · stopaj %${pct(i.tax)} −${money(i.gross*i.tax/100)} · vade sonu ${money(i.endNet)}`}
+  else $('#hbCalc').textContent='Faiz, gün ve anaparayı girince vade sonu hesaplanır.'}
+$$('input[name=hbKind]').forEach(r=>r.addEventListener('change',hbSyncForm));['#hbAmt','#hbRate','#hbDays','#hbTax','#hbEnd','#hbStart'].forEach(k=>$(k).addEventListener('input',hbSyncForm));
+$('#hbStart').value=isoToday();hbSyncForm();
+{const f=$('#hbAddFold');try{if(localStorage.getItem('kasa.hbadd')==='1')f.open=true}catch(e){}f.addEventListener('toggle',()=>{try{localStorage.setItem('kasa.hbadd',f.open?'1':'0')}catch(e){}})}
+{const f=$('#hbClosedFold');try{if(localStorage.getItem('kasa.hbclosed')==='1')f.open=true}catch(e){}f.addEventListener('toggle',()=>{try{localStorage.setItem('kasa.hbclosed',f.open?'1':'0')}catch(e){}})}
+$('#hbForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#hbMsg');if(!need(msg))return;
+  const k=document.querySelector('input[name=hbKind]:checked').value,name=$('#hbName').value.trim(),amt=parseNum($('#hbAmt').value);
+  if(!name||!(amt>0)){flash(msg,'Ad ve sıfırdan büyük bir tutar gir.',true);return}
+  let doc={kind:k,name,amount:Math.round(amt*100)/100,created:Date.now()};
+  if(k==='bono'){const r=parseNum($('#hbRate').value),d=Math.round(parseNum($('#hbDays').value));if(!(r>0)||!(d>0)){flash(msg,'Bonoda faiz oranı ve vade (gün) gerekli.',true);return}
+    doc={...doc,rate:r,days:d,start:$('#hbStart').value||isoToday()};if($('#hbTax').value.trim())doc.tax=parseNum($('#hbTax').value);const en=parseNum($('#hbEnd').value);if(en>0)doc.endAmt=Math.round(en*100)/100}
+  else doc.upd=isoToday();
+  const mv=HBMOVE,old=mv?S.al.find(x=>x.id===mv):null,nid=uid();
+  try{await db.collection('hesap').doc(nid).set(doc);if(old)await db.collection('alacak').doc(old.id).delete();
+    ['#hbName','#hbAmt','#hbRate','#hbDays','#hbTax','#hbEnd'].forEach(k=>$(k).value='');$('#hbStart').value=isoToday();HBMOVE=null;$('#hbMoveNote').hidden=true;hbSyncForm();
+    flash(msg,old?'Eklendi, alacaklardan çıkarıldı.':'Eklendi.');
+    toast((k==='bono'?'Bono':'Hesap')+' eklendi.',async()=>{await db.collection('hesap').doc(nid).delete();if(old)await db.collection('alacak').doc(old.id).set(stripId(old))})}catch(err){flash(msg,errText(err),true)}});
+document.addEventListener('click',e=>{
+  const mvb=e.target.closest('[data-almove]');if(mvb){const a=S.al.find(x=>x.id===mvb.dataset.almove);if(!a)return;ALEDIT=null;HBMOVE=a.id;setTab('hesap');$('#hbAddFold').open=true;
+    $('#hbName').value=a.name;$('#hbAmt').value=fmtIn(Math.abs(a.amount));$('#hbMoveNote').hidden=false;$('#hbMoveNote').textContent=`"${a.name}" alacağı taşınıyor. Türünü seç, bonoysa faiz ve vadeyi gir; ekleyince alacaklardan çıkar.`;hbSyncForm();
+    setTimeout(()=>$('#hbAddFold').scrollIntoView({block:'start'}),50);render();return}
+  if(e.target.closest('[data-hbcancel]')){setHBEdit(null);render();return}
+  const dl=e.target.closest('[data-hbdel]');if(dl&&db){const x=S.hb.find(v=>v.id===dl.dataset.hbdel);if(!x)return;const old=stripId(x);setHBEdit(null);
+    db.collection('hesap').doc(x.id).delete().catch(err=>showBanner(errText(err)));toast(`"${x.name}" silindi.`,()=>db.collection('hesap').doc(x.id).set(old));return}
+  const ro=e.target.closest('[data-hbreopen]');if(ro&&db){const x=S.hb.find(v=>v.id===ro.dataset.hbreopen);if(!x)return;const old=stripId(x),nw={...old};delete nw.closed;delete nw.closedAmt;delete nw.closedTo;
+    (async()=>{try{if(x.closedTo){const t=S.hb.find(v=>v.id===x.closedTo);if(t)await db.collection('hesap').doc(t.id).set({...stripId(t),amount:Math.round((t.amount-(x.closedAmt||0))*100)/100,upd:isoToday()})}await db.collection('hesap').doc(x.id).set(nw)}catch(err){showBanner(errText(err))}})();
+    toast(`"${x.name}" yeniden açıldı.`);return}
+  const sv=e.target.closest('[data-hbsave]');if(sv&&db){const id=sv.dataset.hbsave,x=S.hb.find(v=>v.id===id),box=[...document.querySelectorAll('[data-hbbox]')].find(b=>b.dataset.hbbox===id);if(!x||!box)return;
+    const v=k=>{const el=box.querySelector(`[data-hf=${k}]`);return el?el.value:''},name=v('name').trim(),amount=parseNum(v('amount'));
+    if(!name||!(amount>0)){flash(box.querySelector('.msg'),'Ad ve sıfırdan büyük tutar gir.',true);return}
+    const old=stripId(x),nw={...old,name,amount:Math.round(amount*100)/100};
+    if(x.kind==='bono'){const r=parseNum(v('rate')),d=Math.round(parseNum(v('days')));if(!(r>0)||!(d>0)){flash(box.querySelector('.msg'),'Faiz ve gün gerekli.',true);return}
+      nw.rate=r;nw.days=d;nw.start=v('start')||old.start||isoToday();const t=v('tax').trim();if(t)nw.tax=parseNum(t);else delete nw.tax;const en=parseNum(v('endAmt'));if(en>0)nw.endAmt=Math.round(en*100)/100;else delete nw.endAmt}
+    else if(nw.amount!==old.amount||nw.name!==old.name)nw.upd=isoToday();
+    if(document.activeElement)document.activeElement.blur();setHBEdit(null);render();
+    db.collection('hesap').doc(id).set(nw).catch(err=>showBanner(errText(err)));toast('Kaydedildi.',()=>db.collection('hesap').doc(id).set(old));return}
+  const cl=e.target.closest('[data-hbclose]');if(cl&&db){const id=cl.dataset.hbclose,x=S.hb.find(v=>v.id===id),box=[...document.querySelectorAll('[data-hbbox]')].find(b=>b.dataset.hbbox===id);if(!x||!box)return;
+    const amt=parseNum(box.querySelector('[data-hf=closeAmt]').value),to=box.querySelector('[data-hf=closeTo]').value;if(!(amt>0)){flash(box.querySelector('.msg'),'Eline geçen tutarı gir.',true);return}
+    const old=stripId(x),t=to?S.hb.find(v=>v.id===to):null,tOld=t?stripId(t):null;setHBEdit(null);
+    (async()=>{try{await db.collection('hesap').doc(id).set({...old,closed:isoToday(),closedAmt:Math.round(amt*100)/100,...(t?{closedTo:t.id}:{})});
+      if(t)await db.collection('hesap').doc(t.id).set({...tOld,amount:Math.round((t.amount+amt)*100)/100,upd:isoToday()})}catch(err){showBanner(errText(err))}})();
+    toast(`"${x.name}" kapatıldı${t?`, ${t.name} hesabına eklendi`:''}.`,async()=>{await db.collection('hesap').doc(id).set(old);if(t)await db.collection('hesap').doc(t.id).set(tOld)});return}
+  const op=e.target.closest('[data-hbopen]');if(op&&!e.target.closest('input,button,select,label,a')){setHBEdit(HBEDIT===op.dataset.hbopen?null:op.dataset.hbopen);render()}});
 /* ---------- auth + data ---------- */
 let unsub=[];
 function stopData(){unsub.forEach(u=>{try{u()}catch(e){}});unsub=[];db=null;LOADED.clear()}
@@ -2543,6 +2680,7 @@ function startData(fs){
     // harcamadan gelen alacaklar tarihsiz olur; eskiden harcamanın tarihiyle gelmiş olanları bir kez tarihsize çevir
     for(const a of S.al)if(a.src&&!a.repeat&&a.date&&a.date===a.srcDate&&!a.dateSet)db.collection('alacak').doc(a.id).update({date:''}).catch(()=>{});
     render()});
+  on(db.collection('hesap'),s=>{got();S.hb=list(s).filter(x=>Number.isFinite(x.amount)).sort((a,b)=>(a.created||0)-(b.created||0));render()});
   on(db.collection('statements'),s=>{got();S.st=list(s).filter(x=>x.amount>0||x.pending);render();queuePlan()});
   on(db.collection('fundtx'),s=>{got();S.fdtx=list(s).filter(t=>t.code&&t.units>0&&t.price>0&&t.date);render()});
   on(db.doc('prices/funds'),s=>{S.fdp=s.exists?s.data():{items:{}};render()});
