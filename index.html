@@ -195,6 +195,10 @@ form.inner{display:grid;gap:12px;padding:14px 16px}
 .hbname{font-weight:600;font-size:15.5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.hbname .sptag{margin:0}
 .hbkv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;color:var(--muted);padding:3px 0;border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
 .hbkv:first-of-type{border-top:0}.hbkv b{color:var(--ink);font-weight:500;font-size:15px}.hbkv b.pos{color:var(--pos)}
+.hbgrp{border-top:1px solid var(--line)}.hbgrp:first-child{border-top:0}.hbgrp>.hbrow{border-top:0}
+.hbchev{margin-left:auto;color:var(--muted);font-size:13px}
+.hbsubs{padding:0 12px 12px 24px;display:grid;gap:0}
+.hbrow.sub{border:1px solid var(--line);border-radius:8px;margin-top:8px;padding:10px 12px;background:var(--surface)}.hbrow.sub .hbname{font-size:14px;font-weight:500;color:var(--muted)}
 .hbsub2{display:block;font-size:12px;color:var(--muted);font-family:var(--f-body);text-align:right;margin-top:2px}
 #hbClosedFold{margin-top:12px}#hbClosed{border-top:1px solid var(--line)}
 .hbclose{display:grid;gap:8px;border-top:1px dashed var(--line);padding-top:10px;margin-top:4px}
@@ -1108,7 +1112,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 63 · 4 Kas 01:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 64 · 4 Kas 01:30</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -2579,7 +2583,8 @@ function bonoInfo(b){const days=Math.max(1,b.days||1),start=b.start||isoToday(),
   const daily=(endNet-b.amount)/days;return {days,start,end,tax,gross,endNet,now:Math.round(now*100)/100,earned:Math.round((now-b.amount)*100)/100,daily,el,left:days-el,matured:el>=days}}
 const hbOpen=()=>S.hb.filter(x=>!x.closed);
 function hbValue(){return hbOpen().reduce((a,x)=>a+(x.kind==='bono'?bonoInfo(x).now:x.amount),0)}
-let HBEDIT=null,HBMOVE=null;try{HBEDIT=sessionStorage.getItem('kasa.hbedit')||null}catch(e){}
+let HBEDIT=null,HBMOVE=null,HBGRP=new Set();try{HBGRP=new Set(JSON.parse(sessionStorage.getItem('kasa.hbgrp')||'[]'))}catch(e){}
+try{HBEDIT=sessionStorage.getItem('kasa.hbedit')||null}catch(e){}
 const setHBEdit=v=>{HBEDIT=v;try{v?sessionStorage.setItem('kasa.hbedit',v):sessionStorage.removeItem('kasa.hbedit')}catch(e){}};
 const dLong=iso=>new Date(iso+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'});
 const pct=v=>String(Math.round(v*100)/100).replace('.',',');
@@ -2591,8 +2596,8 @@ function renderHB(){
   $('#hbBonoN').textContent=B.length?`${B.length} bono · ${money(bv)}`:'';$('#hbAcctN').textContent=A.length?`${A.length} hesap · ${money(av)}`:'';
   const ae=document.activeElement,busy=el=>ae&&el.contains(ae)&&ae.matches('input,select');
   const acctOpts=A.map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
-  const bb=$('#hbBono');if(!busy(bb))bb.innerHTML=B.length?B.map(({b,i})=>{const id=esc(b.id),ed=HBEDIT===b.id;
-        return `<div class="hbrow${ed?' on':''}" data-hbopen="${id}"><div class="hbname">${esc(b.name)}${i.matured?'<span class="sptag ok">Vadesi geldi</span>':''}</div>
+  const bonoCard=({b,i},sub)=>{const id=esc(b.id),ed=HBEDIT===b.id;
+        return `<div class="hbrow${ed?' on':''}${sub?' sub':''}" data-hbopen="${id}"><div class="hbname">${sub?`${esc(dLong(i.start))} alış · %${pct(b.rate||0)}`:esc(b.name)}${i.matured?'<span class="sptag ok">Vadesi geldi</span>':''}</div>
       <div class="hbkv"><span>Alış tutarı</span><b class="num">${money(b.amount)}</b></div>
       <div class="hbkv"><span>Bugünkü net değer</span><b class="num">${money(i.now)}</b></div>
       <div class="hbkv"><span>Bugüne kadarki net kazanç</span><b class="num pos">${money(i.earned)}</b></div></div>
@@ -2610,7 +2615,16 @@ function renderHB(){
           <label class="f"><span>Eline geçen (₺)</span><input class="num" data-hf="closeAmt" inputmode="decimal" value="${esc(fmtIn(i.matured?Math.round(i.endNet*100)/100:i.now))}"></label>
           <label class="f"><span>Hangi hesaba geçti</span><select data-hf="closeTo"><option value="">Hiçbiri (sadece kapat)</option>${acctOpts}</select></label></div>
           <div class="refrow"><button type="button" class="btn ghost" data-hbclose="${id}">${i.matured?'Vadesi doldu, kapat':'Erken çektim, kapat'}</button></div></div>
-        <div class="msg"></div></div>`:''}`}).join(''):'<div class="empty">Henüz bono yok.</div>';
+        <div class="msg"></div></div>`:''}`};
+  /* aynı isimli bonolar tek kartta toplanır; karta dokununca içindekiler açılır */
+  const G=new Map();for(const x of B){const k=nfold(x.b.name);if(!G.has(k))G.set(k,[]);G.get(k).push(x)}
+  const bb=$('#hbBono');if(!busy(bb))bb.innerHTML=B.length?[...G.entries()].map(([k,L])=>{if(L.length===1)return bonoCard(L[0],false);
+    const op=HBGRP.has(k),sa=L.reduce((a,x)=>a+x.b.amount,0),sn=L.reduce((a,x)=>a+x.i.now,0),mat=L.some(x=>x.i.matured);
+    return `<div class="hbgrp${op?' open':''}"><div class="hbrow" data-hbgrp="${esc(k)}" role="button" aria-expanded="${op}"><div class="hbname">${esc(L[0].b.name)}<span class="sptag">${L.length} bono</span>${mat?'<span class="sptag ok">Vadesi gelen var</span>':''}<span class="hbchev">${op?'▴':'▾'}</span></div>
+      <div class="hbkv"><span>Alış tutarı</span><b class="num">${money(sa)}</b></div>
+      <div class="hbkv"><span>Bugünkü net değer</span><b class="num">${money(sn)}</b></div>
+      <div class="hbkv"><span>Bugüne kadarki net kazanç</span><b class="num pos">${money(sn-sa)}</b></div></div>
+      ${op?`<div class="hbsubs">${L.map(x=>bonoCard(x,true)).join('')}</div>`:''}</div>`}).join(''):'<div class="empty">Henüz bono yok.</div>';
   const ab=$('#hbAcct');if(!busy(ab))ab.innerHTML=A.length?A.map(a=>{const id=esc(a.id),ed=HBEDIT===a.id;
     return `<div class="row strow${ed?' on':''}" data-hbopen="${id}" style="grid-template-columns:minmax(0,1fr) auto"><div class="what"><div class="alname">${esc(a.name)}</div><small>${a.upd?'Güncellendi: '+esc(dLong(a.upd)):'Bakiye'} <span class="stedit">✎</span></small></div><div class="amt">${money(a.amount)}</div></div>
       ${ed?`<div class="fedit" data-hbbox="${id}"><div class="grid"><label class="f"><span>Adı</span><input data-hf="name" value="${esc(a.name)}" maxlength="60"></label><label class="f"><span>Bakiye (₺)</span><input class="num" data-hf="amount" inputmode="decimal" value="${esc(fmtIn(a.amount))}"></label></div>
@@ -2665,6 +2679,7 @@ document.addEventListener('click',e=>{
     (async()=>{try{await db.collection('hesap').doc(id).set({...old,closed:isoToday(),closedAmt:Math.round(amt*100)/100,...(t?{closedTo:t.id}:{})});
       if(t)await db.collection('hesap').doc(t.id).set({...tOld,amount:Math.round((t.amount+amt)*100)/100,upd:isoToday()})}catch(err){showBanner(errText(err))}})();
     toast(`"${x.name}" kapatıldı${t?`, ${t.name} hesabına eklendi`:''}.`,async()=>{await db.collection('hesap').doc(id).set(old);if(t)await db.collection('hesap').doc(t.id).set(tOld)});return}
+  const gp=e.target.closest('[data-hbgrp]');if(gp){const k=gp.dataset.hbgrp;HBGRP.has(k)?HBGRP.delete(k):HBGRP.add(k);try{sessionStorage.setItem('kasa.hbgrp',JSON.stringify([...HBGRP]))}catch(e){}render();return}
   const op=e.target.closest('[data-hbopen]');if(op&&!e.target.closest('input,button,select,label,a')){setHBEdit(HBEDIT===op.dataset.hbopen?null:op.dataset.hbopen);render()}});
 /* ---------- auth + data ---------- */
 let unsub=[];
