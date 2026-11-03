@@ -995,11 +995,11 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         <label class="f"><span id="hbAmtL">Anapara (₺)</span><input id="hbAmt" class="num" inputmode="decimal" placeholder="0,00" required></label>
         <label class="f hbb"><span>Yıllık faiz (%)</span><input id="hbRate" class="num" inputmode="decimal" placeholder="ör. 38"></label>
         <label class="f hbb"><span>Alış tarihi</span><input id="hbStart" type="date"></label>
-        <label class="f hbb"><span>Vade (gün)</span><input id="hbDays" class="num" inputmode="numeric" placeholder="ör. 92"></label>
+        <label class="f hbb"><span>Vade tarihi</span><input id="hbDays" type="date"></label>
         <label class="f hbb"><span>Stopaj (%)</span><input id="hbTax" class="num" inputmode="decimal" placeholder="vadeye göre"></label>
         <input type="hidden" id="hbEnd">
       </div>
-      <p class="hint hbb" id="hbCalc">Faiz, gün ve anaparayı girince günlük kâr hesaplanır.</p>
+      <p class="hint hbb" id="hbCalc">Anapara, faiz ve vade tarihini girince günlük kâr hesaplanır.</p>
       <button class="btn" type="submit">Ekle</button>
       <div class="msg" id="hbMsg"></div>
     </form></details>
@@ -1012,7 +1012,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="box list" id="hbAcct"></div>
     </div>
     <details class="fold" id="hbClosedFold"><summary><span>Kapanan bonolar <span class="hint" id="hbClosedN"></span></span></summary><div class="list" id="hbClosed"></div></details>
-    <p class="hint">Bono değeri her gün işler: anapara × faiz × geçen gün ÷ 365, stopaj düşülerek. Listedeki büyük rakam bugün bozarsan eline geçecek tutar. Stopaj vadeye göre otomatik gelir (180 güne kadar %17,5 · 1 yıla kadar %15 · üstü %10), değiştirebilirsin. Hesap ve bonolar "Bu ay kalan" ve ana bakiyeye girer.</p>
+    <p class="hint">Bono değeri her gün işler: anapara × faiz × geçen gün ÷ 365, stopaj düşülerek. Listedeki büyük rakam bugün bozarsan eline geçecek tutar. Stopaj vadeye göre otomatik gelir (1 yıla kadar %15 · üstü %10), değiştirebilirsin. Hesap ve bonolar "Bu ay kalan" ve ana bakiyeye girer.</p>
   </section>
 
   <!-- GEÇMİŞ (başlıktaki grafik düğmesi) -->
@@ -1108,7 +1108,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 62 · 4 Kas 01:15</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 63 · 4 Kas 01:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -2571,7 +2571,7 @@ $('#bkFile').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
 
 
 /* ---------- Hesap & bono ---------- */
-const hbDefTax=d=>d<=180?17.5:d<=365?15:10;
+const hbDefTax=d=>d<=365?15:10; // banka bonosu stopajı: 1 yıla kadar %15, üstü %10
 const dBetween=(a,b)=>Math.round((new Date(b+'T00:00')-new Date(a+'T00:00'))/864e5);
 function bonoInfo(b){const days=Math.max(1,b.days||1),start=b.start||isoToday(),end=isoAdd(start,days),tax=Number.isFinite(b.tax)?b.tax:hbDefTax(days);
   const gross=b.amount*(b.rate||0)/100*days/365,calcEnd=b.amount+gross*(1-tax/100),endNet=b.endAmt>0?b.endAmt:calcEnd;
@@ -2601,7 +2601,7 @@ function renderHB(){
         <label class="f"><span>Anapara (₺)</span><input class="num" data-hf="amount" inputmode="decimal" value="${esc(fmtIn(b.amount))}"></label>
         <label class="f"><span>Yıllık faiz (%)</span><input class="num" data-hf="rate" inputmode="decimal" value="${esc(fmtIn(b.rate))}"></label>
         <label class="f"><span>Alış tarihi</span><input type="date" data-hf="start" value="${esc(i.start)}"></label>
-        <label class="f"><span>Vade (gün)</span><input class="num" data-hf="days" inputmode="numeric" value="${i.days}"></label>
+        <label class="f"><span>Vade tarihi</span><input type="date" data-hf="end" value="${esc(i.end)}"></label>
         <label class="f"><span>Stopaj (%)</span><input class="num" data-hf="tax" inputmode="decimal" value="${esc(fmtIn(i.tax))}"></label>
         </div>
         <p class="hint" style="margin:0">Günde net +${money(i.daily)} · yarın ${money(i.matured?i.now:i.now+i.daily)} · ${i.el}. gün · vade ${esc(dLong(i.end))}${i.matured?'':` (${i.left} gün kaldı)`}</p>
@@ -2619,11 +2619,11 @@ function renderHB(){
   $('#hbClosed').innerHTML=C.length?C.map(b=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${esc(b.name)}</div><small>Kapandı: ${esc(dLong(b.closed))} · anapara ${money(b.amount)}${b.closedTo?' · '+esc(((S.hb.find(x=>x.id===b.closedTo)||{}).name)||'hesaba'):''}</small></div><div class="amt mut">${money(b.closedAmt||0)}</div><button class="del" data-hbreopen="${esc(b.id)}" aria-label="Geri al" title="Geri al">↩</button></div>`).join(''):'<div class="empty">Kapanan bono yok.</div>';
 }
 function hbSyncForm(){const k=document.querySelector('input[name=hbKind]:checked').value;$('#hbForm').classList.toggle('acct',k==='acct');$('#hbAmtL').textContent=k==='acct'?'Bakiye (₺)':'Anapara (₺)';
-  if(k!=='bono')return;const amt=parseNum($('#hbAmt').value),r=parseNum($('#hbRate').value),d=Math.round(parseNum($('#hbDays').value)),st=$('#hbStart').value||isoToday();
+  if(k!=='bono')return;const amt=parseNum($('#hbAmt').value),r=parseNum($('#hbRate').value),st=$('#hbStart').value||isoToday(),d=$('#hbDays').value?dBetween(st,$('#hbDays').value):0;
   const tx=$('#hbTax').value.trim()?parseNum($('#hbTax').value):(d>0?hbDefTax(d):NaN);$('#hbTax').placeholder=d>0?fmtIn(hbDefTax(d))+' (otomatik)':'vadeye göre';
   if(amt>0&&r>0&&d>0){const i=bonoInfo({amount:amt,rate:r,days:d,start:st,tax:tx,endAmt:parseNum($('#hbEnd').value)});
-    $('#hbCalc').textContent=`Günde net +${money(i.daily)} · 1 gün sonra ${money(amt+i.daily)} · 30 gün sonra ${money(amt+i.daily*Math.min(30,d))} · stopaj %${pct(i.tax)}`}
-  else $('#hbCalc').textContent='Faiz, gün ve anaparayı girince günlük kâr hesaplanır.'}
+    $('#hbCalc').textContent=`${d} gün vade · günde net +${money(i.daily)} · bugünkü net değer ${money(i.now)} (+${money(i.earned)}) · stopaj %${pct(i.tax)}`}
+  else $('#hbCalc').textContent=d<0?'Vade tarihi alış tarihinden sonra olmalı.':'Anapara, faiz ve vade tarihini girince günlük kâr hesaplanır.'}
 $$('input[name=hbKind]').forEach(r=>r.addEventListener('change',hbSyncForm));['#hbAmt','#hbRate','#hbDays','#hbTax','#hbEnd','#hbStart'].forEach(k=>$(k).addEventListener('input',hbSyncForm));
 $('#hbStart').value=isoToday();hbSyncForm();
 {const f=$('#hbAddFold');try{if(localStorage.getItem('kasa.hbadd')==='1')f.open=true}catch(e){}f.addEventListener('toggle',()=>{try{localStorage.setItem('kasa.hbadd',f.open?'1':'0')}catch(e){}})}
@@ -2632,7 +2632,7 @@ $('#hbForm').addEventListener('submit',async e=>{e.preventDefault();const msg=$(
   const k=document.querySelector('input[name=hbKind]:checked').value,name=$('#hbName').value.trim(),amt=parseNum($('#hbAmt').value);
   if(!name||!(amt>0)){flash(msg,'Ad ve sıfırdan büyük bir tutar gir.',true);return}
   let doc={kind:k,name,amount:Math.round(amt*100)/100,created:Date.now()};
-  if(k==='bono'){const r=parseNum($('#hbRate').value),d=Math.round(parseNum($('#hbDays').value));if(!(r>0)||!(d>0)){flash(msg,'Bonoda faiz oranı ve vade (gün) gerekli.',true);return}
+  if(k==='bono'){const r=parseNum($('#hbRate').value),d=$('#hbDays').value?dBetween($('#hbStart').value||isoToday(),$('#hbDays').value):0;if(!(r>0)||!(d>0)){flash(msg,'Bonoda faiz oranı ve alış tarihinden sonraki bir vade tarihi gerekli.',true);return}
     doc={...doc,rate:r,days:d,start:$('#hbStart').value||isoToday()};if($('#hbTax').value.trim())doc.tax=parseNum($('#hbTax').value);const en=parseNum($('#hbEnd').value);if(en>0)doc.endAmt=Math.round(en*100)/100}
   else doc.upd=isoToday();
   const mv=HBMOVE,old=mv?S.al.find(x=>x.id===mv):null,nid=uid();
@@ -2654,7 +2654,7 @@ document.addEventListener('click',e=>{
     const v=k=>{const el=box.querySelector(`[data-hf=${k}]`);return el?el.value:''},name=v('name').trim(),amount=parseNum(v('amount'));
     if(!name||!(amount>0)){flash(box.querySelector('.msg'),'Ad ve sıfırdan büyük tutar gir.',true);return}
     const old=stripId(x),nw={...old,name,amount:Math.round(amount*100)/100};
-    if(x.kind==='bono'){const r=parseNum(v('rate')),d=Math.round(parseNum(v('days')));if(!(r>0)||!(d>0)){flash(box.querySelector('.msg'),'Faiz ve gün gerekli.',true);return}
+    if(x.kind==='bono'){const r=parseNum(v('rate')),st0=v('start')||old.start||isoToday(),d=v('end')?dBetween(st0,v('end')):0;if(!(r>0)||!(d>0)){flash(box.querySelector('.msg'),'Faiz ve alış tarihinden sonraki bir vade tarihi gerekli.',true);return}
       nw.rate=r;nw.days=d;nw.start=v('start')||old.start||isoToday();const t=v('tax').trim();if(t)nw.tax=parseNum(t);else delete nw.tax;}
     else if(nw.amount!==old.amount||nw.name!==old.name)nw.upd=isoToday();
     if(document.activeElement)document.activeElement.blur();setHBEdit(null);render();
