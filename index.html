@@ -189,6 +189,9 @@ form.inner{display:grid;gap:12px;padding:14px 16px}
 .alsend{border:1px solid var(--line);background:var(--surface);color:var(--accent);font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;cursor:pointer}
 .alsend:hover{background:var(--sunk)}.alsend.arm{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.alsend:disabled{opacity:.5}
 .alacts{display:flex;gap:2px;align-items:center}
+.alsort{display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--line);background:var(--sunk);border-radius:10px 10px 0 0;overflow-x:auto}
+.alsort button{border:0;background:none;font:600 12px/1.2 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;padding:6px 8px;border-radius:6px;white-space:nowrap}
+.alsort button.on{color:var(--ink);background:var(--surface)}
 .del.ok:hover{color:var(--pos)}
 #alPaidFold{margin-top:12px}#alPaidList{border-top:1px solid var(--line)}
 @media (max-width:480px){.spal{padding-left:16px}}
@@ -796,7 +799,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         </div></details>
         <div id="alFBar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap" hidden><button class="btn ghost" type="button" id="alFClear">Filtreyi temizle</button><span class="hint" id="alFSum"></span></div>
       </div>
-      <div class="box list" id="alList"></div>
+      <div class="box list"><div class="alsort" id="alSortBar" role="toolbar" aria-label="Sırala"></div><div id="alList"></div></div>
       <p class="hint">Alacağın eline geçince ✓ ile tahsil edildi yap; alttaki "Tahsil edilenler"e tarihiyle taşınır (para başka bir yere yazılmaz). "Her ay" olanlarda ✓ o ayınkini kapatır, sonraki ay yeniden gelir. Yanlış girdiysen alacağa dokunup "Sil" de.</p>
       <details class="fold" id="alPaidFold"><summary><span>Tahsil edilenler <span class="hint" id="alPaidN"></span></span></summary><div class="list" id="alPaidList"></div></details>
     </div>
@@ -1059,7 +1062,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 57 · 4 Kas 00:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 58 · 4 Kas 00:30</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1637,8 +1640,9 @@ function renderAlacak(M){
   $('#alTotal').innerHTML=L.length?`${L.length} alacak · ${money(t)}`:'';
   const when=o=>{if(!o.date)return 'Tarihsiz · her an alınabilir';const d=new Date(o.date+'T00:00'),n=daysTo(o.date);
     return (o.rec?'Her ay · ':'')+d.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})+(n<0?' · gecikti':n===0?' · bugün':n<=31?` · ${n} gün sonra`:'')};
-  renderAlPaid();
+  renderAlSortBar();renderAlPaid();
   if(renderAlFilter())return;
+  L.sort(alCmp);
   const box=$('#alList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input,select'))return;
   box.innerHTML=L.length?L.map(o=>{const a=o.a,ed=ALEDIT===a.id,id=esc(a.id),late=o.date&&o.date<isoToday();
     return `<div class="row strow${ed?' on':''}" data-alopen="${id}" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${o.rec?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small class="${late?'neg':''}">${esc(a.src&&!o.date?'Harcamadan · '+(a.srcDate?new Date(a.srcDate+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):a.srcCat||''):when(o))} <span class="stedit">✎</span></small></div>
@@ -1654,6 +1658,16 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{const c=e.target.closest('[data-sprepeat]');if(!c||!db)return;const x=S.sp.find(v=>v.id===c.dataset.sprepeat);if(!x)return;const nw={...stripId(x)};
   if(c.checked){nw.repeat=true;delete nw.stop}else delete nw.repeat;db.collection('spend').doc(x.id).set(nw).catch(err=>showBanner(errText(err)))});
 let ALEDIT=null,ALPEDIT=null;
+/* Excel gibi sıralama: başlığa dokun → o sütuna göre; tekrar dokun → ters. Tarihsizler tarih sıralamasında hep en sonda. */
+let ALSORT={k:'date',d:1};try{const v=JSON.parse(localStorage.getItem('kasa.alsort')||'null');if(v&&['date','name','amount','st'].includes(v.k))ALSORT={k:v.k,d:v.d<0?-1:1}}catch(e){}
+function alCmp(x,y){const{k,d}=ALSORT,amt=o=>o.amount??o.a.amount,op=o=>o.open!==false;
+  if(k==='date'){const A=x.date||'',B=y.date||'';if(!A!==!B)return A?-1:1;if(A!==B)return (A<B?-1:1)*d}
+  else if(k==='name'){const c=x.a.name.localeCompare(y.a.name,'tr');if(c)return c*d}
+  else if(k==='amount'){const c=amt(x)-amt(y);if(c)return c*d}
+  else if(k==='st'){const c=(op(x)?0:1)-(op(y)?0:1);if(c)return c*d}
+  return (x.date||'9').localeCompare(y.date||'9')||(x.a.created||0)-(y.a.created||0)}
+function renderAlSortBar(){$('#alSortBar').innerHTML=[['date','Tarih'],['name','İsim'],['amount','Tutar'],['st','Durum']].map(([k,n])=>`<button type="button" data-alsort="${k}" class="${ALSORT.k===k?'on':''}">${n}${ALSORT.k===k?(ALSORT.d<0?' ↓':' ↑'):''}</button>`).join('')}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-alsort]');if(!b)return;const k=b.dataset.alsort;ALSORT=ALSORT.k===k?{k,d:-ALSORT.d}:{k,d:k==='date'?-1:1};try{localStorage.setItem('kasa.alsort',JSON.stringify(ALSORT))}catch(e){}render()});
 const alPaidBox=(a,date)=>{const id=esc(a.id);return `<div class="fedit"><label class="f"><span>Tahsilat tarihi</span><input type="date" data-alpdate="${id}" value="${esc(date)}"></label><div class="refrow"><button type="button" class="btn ghost neg" data-del="al" data-id="${id}">Tamamen sil</button></div></div>`};
 document.addEventListener('change',e=>{const d=e.target.closest('[data-alpdate]');if(!d||!db||!/^\d{4}-\d\d-\d\d$/.test(d.value))return;const a=S.al.find(x=>x.id===d.dataset.alpdate);if(!a||a.repeat||a.paid===d.value)return;const old=stripId(a);d.blur();
   db.collection('alacak').doc(a.id).set({...old,paid:d.value}).catch(err=>showBanner(errText(err)));toast('Tahsilat tarihi güncellendi.',()=>db.collection('alacak').doc(a.id).set(old))});
@@ -1679,7 +1693,7 @@ function renderAlFilter(){
     if(ty==='sp'&&!a.src)return false;if(ty==='manual'&&(a.src||a.repeat))return false;if(ty==='rep'&&!a.repeat)return false;
     if((ff||ft)&&!i.date)return false;if(ff&&i.date<ff)return false;if(ft&&i.date>ft)return false;
     if(q&&![a.name,a.srcCat,String(a.amount).replace('.',','),pmoney(a.amount)].join(' ').toLocaleLowerCase('tr-TR').includes(q))return false;
-    return true}).sort((x,y)=>(y.date||'9').localeCompare(x.date||'9'));
+    return true}).sort(alCmp);
   const ot=L.filter(i=>i.open).reduce((s,i)=>s+i.a.amount,0),pt=L.filter(i=>!i.open).reduce((s,i)=>s+i.a.amount,0);
   $('#alFSum').textContent=`${L.length} kayıt · açık ${money(ot)} · tahsil edilen ${money(pt)}`;
   $('#alTotal').textContent='filtreli';
@@ -1705,7 +1719,7 @@ function renderAlPaid(){
   for(const a of S.al){
     if(a.repeat){for(const [m,ts] of Object.entries(a.done||{}))if(Number.isFinite(ts))items.push({a,rec:true,m,date:alIso(ts)})}
     else if(a.paid)items.push({a,rec:false,date:a.paid})}
-  items.sort((x,y)=>y.date.localeCompare(x.date)||(y.a.created||0)-(x.a.created||0));
+  items.forEach(i=>i.open=false);items.sort(alCmp);
   const tot=items.reduce((s,i)=>s+i.a.amount,0);
   $('#alPaidN').textContent=items.length?`· ${items.length} kayıt · ${money(tot)}`:'';
   const box=$('#alPaidList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input'))return;
