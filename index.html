@@ -456,6 +456,12 @@ nav svg{display:none}
 .ylegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:0}
 .ylegend b{color:var(--ink);font-weight:500}
 .ysub{padding:0}
+.ysum>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px}
+.ysum>summary::-webkit-details-marker{display:none}
+.ysum>summary b{font-size:18px;font-weight:500;margin-left:auto}
+.ysum>summary::after{content:"▾";color:var(--muted);font-size:13px}.ysum[open]>summary::after{content:"▴"}
+.ysumin{display:grid;gap:8px}
+[data-panel=yatirim]{order:-2}[data-panel=hesap]{order:-1}main>#banner{order:-3}
 .ypanel{gap:12px}
 .hleg{display:flex;flex-wrap:wrap;gap:4px 16px;padding:0 6px;font-size:12.5px;color:var(--muted)}
 .hleg i{display:inline-block;width:14px;height:2px;border-radius:1px;margin-right:6px;vertical-align:3px}
@@ -506,7 +512,7 @@ nav svg{display:none}
   .ktiles{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
   /* yatırımlar: altın ve fonlar yan yana */
   main.yat2{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;column-gap:20px}
-  main.yat2>#banner,main.yat2>.ypanel{grid-column:1/-1}
+  main.yat2>#banner,main.yat2>.ypanel{grid-column:1/-1}main.yat2>#banner{order:-3}
   main.yat2 .ysub{display:none}
   /* geçmiş */
   [data-panel=gecmis]{max-width:none}
@@ -908,28 +914,26 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 
   <!-- YATIRIMLAR (altın & gümüş + fonlar) -->
   <section class="panel ypanel" data-panel="yatirim" hidden>
-    <div class="box">
-      <div class="kalan">
-        <span class="eyebrow">Yatırımlarım <button type="button" class="info" data-why aria-label="Ayrıntı">i</button></span>
-        <span class="big" id="yTotal">—</span>
-        <span class="hint" id="yPl"></span>
-        <span class="hint why">Altın ve gümüş kurumun alış fiyatıyla, fonlar stopaj düşülmüş net değerle hesaplanır. Kâr/zarar, maliyeti girilen altınlar ve tüm fonlar üzerinden.</span>
-      </div>
-      <div class="ydist" id="yDist"></div>
-      <div class="ylegend" id="yLegend"></div>
-      <div class="fown" id="yOwn" style="padding:0 18px 14px"></div>
-    </div>
     <div class="tabs chips ysub" role="tablist" aria-label="Yatırım türü">
-      <button type="button" role="tab" data-ytab="maden" aria-selected="true">Altın &amp; gümüş</button>
+      <button type="button" role="tab" data-ytab="hesap" aria-selected="true">Hesap &amp; bono</button>
       <button type="button" role="tab" data-ytab="fon" aria-selected="false">Fonlar</button>
-      <button type="button" role="tab" data-ytab="hesap" aria-selected="false">Hesap &amp; bono</button>
+      <button type="button" role="tab" data-ytab="maden" aria-selected="false">Altın &amp; gümüş</button>
     </div>
+    <details class="box ysum" id="ySum">
+      <summary><span class="eyebrow">Yatırımlarım</span><b class="num" id="yTotal">—</b></summary>
+      <div class="ysumin">
+        <span class="hint" id="yPl" style="padding:0 18px"></span>
+        <div class="ydist" id="yDist"></div>
+        <div class="ylegend" id="yLegend"></div>
+        <div class="fown" id="yOwn" style="padding:0 18px 6px"></div>
+      </div>
+    </details>
   </section>
 
   <!-- FONLAR -->
   <section class="panel" data-panel="fon" hidden>
     <div class="box port">
-      <span class="eyebrow">Fon portföyü net değeri <button type="button" class="info" data-why aria-label="Ayrıntı">i</button></span>
+      <span class="eyebrow">Fon portföyü net değeri</span>
       <span class="big" id="fdTotal" style="color:var(--accent)">₺0,00</span>
       <span class="hint" id="fdPl"></span>
       <span class="fown" id="fdOwn"></span>
@@ -938,7 +942,6 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="sec">
       <div class="sec-h"><h2>Pozisyonlarım</h2><span class="stamp" id="fdStamp"></span></div>
       <div class="box list" id="fdPos"></div>
-      <details class="howto"><summary>Nasıl çalışır?</summary><p class="hint">Güncel fiyatlar TEFAS verisinden otomatik gelir. Değerler stopaj düşülmüş net gösterilir; bankadakiyle karşılaştırmak için brüt değer fonun ⚙ detayında yazar. Maliyet FIFO (ilk giren ilk çıkar) ile hesaplanır: satışta en eski alımlar düşülür. Stopaj oranını fonun yanındaki ⚙ düğmesinden girersin; stopaj yalnızca kârdan kesilir.</p></details>
       <div class="refrow"><button class="btn ghost" type="button" data-refresh hidden>Fiyatları şimdi güncelle</button><span class="msg" data-refmsg></span></div>
     </div>
     <div class="sec">
@@ -961,13 +964,11 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         <div class="fnote" id="fdNote" hidden></div>
         <button class="btn" type="submit" id="fdSubmit">Alımı ekle</button>
         <div class="msg" id="fdMsg"></div>
-        <p class="hint">Bakiyene zaten yansımış eski bir alımı giriyorsan kutucuğu kaldır.</p>
       </form>
       </details>
     </div>
     <details class="fold"><summary>İşlem geçmişi <span class="hint" id="fdCount" style="margin-left:auto;font-weight:400"></span></summary>
       <div class="inner list" id="fdList"></div>
-      <p class="hint" style="padding:8px 16px 12px">Düzenlemek için satırı sağa kaydır ya da satıra dokun.</p>
     </details>
   </section>
 
@@ -976,11 +977,10 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="box port">
       <span class="eyebrow">Toplam bozdurma değeri</span>
       <span class="big" id="pTotal">₺0,00</span>
-      <span class="hint" id="pSub">Miktar × kurumun alış fiyatı (senin satış fiyatın)</span>
+      <span class="hint" id="pSub"></span>
       <div class="refrow" style="margin-top:6px"><button class="btn ghost" type="button" data-refresh hidden>Fiyatları şimdi güncelle</button><span class="msg" data-refmsg></span></div>
     </div>
     <div class="mgroups" id="metalGroups"></div>
-    <p class="hint">Fiyatlar doviz.com'dan 20 dakikada bir otomatik gelir ve elle değiştirilemez. Satımda girdiğin tutar bakiyene eklenmez.</p>
   </section>
 
   <!-- HESAP & BONO -->
@@ -988,7 +988,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="box port">
       <span class="eyebrow">Hesap &amp; bono · bugünkü değer</span>
       <span class="big" id="hbTotal" style="color:var(--pos)">₺0,00</span>
-      <span class="hint" id="hbSub">Hesap bakiyeleri + bonoların bugüne kadar işlemiş net faiziyle değeri</span>
+      <span class="hint" id="hbSub"></span>
     </div>
     <details class="fold" id="hbAddFold"><summary>+ Hesap ya da bono ekle</summary>
     <form class="inner" id="hbForm">
@@ -1017,7 +1017,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="box list" id="hbAcct"></div>
     </div>
     <details class="fold" id="hbClosedFold"><summary><span>Kapanan bonolar <span class="hint" id="hbClosedN"></span></span></summary><div class="list" id="hbClosed"></div></details>
-    <p class="hint">Bono değeri her gün sabah 08:00'de işler (bankadaki gibi): anapara × faiz × geçen gün ÷ 365, stopaj düşülerek. Listedeki büyük rakam bugün bozarsan eline geçecek tutar. Stopaj vadeye göre otomatik gelir (1 yıla kadar %15 · üstü %10), değiştirebilirsin. Hesap ve bonolar "Bu ay kalan" ve ana bakiyeye girer. Döviz hesapları (USD, EUR) Enpara'nın alış kuruyla TL'ye çevrilir; kur 20 dakikada bir güncellenir.</p>
+
   </section>
 
   <!-- GEÇMİŞ (başlıktaki grafik düğmesi) -->
@@ -1113,7 +1113,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 66 · 4 Kas 01:50</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 67 · 4 Kas 02:00</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1218,7 +1218,7 @@ function applyCats(){const raw=S.settings.spGroups;const key=JSON.stringify(Arra
 function ownOpts(sel){return '<option value="">Benim</option>'+[...NOT_MINE].map(c=>`<option${c===sel?' selected':''}>${esc(c)}</option>`).join('')}
 const cardsOnly=()=>S.cards.filter(c=>c.kind!=='loan'); // krediler 'cards' koleksiyonunda kind:'loan' ile durur; harcama ödeme seçeneklerinde görünmez
 const S={pstat:{},ai:{},sp:[],tx:[],cards:[],hold:[],fdtx:[],fdp:{items:{}},al:[],hb:[],st:[],harem:{items:{}},fiba:{items:{}},doviz:{items:{}},settings:{},month:mk(today),tab:'ozet'};
-S.yt='maden';try{const gm=sessionStorage.getItem('kasa.month');if(/^\d{4}-\d\d$/.test(gm||''))S.month=gm}catch(e){}try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden'||y==='hesap')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','hesap','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'||t==='hesap'?(S.yt=t,'yatirim'):t}catch(e){}
+S.yt='hesap';try{const gm=sessionStorage.getItem('kasa.month');if(/^\d{4}-\d\d$/.test(gm||''))S.month=gm}catch(e){}try{const y=localStorage.getItem('kasa.yt');if(y==='fon'||y==='maden'||y==='hesap')S.yt=y;const t=localStorage.getItem('kasa.tab');if(t&&['ozet','alacak','harcama','kart','yatirim','fon','maden','hesap','gecmis'].includes(t))S.tab=t==='fon'||t==='maden'||t==='hesap'?(S.yt=t,'yatirim'):t}catch(e){}
 let db=null;
 // Android uygulamasının (APK) içinde açıldıysa telefonla konuşan köprü; tarayıcıda null
 const NATIVE=window.OktanNative||null,APP_LOGIN=/[?&]app-login=1/.test(location.search);
@@ -2346,7 +2346,7 @@ document.addEventListener('click',async e=>{
   db.collection(coll).doc(id).delete().catch(err=>showBanner(errText(err)));
   toast(lbl+' silindi.',data?()=>db.collection(coll).doc(id).set(data):null);
 });
-$$('nav button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+$$('nav button').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.tab==='yatirim')S.yt='hesap';setTab(b.dataset.tab)}));
 $$('[data-ytab]').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.ytab)));
 $('#prevM').addEventListener('click',()=>{S.month=addM(S.month,-1);render()});
 $('#nextM').addEventListener('click',()=>{S.month=addM(S.month,1);render()});
@@ -2600,7 +2600,7 @@ function renderHB(){
   const B=hbOpen().filter(x=>x.kind==='bono').map(b=>({b,i:bonoInfo(b)})).sort((x,y)=>x.i.end.localeCompare(y.i.end)),A=hbOpen().filter(x=>x.kind!=='bono'),C=S.hb.filter(x=>x.closed).sort((a,b)=>b.closed.localeCompare(a.closed));
   const bv=B.reduce((a,x)=>a+x.i.now,0),av=A.reduce((a,x)=>a+acctTL(x),0),ben=B.reduce((a,x)=>a+x.i.endNet,0);
   $('#hbTotal').textContent=money(bv+av);
-  $('#hbSub').textContent=(B.length||A.length)?`bono ${money(bv)} · hesap ${money(av)}`:'Hesap bakiyeleri + bonoların bugüne kadar işlemiş net faiziyle değeri';
+  $('#hbSub').textContent=(B.length||A.length)?`bono ${money(bv)} · hesap ${money(av)}`:'';
   $('#hbBonoN').textContent=B.length?`${B.length} bono · ${money(bv)}`:'';$('#hbAcctN').textContent=A.length?`${A.length} hesap · ${money(av)}`:'';
   const ae=document.activeElement,busy=el=>ae&&el.contains(ae)&&ae.matches('input,select');
   const acctOpts=A.filter(a=>!a.cur).map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('');
@@ -2693,6 +2693,7 @@ document.addEventListener('click',e=>{
   const gp=e.target.closest('[data-hbgrp]');if(gp){const k=gp.dataset.hbgrp;HBGRP.has(k)?HBGRP.delete(k):HBGRP.add(k);try{sessionStorage.setItem('kasa.hbgrp',JSON.stringify([...HBGRP]))}catch(e){}render();return}
   const op=e.target.closest('[data-hbopen]');if(op&&!e.target.closest('input,button,select,label,a')){setHBEdit(HBEDIT===op.dataset.hbopen?null:op.dataset.hbopen);render()}});
 {let lastBD=null;setInterval(()=>{const d=bonoDay();if(lastBD&&d!==lastBD&&S.hb.length)render();lastBD=d},60000)}
+{const f=$('#ySum');try{if(localStorage.getItem('kasa.ysum')==='1')f.open=true}catch(e){}f.addEventListener('toggle',()=>{try{localStorage.setItem('kasa.ysum',f.open?'1':'0')}catch(e){}})}
 {const v=$('#appVer'),t=$('#appVerTop');if(v&&t)t.textContent=v.textContent.trim()}
 /* ---------- auth + data ---------- */
 let unsub=[];
