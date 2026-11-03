@@ -783,7 +783,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="sec">
       <div class="sec-h"><h2>Alacaklarım</h2><span class="hint" id="alTotal"></span></div>
       <div class="box list" id="alList"></div>
-      <p class="hint">Alacağın eline geçince ✓ ile tahsil edildi yap; alttaki "Tahsil edilenler"e tarihiyle taşınır (para başka bir yere yazılmaz). "Her ay" olanlarda ✓ o ayınkini kapatır, sonraki ay yeniden gelir. Yanlış girdiysen ✕ ile sil.</p>
+      <p class="hint">Alacağın eline geçince ✓ ile tahsil edildi yap; alttaki "Tahsil edilenler"e tarihiyle taşınır (para başka bir yere yazılmaz). "Her ay" olanlarda ✓ o ayınkini kapatır, sonraki ay yeniden gelir. Yanlış girdiysen alacağa dokunup "Sil" de.</p>
       <details class="fold" id="alPaidFold"><summary><span>Tahsil edilenler <span class="hint" id="alPaidN"></span></span></summary><div class="list" id="alPaidList"></div></details>
     </div>
   </section>
@@ -1045,7 +1045,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 54 · 4 Kas 00:10</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 55 · 4 Kas 00:05</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1627,13 +1627,13 @@ function renderAlacak(M){
   const box=$('#alList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input,select'))return;
   box.innerHTML=L.length?L.map(o=>{const a=o.a,ed=ALEDIT===a.id,id=esc(a.id),late=o.date&&o.date<isoToday();
     return `<div class="row strow${ed?' on':''}" data-alopen="${id}" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${o.rec?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small class="${late?'neg':''}">${esc(a.src&&!o.date?'Harcamadan · '+(a.srcDate?new Date(a.srcDate+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):a.srcCat||''):when(o))} <span class="stedit">✎</span></small></div>
-    <div class="amt${o.amount<0?' neg':''}">${money(o.amount)}</div><span class="alacts">${o.rec?`<button class="del ok" data-aldone="${id}" data-m="${M}" aria-label="Bu ayki tahsil edildi">✓</button>`:`<button class="del ok" data-alpaid="${id}" aria-label="Tahsil edildi">✓</button><button class="del" data-del="al" data-id="${id}" aria-label="Alacağı sil">✕</button>`}</span></div>
+    <div class="amt${o.amount<0?' neg':''}">${money(o.amount)}</div><span class="alacts">${o.rec?`<button class="del ok" data-aldone="${id}" data-m="${M}" aria-label="Bu ayki tahsil edildi">✓</button>`:`<button class="del ok" data-alpaid="${id}" aria-label="Tahsil edildi">✓</button>`}</span></div>
     ${ed?`<div class="fedit" data-aleditbox="${id}"><div class="grid">
       <label class="f"><span>Kimden / ne için</span><input data-ae="name" value="${esc(a.name)}" maxlength="60"></label>
       <label class="f"><span>Tutar (₺)</span><input class="num" data-ae="amount" inputmode="text" value="${esc(fmtIn(a.amount))}"></label>
       <label class="f"><span>${a.repeat?'Başlangıç tarihi (gün her ay kullanılır)':'Ne zaman (boş = her an)'}</span><input type="date" data-ae="date" value="${esc(a.date||'')}"></label></div>
       <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" class="chk" data-ae="repeat"${a.repeat?' checked':''}> Her ay tekrarla</label>
-      <div class="refrow"><button type="button" class="btn" data-alsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-alcancel>Vazgeç</button>${a.repeat?`<button type="button" class="btn ghost neg" data-alseriesdel="${id}" style="margin-left:auto">Tamamen sil</button>`:''}</div><div class="msg"></div></div>`:''}`}).join('')
+      <div class="refrow"><button type="button" class="btn" data-alsave="${id}">Kaydet</button><button type="button" class="btn ghost" data-alcancel>Vazgeç</button><button type="button" class="btn ghost neg" data-alseriesdel="${id}" style="margin-left:auto">${a.repeat?'Tamamen sil':'Sil'}</button></div><div class="msg"></div></div>`:''}`}).join('')
     :`<div class="empty">${esc(monthName(M))} için alacak yok.</div>`;
 }
 document.addEventListener('click',e=>{
