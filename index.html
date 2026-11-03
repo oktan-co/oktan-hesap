@@ -1062,7 +1062,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 59 · 4 Kas 00:35</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 60 · 4 Kas 00:40</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1394,7 +1394,7 @@ function renderOzSide(){if(!WIDE.matches)return;renderOzExtra();const td=isoToda
   box.innerHTML=`<svg viewBox="0 0 ${W} ${Hh}" width="100%" height="${Hh}" role="img" aria-label="Son 3 ay ana bakiye"><polyline points="${pts.join(' ')}" class="hl"/><circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="4" class="hd"/></svg><p class="hint" style="padding:0 6px">${money(vs[vs.length-1])} · <span class="${d>=0?'pos':'neg'}">${d>=0?'+':'−'}${money(Math.abs(d))}</span></p>`}
 function renderOzExtra(){const M=S.month;
   const L=alFor(M,false);$('#ozAlH').textContent=monthName(M)+' alacaklarım';
-  $('#ozAl').innerHTML=L.length?L.map(o=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div>${o.rec?'<span class="chip">Her ay</span>':''}${esc(o.a.name)}</div><small>${o.date?new Date(o.date+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):'her an'}</small></div><div class="amt pos">${money(o.amount)}</div>${o.rec?`<button class="del" data-aldone="${esc(o.a.id)}" data-m="${M}" aria-label="Tahsil edildi">✓</button>`:'<span></span>'}</div>`).join(''):'<div class="empty">Bu ay alacak yok.</div>';
+  $('#ozAl').innerHTML=L.length?L.map(o=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div>${o.rec?'<span class="chip">Her ay</span>':''}${esc(o.a.name)}</div><small>${o.date?new Date(o.date+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):'her an'}</small></div><div class="amt pos">${money(o.amount)}</div>${o.rec?`<button class="del" data-aldone="${esc(o.a.id)}" data-m="${o.m||M}" aria-label="Tahsil edildi">✓</button>`:'<span></span>'}</div>`).join(''):'<div class="empty">Bu ay alacak yok.</div>';
   const pv=S.hold.reduce((a,h)=>a+(holdValue(h)||0),0),FP=fundPositions(),open=FP.filter(p=>p.units>1e-9),fv=open.reduce((a,p)=>a+(p.netValue??p.cost),0),tot=pv+fv;
   let mpl=0;for(const h of S.hold){const v=holdValue(h);if(h.cost&&v!=null)mpl+=v-h.cost}const pl=mpl+open.reduce((a,p)=>a+(p.gross==null?0:p.gross-p.taxAmt),0);
   $('#ozYTot').textContent=money(tot);$('#ozYPl').innerHTML=`Kâr/zarar <span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':'−'}${money(Math.abs(pl))}</span>`;
@@ -1625,9 +1625,13 @@ function renderSpend(M){
 const alDay=(a,M)=>`${M}-${String(Math.min(Number((a.date||'').slice(8,10))||1,dim(M))).padStart(2,'0')}`;
 const dim=M=>{const[y,m]=M.split('-').map(Number);return new Date(y,m,0).getDate()};
 const alOpen=()=>S.al.filter(a=>!a.paid); // tek seferlik alacak tahsil edilince a.paid = tahsilat tarihi (YYYY-AA-GG); açık listelerden ve toplamlardan çıkar
+/* "Her ay" alacakların tahsil edilmemiş geçmiş ayları bu aya gecikmiş olarak gelir (Ekim 2026'dan itibaren; daha eskiler taşınmaz). */
+const REP_CARRY='2026-10';
+function repLate(a,M){const out=[];let m=(a.date||isoToday()).slice(0,7);if(m<REP_CARRY)m=REP_CARRY;for(;m<M;m=addM(m,1))if(!(a.done&&a.done[m]))out.push(m);return out}
 function alFor(M,cumulative){const cur=mk(today),out=[];
   for(const a of alOpen()){
-    if(a.repeat){const st=(a.date||isoToday()).slice(0,7);if(M<st||(a.done&&a.done[M]))continue;out.push({a,amount:a.amount,date:alDay(a,M),rec:true});continue}
+    if(a.repeat){if(M===cur||cumulative)for(const m of repLate(a,M))out.push({a,amount:a.amount,date:alDay(a,m),rec:true,m,late:true});
+      const st=(a.date||isoToday()).slice(0,7);if(M<st||(a.done&&a.done[M]))continue;out.push({a,amount:a.amount,date:alDay(a,M),rec:true,m:M});continue}
     if(!a.date){out.push({a,amount:a.amount,date:'',rec:false});continue}
     const am=a.date.slice(0,7);if(am===M||(am<M&&(cumulative||M===cur)))out.push({a,amount:a.amount,date:a.date,rec:false,late:am<M})}
   return out.sort((x,y)=>(x.date||'').localeCompare(y.date||'')||(x.a.created||0)-(y.a.created||0))}
@@ -1644,9 +1648,9 @@ function renderAlacak(M){
   if(renderAlFilter())return;
   L.sort(alCmp);
   const box=$('#alList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input,select'))return;
-  box.innerHTML=L.length?L.map(o=>{const a=o.a,ed=ALEDIT===a.id,id=esc(a.id),late=o.date&&o.date<isoToday();
+  const edSeen=new Set();box.innerHTML=L.length?L.map(o=>{const a=o.a,ed=ALEDIT===a.id&&!edSeen.has(a.id)&&!!edSeen.add(a.id),id=esc(a.id),late=o.date&&o.date<isoToday();
     return `<div class="row strow${ed?' on':''}" data-alopen="${id}" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${o.rec?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small class="${late?'neg':''}">${esc(when(o)+(a.src?' · harcamadan':''))} <span class="stedit">✎</span></small></div>
-    <div class="amt${o.amount<0?' neg':''}">${money(o.amount)}</div><span class="alacts">${o.rec?`<button class="del ok" data-aldone="${id}" data-m="${M}" aria-label="Bu ayki tahsil edildi">✓</button>`:`<button class="del ok" data-alpaid="${id}" aria-label="Tahsil edildi">✓</button>`}</span></div>
+    <div class="amt${o.amount<0?' neg':''}">${money(o.amount)}</div><span class="alacts">${o.rec?`<button class="del ok" data-aldone="${id}" data-m="${o.m||M}" aria-label="Bu ayki tahsil edildi">✓</button>`:`<button class="del ok" data-alpaid="${id}" aria-label="Tahsil edildi">✓</button>`}</span></div>
     ${ed?alEditBox(a):''}`}).join('')
     :`<div class="empty">${esc(monthName(M))} için alacak yok.</div>`;
 }
@@ -1685,7 +1689,7 @@ function renderAlFilter(){
   if(!on)return false;
   const M=mk(today),items=[];
   for(const a of S.al){
-    if(a.repeat){if(!(a.done&&a.done[M])&&M>=(a.date||isoToday()).slice(0,7))items.push({a,open:true,date:alDay(a,M),m:M});
+    if(a.repeat){for(const m of repLate(a,M))items.push({a,open:true,date:alDay(a,m),m});if(!(a.done&&a.done[M])&&M>=(a.date||isoToday()).slice(0,7))items.push({a,open:true,date:alDay(a,M),m:M});
       for(const [m,ts] of Object.entries(a.done||{}))if(Number.isFinite(ts))items.push({a,open:false,date:alIso(ts),m})}
     else items.push({a,open:!a.paid,date:a.paid||a.date||''})}
   const L=items.filter(i=>{const a=i.a;
@@ -1698,11 +1702,12 @@ function renderAlFilter(){
   $('#alFSum').textContent=`${L.length} kayıt · açık ${money(ot)} · tahsil edilen ${money(pt)}`;
   $('#alTotal').textContent='filtreli';
   const box=$('#alList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input,select'))return true;
+  const edSeen=new Set();
   box.innerHTML=L.length?L.map(i=>{const a=i.a,id=esc(a.id);
     const sub=i.open?`<span class="sptag al" style="margin:0 4px 0 0">Açık</span>${i.date?esc(alLong(i.date)):'Tarihsiz'}`:`<span class="sptag ok" style="margin:0 4px 0 0">Tahsil</span>${esc(alLong(i.date))}`;
     const btn=i.open?(a.repeat?`<button class="del ok" data-aldone="${id}" data-m="${i.m}" aria-label="Bu ayki tahsil edildi">✓</button>`:`<button class="del ok" data-alpaid="${id}" aria-label="Tahsil edildi">✓</button>`)
       :`<button class="del" data-alundo="${id}"${a.repeat?` data-m="${i.m}"`:''} aria-label="Geri al" title="Geri al">↩</button>`;
-    const pk=id+(a.repeat?'@'+i.m:''),ed=i.open?ALEDIT===a.id:(!a.repeat&&ALPEDIT===pk),op=i.open?`data-alopen="${id}"`:(a.repeat?'':`data-alpopen="${pk}"`);
+    const pk=id+(a.repeat?'@'+i.m:''),ed=i.open?(ALEDIT===a.id&&!edSeen.has(a.id)&&!!edSeen.add(a.id)):(!a.repeat&&ALPEDIT===pk),op=i.open?`data-alopen="${id}"`:(a.repeat?'':`data-alpopen="${pk}"`);
     return `<div class="row strow${ed?' on':''}" ${op} style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${a.repeat?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small>${sub}${op?' <span class="stedit">✎</span>':''}</small></div><div class="amt${a.amount<0?' neg':''}${i.open?'':' mut'}">${money(a.amount)}</div>${btn}</div>${ed?(i.open?alEditBox(a):alPaidBox(a,i.date)):''}`}).join('')
     :'<div class="empty">Filtreye uyan alacak yok.</div>';
   return true}
