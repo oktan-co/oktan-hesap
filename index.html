@@ -1062,7 +1062,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 58 · 4 Kas 00:30</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 59 · 4 Kas 00:35</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1645,7 +1645,7 @@ function renderAlacak(M){
   L.sort(alCmp);
   const box=$('#alList'),ae=document.activeElement;if(ae&&box.contains(ae)&&ae.matches('input,select'))return;
   box.innerHTML=L.length?L.map(o=>{const a=o.a,ed=ALEDIT===a.id,id=esc(a.id),late=o.date&&o.date<isoToday();
-    return `<div class="row strow${ed?' on':''}" data-alopen="${id}" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${o.rec?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small class="${late?'neg':''}">${esc(a.src&&!o.date?'Harcamadan · '+(a.srcDate?new Date(a.srcDate+'T00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):a.srcCat||''):when(o))} <span class="stedit">✎</span></small></div>
+    return `<div class="row strow${ed?' on':''}" data-alopen="${id}" style="grid-template-columns:minmax(0,1fr) auto auto"><div class="what"><div class="alname">${o.rec?'<span class="chip">Her ay</span>':''}${esc(a.name)}</div><small class="${late?'neg':''}">${esc(when(o)+(a.src?' · harcamadan':''))} <span class="stedit">✎</span></small></div>
     <div class="amt${o.amount<0?' neg':''}">${money(o.amount)}</div><span class="alacts">${o.rec?`<button class="del ok" data-aldone="${id}" data-m="${M}" aria-label="Bu ayki tahsil edildi">✓</button>`:`<button class="del ok" data-alpaid="${id}" aria-label="Tahsil edildi">✓</button>`}</span></div>
     ${ed?alEditBox(a):''}`}).join('')
     :`<div class="empty">${esc(monthName(M))} için alacak yok.</div>`;
@@ -1750,7 +1750,7 @@ document.addEventListener('click',e=>{
   const sv=e.target.closest('[data-alsave]');if(sv){const id=sv.dataset.alsave,box=[...document.querySelectorAll('[data-aleditbox]')].find(b=>b.dataset.aleditbox===id),a=S.al.find(x=>x.id===id);if(!box||!a||!db)return;
     const v=k=>box.querySelector(`[data-ae=${k}]`).value,name=v('name').trim(),amount=parseNum(v('amount')),rp=box.querySelector('[data-ae=repeat]').checked;
     if(!name||!Number.isFinite(amount)||amount===0){flash(box.querySelector('.msg'),'İsim ve sıfırdan farklı bir tutar gir (eksi de olabilir).',true);return}
-    const old=stripId(a),nw={...old,name,amount:Math.round(amount*100)/100,date:v('date')||(rp?isoToday():''),repeat:rp,done:old.done||{}};if(!rp){delete nw.repeat;delete nw.done}
+    const old=stripId(a),nw={...old,name,amount:Math.round(amount*100)/100,date:v('date')||(rp?isoToday():''),repeat:rp,done:old.done||{}};if(!rp){delete nw.repeat;delete nw.done}if(nw.src&&nw.date)nw.dateSet=true;
     if(document.activeElement)document.activeElement.blur();ALEDIT=null;render();
     db.collection('alacak').doc(id).set(nw).catch(err=>showBanner(errText(err)));toast('Alacak güncellendi.',()=>db.collection('alacak').doc(id).set(old));return}
   const r=e.target.closest('[data-alopen]');if(!r||e.target.closest('input,button,select,label,a'))return;
@@ -2534,7 +2534,10 @@ function startData(fs){
   on(db.collection('cards'),s=>{got();S.cards=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render();queuePlan()});
   on(db.collection('holdings'),s=>{got();S.hold=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render()});
   on(db.collection('spend'),s=>{got();S.sp=list(s).filter(x=>x.amount>0&&x.date);render()});
-  on(db.collection('alacak'),s=>{got();S.al=list(s).filter(a=>Number.isFinite(a.amount)&&a.amount!==0).sort((a,b)=>(a.created||0)-(b.created||0));render()});
+  on(db.collection('alacak'),s=>{got();S.al=list(s).filter(a=>Number.isFinite(a.amount)&&a.amount!==0).sort((a,b)=>(a.created||0)-(b.created||0));
+    // harcamadan gelen alacaklar tarihsiz olur; eskiden harcamanın tarihiyle gelmiş olanları bir kez tarihsize çevir
+    for(const a of S.al)if(a.src&&!a.repeat&&a.date&&a.date===a.srcDate&&!a.dateSet)db.collection('alacak').doc(a.id).update({date:''}).catch(()=>{});
+    render()});
   on(db.collection('statements'),s=>{got();S.st=list(s).filter(x=>x.amount>0||x.pending);render();queuePlan()});
   on(db.collection('fundtx'),s=>{got();S.fdtx=list(s).filter(t=>t.code&&t.units>0&&t.price>0&&t.date);render()});
   on(db.doc('prices/funds'),s=>{S.fdp=s.exists?s.data():{items:{}};render()});
