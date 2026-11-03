@@ -1,5 +1,5 @@
 // Oktan Hesap Takip — fiyat güncelleyici (GitHub Actions'ta çalışır).
-// Altın/gümüş: doviz.com tekil ürün sayfaları. Fonlar: TEFAS, olmazsa Bloomberg HT.
+// Altın/gümüş ve Enpara döviz kurları: doviz.com tekil ürün sayfaları. Fonlar: TEFAS, olmazsa Bloomberg HT.
 // Ortam değişkenleri:
 //   FIREBASE_SERVICE_ACCOUNT  servis hesabı JSON'u (GitHub Secret)
 //   DRY_RUN=1                 veritabanına yazma, sadece göster
@@ -44,6 +44,11 @@ const PAGES = {
     ata_eski: 'https://altin.doviz.com/harem/eski-ata-altin',
     gremse_eski: 'https://altin.doviz.com/harem/eski-gremse-altin',
     gumus: 'https://altin.doviz.com/harem/gumus',
+  },
+  // Döviz hesapları: bankanın kendi alış/satış kuru (Enpara)
+  doviz: {
+    enpara_usd: 'https://kur.doviz.com/enpara/amerikan-dolari',
+    enpara_eur: 'https://kur.doviz.com/enpara/euro',
   },
 };
 

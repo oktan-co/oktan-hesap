@@ -20,6 +20,8 @@ test('Türk sayı biçimi', () => {
 test('doviz.com sayfası', () => {
   assert.deepEqual(parseDoviz(DOVIZ), { alis: 6537.01, satis: 6617.79, t: '22:56' });
   assert.equal(parseDoviz('<p>bakımdayız</p>'), null);
+  // kur.doviz.com banka sayfası (Enpara USD) aynı düzende
+  assert.deepEqual(parseDoviz('<h1>USD Enpara Amerikan Doları</h1><div>Son (01:23)</div><div>50,8725 %0,03</div><div>Alış / Satış</div><div>49,1475 / 50,8725</div>'), { alis: 49.1475, satis: 50.8725, t: '01:23' });
 });
 
 test('gece yarısı geçişi', () => {
