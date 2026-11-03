@@ -1017,7 +1017,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="box list" id="hbAcct"></div>
     </div>
     <details class="fold" id="hbClosedFold"><summary><span>Kapanan bonolar <span class="hint" id="hbClosedN"></span></span></summary><div class="list" id="hbClosed"></div></details>
-    <p class="hint">Bono değeri her gün işler: anapara × faiz × geçen gün ÷ 365, stopaj düşülerek. Listedeki büyük rakam bugün bozarsan eline geçecek tutar. Stopaj vadeye göre otomatik gelir (1 yıla kadar %15 · üstü %10), değiştirebilirsin. Hesap ve bonolar "Bu ay kalan" ve ana bakiyeye girer. Döviz hesapları (USD, EUR) Enpara'nın alış kuruyla TL'ye çevrilir; kur 20 dakikada bir güncellenir.</p>
+    <p class="hint">Bono değeri her gün sabah 08:00'de işler (bankadaki gibi): anapara × faiz × geçen gün ÷ 365, stopaj düşülerek. Listedeki büyük rakam bugün bozarsan eline geçecek tutar. Stopaj vadeye göre otomatik gelir (1 yıla kadar %15 · üstü %10), değiştirebilirsin. Hesap ve bonolar "Bu ay kalan" ve ana bakiyeye girer. Döviz hesapları (USD, EUR) Enpara'nın alış kuruyla TL'ye çevrilir; kur 20 dakikada bir güncellenir.</p>
   </section>
 
   <!-- GEÇMİŞ (başlıktaki grafik düğmesi) -->
@@ -1051,7 +1051,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 
 <!-- AYARLAR (sağ üstteki dişli) -->
 <dialog id="setDlg" class="sheet" aria-labelledby="setTitle">
-  <div class="sheet-h"><h2 id="setTitle">Ayarlar</h2><button class="iconbtn" type="button" id="setClose" aria-label="Kapat">✕</button></div>
+  <div class="sheet-h"><h2 id="setTitle">Ayarlar <span id="appVerTop" style="font:400 12px var(--f-body);color:var(--muted);margin-left:6px;vertical-align:middle"></span></h2><button class="iconbtn" type="button" id="setClose" aria-label="Kapat">✕</button></div>
   <div class="tabs" role="tablist" aria-label="Ayarlar bölümleri">
     <button type="button" role="tab" data-settab="hesap" aria-selected="true">Hesap</button>
     <button type="button" role="tab" data-settab="tema" aria-selected="false">Görünüm</button>
@@ -1113,7 +1113,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 65 · 4 Kas 01:45</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 66 · 4 Kas 01:50</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -2578,9 +2578,11 @@ $('#bkFile').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
 /* ---------- Hesap & bono ---------- */
 const hbDefTax=d=>d<=365?15:10; // banka bonosu stopajı: 1 yıla kadar %15, üstü %10
 const dBetween=(a,b)=>Math.round((new Date(b+'T00:00')-new Date(a+'T00:00'))/864e5);
+/* Banka bonoya günün faizini sabah 08:00'de ekler: 08:00'den önce dünün, sonra bugünün değeri (N Kolay'la birebir). Saat canlı okunur. */
+function bonoDay(){const n=new Date();if(n.getHours()<8)n.setDate(n.getDate()-1);return alIso(n.getTime())}
 function bonoInfo(b){const days=Math.max(1,b.days||1),start=b.start||isoToday(),end=isoAdd(start,days),tax=Number.isFinite(b.tax)?b.tax:hbDefTax(days);
   const gross=b.amount*(b.rate||0)/100*days/365,calcEnd=b.amount+gross*(1-tax/100),endNet=b.endAmt>0?b.endAmt:calcEnd;
-  const dd=dBetween(start,isoToday()),el=dd>=days?days:Math.max(0,dd-1), // banka faizi gün bitince ekler: bugün henüz sayılmaz (N Kolay'la birebir)
+  const dd=dBetween(start,bonoDay()),el=Math.min(days,Math.max(0,dd)),
     now=b.amount+(endNet-b.amount)*el/days;
   const daily=(endNet-b.amount)/days;return {days,start,end,tax,gross,endNet,now:Math.round(now*100)/100,earned:Math.round((now-b.amount)*100)/100,daily,el,left:days-el,matured:el>=days}}
 const hbOpen=()=>S.hb.filter(x=>!x.closed);
@@ -2690,6 +2692,8 @@ document.addEventListener('click',e=>{
     toast(`"${x.name}" kapatıldı${t?`, ${t.name} hesabına eklendi`:''}.`,async()=>{await db.collection('hesap').doc(id).set(old);if(t)await db.collection('hesap').doc(t.id).set(tOld)});return}
   const gp=e.target.closest('[data-hbgrp]');if(gp){const k=gp.dataset.hbgrp;HBGRP.has(k)?HBGRP.delete(k):HBGRP.add(k);try{sessionStorage.setItem('kasa.hbgrp',JSON.stringify([...HBGRP]))}catch(e){}render();return}
   const op=e.target.closest('[data-hbopen]');if(op&&!e.target.closest('input,button,select,label,a')){setHBEdit(HBEDIT===op.dataset.hbopen?null:op.dataset.hbopen);render()}});
+{let lastBD=null;setInterval(()=>{const d=bonoDay();if(lastBD&&d!==lastBD&&S.hb.length)render();lastBD=d},60000)}
+{const v=$('#appVer'),t=$('#appVerTop');if(v&&t)t.textContent=v.textContent.trim()}
 /* ---------- auth + data ---------- */
 let unsub=[];
 function stopData(){unsub.forEach(u=>{try{u()}catch(e){}});unsub=[];db=null;LOADED.clear()}
