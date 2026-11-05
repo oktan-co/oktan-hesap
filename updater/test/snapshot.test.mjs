@@ -32,7 +32,7 @@ function appValues(data, nowMs) {
 ;(()=>{const M=mk(today);const debt=S.st.filter(x=>!x.paid).reduce((a,x)=>a+(x.amount||0),0);
 const pv=S.hold.reduce((a,h)=>a+(holdValue(h)||0),0);const FP=fundPositions();const fv=FP.reduce((a,p)=>a+(p.units>1e-9?(p.netValue??p.cost):0),0);
 const alT=alTotalNow(),hv=hbValue(),cash=cashUpTo(M);
-return {ana:cash+alT+pv+fv+hv-debt,bakiye:cash,alacak:alT,maden:pv,fizik:physValue(),fon:fv,hesap:hv,borc:debt}})()`, ctx);
+return {v:2,ana:alT+pv+fv+hv-debt,bakiye:cash,alacak:alT,maden:pv,fizik:physValue(),fon:fv,hesap:hv,borc:debt}})()`, ctx);
   return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, Math.round(v * 100) / 100]));
 }
 
@@ -85,6 +85,7 @@ for (const [label, iso] of [['sabah 07:00', '2026-11-05T04:00:00Z'], ['akşam 23
     const app = appValues(data, now), srv = computeSnapshot(data, now);
     const { fonBy, ...rest } = srv.values;
     assert.deepEqual(rest, app);
+    assert.equal(rest.ana, Math.round((rest.alacak + rest.maden + rest.fon + rest.hesap - rest.borc) * 100) / 100, 'ana bakiye bakiye (nakit defteri) içermez');
     assert.ok(fonBy.Emre >= 0 && fonBy.Merve >= 0);
     assert.ok(app.fizik > 0 && app.fizik < app.maden, 'fiziki altın = Harem kalemleri, Fiba hariç');
   });
@@ -93,4 +94,24 @@ for (const [label, iso] of [['sabah 07:00', '2026-11-05T04:00:00Z'], ['akşam 23
 test('fiyatı olmayan altın kalemi eksik sayılır', () => {
   const r = computeSnapshot({ ...data, harem: { items: {} } }, Date.parse('2026-11-05T20:00:00Z'));
   assert.equal(r.incomplete, true);
+});
+
+test('Excel hesabıyla aynı: alacak − kart borcu + fon + Fiba + hesap & bono (fiziki altın hariç)', () => {
+  const ex = {
+    tx: [{ id: 'x1', date: '2026-10-05', amount: 271605.35, type: 'cardpay', cardId: 'c1' }],
+    fdtx: [{ id: 'f1', date: '2026-10-01', code: 'AAA', units: 1000, price: 40, owner: 'Emre', side: 'buy' }],
+    hold: [{ id: 'h1', src: 'harem', prod: 'gram', qty: 100 }, { id: 'h2', src: 'fiba', prod: 'altin', qty: 10 }, { id: 'h3', src: 'fiba', prod: 'gumus', qty: 500 }],
+    al: [{ id: 'a1', amount: 159522 }],
+    hb: [{ id: 'b1', kind: 'hesap', amount: 257324 }],
+    st: [{ id: 's1', amount: 224999.95, paid: false }],
+    settings: { fundTax: { AAA: 0 } },
+    fdp: { items: { AAA: { price: 43 } } },
+    harem: { items: { gram: { alis: 5400 } } },
+    fiba: { items: { altin: { alis: 5000 }, gumus: { alis: 97.006 } } },
+    doviz: { items: {} },
+  };
+  const v = computeSnapshot(ex, Date.parse('2026-11-05T20:00:00Z')).values;
+  assert.ok(v.bakiye < -300000, 'nakit defteri eksiye düşmüş olsa da');
+  assert.equal(v.fizik, 540000);
+  assert.ok(Math.abs(v.ana - v.fizik - 333349.05) < 0.005, 'Excel: 333.349,05 (fiziki altın hariç Ana Bakiye) — çıkan: ' + (v.ana - v.fizik));
 });

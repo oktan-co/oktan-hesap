@@ -121,7 +121,7 @@ export function computeSnapshot(data, nowMs = Date.now()) {
   const incomplete = hold.some(h => holdValue(h, harem, fiba) == null);
 
   const v = {
-    ana: cash + alT + pv + fv + hv - debt, bakiye: cash, alacak: alT, maden: pv, fizik, fon: fv, hesap: hv, borc: debt,
+    v: 2, ana: alT + pv + fv + hv - debt, bakiye: cash, alacak: alT, maden: pv, fizik, fon: fv, hesap: hv, borc: debt,
     fonBy: Object.fromEntries(OWNERS.map(o => [o, pos.filter(p => p.owner === o && p.units > 1e-9).reduce((a, p) => a + (p.netValue ?? p.cost), 0)])),
   };
   const values = {};
