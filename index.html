@@ -88,8 +88,14 @@ main{padding-block:20px 60px;display:grid;gap:22px}
 .flow div{padding:10px 14px;display:grid;gap:2px;min-width:0}
 .flow div+div{border-left:1px solid var(--line)}
 .flow b{font-family:var(--f-num);font-weight:500;font-size:14.5px;overflow-wrap:anywhere}
-.flow.f3{grid-template-columns:repeat(3,minmax(0,1fr))}
-@media (max-width:560px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow div:nth-child(3){border-left:0}.flow div:nth-child(n+3){border-top:1px solid var(--line)}.flow.f3{grid-template-columns:repeat(2,minmax(0,1fr))}.flow.f3 div:nth-child(3){grid-column:1/-1}}
+.flow.f2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.invtgl{display:flex;width:100%;justify-content:space-between;align-items:center;padding:12px 14px;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.invr{display:flex;align-items:center;gap:8px}.invr b{font-family:var(--f-num);font-weight:500;font-size:15px}
+.chev{display:inline-block;font-style:normal;font-size:20px;line-height:1;color:var(--muted);transition:transform .15s}.invtgl[aria-expanded=true] .chev{transform:rotate(90deg)}
+.invrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 14px;border-top:1px solid var(--line);color:inherit;text-decoration:none}
+.invrow span{color:var(--muted);font-size:14px}.invrow b{font-family:var(--f-num);font-weight:500;font-size:14.5px}
+.invrow:active{background:var(--sunk)}
+@media (max-width:560px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow div:nth-child(3){border-left:0}.flow div:nth-child(n+3){border-top:1px solid var(--line)}}
 .pos{color:var(--pos)}.neg{color:var(--neg)}.mut{color:var(--muted)}
 .net{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @media (max-width:560px){.net{grid-template-columns:1fr}}
@@ -650,11 +656,12 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
         <div class="anatot"><span class="eyebrow">Toplam Ana Bakiye</span><b id="nAnaTot">—</b></div>
         <span class="hint why">Ana bakiye = alacaklar + Fiba altın/gümüş + stopaj sonrası fonlar + hesap &amp; bono − kart borcu. Fiziki altın (Harem) buna katılmaz; "Toplam Ana Bakiye"ye katılır.</span></div>
-      <div class="flow f3">
+      <div class="flow f2">
         <div><span class="eyebrow">Alacaklar</span><b id="nAlacak">—</b></div>
         <div><span class="eyebrow">Borçlar</span><b class="neg" id="nBorc">—</b></div>
-        <div><span class="eyebrow">Yatırımlar</span><b id="nMaden" style="color:var(--gold)">—</b><small class="hint" id="nYatSub"></small></div>
       </div>
+      <button type="button" class="invtgl" id="yatTgl" aria-expanded="false" aria-controls="nYatRows"><span class="eyebrow">Yatırımlar</span><span class="invr"><b id="nMaden" style="color:var(--gold)">—</b><i class="chev" aria-hidden="true">›</i></span></button>
+      <div class="invrows" id="nYatRows" hidden></div>
     </div>
 
     <div class="dside donly" id="ozSide">
@@ -1110,7 +1117,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 72 · 5 Kas 23:30</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 73 · 5 Kas 23:40</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1365,6 +1372,9 @@ function drawHist(box,pts,mode){const W=Math.max(260,Math.round(box.clientWidth|
   const hide=()=>{hx.setAttribute('visibility','hidden');hc.setAttribute('visibility','hidden');tip.hidden=true};
   svg.addEventListener('pointermove',show);svg.addEventListener('pointerdown',show);svg.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')hide()});
 }
+function setYat(open){$('#nYatRows').hidden=!open;$('#yatTgl').setAttribute('aria-expanded',open?'true':'false');try{localStorage.setItem('kasa.yatopen',open?'1':'0')}catch(e){}}
+{let o=false;try{o=localStorage.getItem('kasa.yatopen')==='1'}catch(e){}setYat(o)}
+$('#yatTgl').addEventListener('click',()=>setYat($('#nYatRows').hidden));
 $('#hRange').addEventListener('click',e=>{const b=e.target.closest('[data-hr]');if(!b)return;HR=b.dataset.hr;try{localStorage.setItem('kasa.hr',HR)}catch(e){}renderHist()});
 $('#histBtn').addEventListener('click',()=>setTab(S.tab==='gecmis'?(S.prevTab||'ozet'):'gecmis'));
 {let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S.tab==='gecmis')renderHist()},150)})}
@@ -1498,7 +1508,11 @@ function render0(){
   const alT=alTotalNow();
   const alM=alFor(M,true).reduce((a,o)=>a+o.amount,0),alLater=Math.max(0,alOpen().filter(x=>!x.repeat&&x.date&&x.date.slice(0,7)>M).reduce((a,x)=>a+x.amount,0));
   const hv=hbValue();
-  $('#nMaden').textContent=money(pv+fv+hv);$('#nYatSub').textContent=`altın ${money(pv)} · fon ${money(fv)}${hv>0.004?` · hesap & bono ${money(hv)}`:''}`;renderInvest(pv,fv,FP,hv);renderHB();$('#nAlacak').textContent=money(alT);
+  $('#nMaden').textContent=money(pv+fv+hv);{const hold=(f)=>S.hold.filter(f).reduce((a,h)=>a+(holdValue(h)||0),0);
+    const hes=hbOpen().filter(x=>x.kind!=='bono').reduce((a,x)=>a+acctTL(x),0),bn={};
+    for(const x of hbOpen().filter(x=>x.kind==='bono')){const n=(x.name||'').trim()||'Bono';bn[n]=(bn[n]||0)+bonoInfo(x).now}
+    const rows=[['Fiziki Altın',hold(h=>h.src!=='fiba'),'maden'],['Banka Altın & Gümüş',hold(h=>h.src==='fiba'),'maden'],['Hesap',hes,'hesap'],...Object.entries(bn).map(([n,v])=>[n,v,'hesap']),['Fon',fv,'fon']];
+    $('#nYatRows').innerHTML=rows.filter(r=>Math.abs(r[1])>0.004).map(([n,v,go])=>`<a class="invrow" href="#" data-go="${go}"><span>${esc(n)}</span><b>${money(v)}</b></a>`).join('')}renderInvest(pv,fv,FP,hv);renderHB();$('#nAlacak').textContent=money(alT);
   const ana=alT+pv+fv+hv-debt,pvFiz=physValue(),anaEx=ana-pvFiz;$('#nAna').textContent=money(anaEx);$('#nAna').className='big'+(anaEx<0?' neg':'');$('#nAnaTot').textContent=money(ana);
   {const cash=cashUpTo(mk(today));maybeSnap({v:2,ana:alT+pv+fv+hv-debt,bakiye:cash,alacak:alT,maden:pv,fizik:pvFiz,fon:fv,hesap:hv,borc:debt,
     fonBy:Object.fromEntries(OWNERS.map(o=>[o,FP.filter(p=>p.owner===o&&p.units>1e-9).reduce((a,p)=>a+(p.netValue??p.cost),0)]))},S.hold.some(h=>holdValue(h)==null))}
