@@ -1117,7 +1117,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 73 · 5 Kas 23:40</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 74 · 5 Kas 23:27</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1511,7 +1511,7 @@ function render0(){
   $('#nMaden').textContent=money(pv+fv+hv);{const hold=(f)=>S.hold.filter(f).reduce((a,h)=>a+(holdValue(h)||0),0);
     const hes=hbOpen().filter(x=>x.kind!=='bono').reduce((a,x)=>a+acctTL(x),0),bn={};
     for(const x of hbOpen().filter(x=>x.kind==='bono')){const n=(x.name||'').trim()||'Bono';bn[n]=(bn[n]||0)+bonoInfo(x).now}
-    const rows=[['Fiziki Altın',hold(h=>h.src!=='fiba'),'maden'],['Banka Altın & Gümüş',hold(h=>h.src==='fiba'),'maden'],['Hesap',hes,'hesap'],...Object.entries(bn).map(([n,v])=>[n,v,'hesap']),['Fon',fv,'fon']];
+    const rows=[['Fiziki Altın',hold(h=>h.src!=='fiba'),'maden'],['Banka Altın & Gümüş',hold(h=>h.src==='fiba'),'maden'],['Hesap',hes,'hesap'],...Object.entries(bn).map(([n,v])=>[n,v,'hesap']),...[...new Set([...OWNERS,...FP.map(p=>p.owner)])].map(o=>['Fon · '+o,FP.filter(p=>p.owner===o&&p.units>1e-9).reduce((a,p)=>a+(p.netValue??p.cost),0),'fon'])];
     $('#nYatRows').innerHTML=rows.filter(r=>Math.abs(r[1])>0.004).map(([n,v,go])=>`<a class="invrow" href="#" data-go="${go}"><span>${esc(n)}</span><b>${money(v)}</b></a>`).join('')}renderInvest(pv,fv,FP,hv);renderHB();$('#nAlacak').textContent=money(alT);
   const ana=alT+pv+fv+hv-debt,pvFiz=physValue(),anaEx=ana-pvFiz;$('#nAna').textContent=money(anaEx);$('#nAna').className='big'+(anaEx<0?' neg':'');$('#nAnaTot').textContent=money(ana);
   {const cash=cashUpTo(mk(today));maybeSnap({v:2,ana:alT+pv+fv+hv-debt,bakiye:cash,alacak:alT,maden:pv,fizik:pvFiz,fon:fv,hesap:hv,borc:debt,
