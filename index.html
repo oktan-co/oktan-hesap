@@ -88,7 +88,8 @@ main{padding-block:20px 60px;display:grid;gap:22px}
 .flow div{padding:10px 14px;display:grid;gap:2px;min-width:0}
 .flow div+div{border-left:1px solid var(--line)}
 .flow b{font-family:var(--f-num);font-weight:500;font-size:14.5px;overflow-wrap:anywhere}
-@media (max-width:560px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow div:nth-child(3){border-left:0}.flow div:nth-child(n+3){border-top:1px solid var(--line)}}
+.flow.f3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:560px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow div:nth-child(3){border-left:0}.flow div:nth-child(n+3){border-top:1px solid var(--line)}.flow.f3{grid-template-columns:repeat(2,minmax(0,1fr))}.flow.f3 div:nth-child(3){grid-column:1/-1}}
 .pos{color:var(--pos)}.neg{color:var(--neg)}.mut{color:var(--muted)}
 .net{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @media (max-width:560px){.net{grid-template-columns:1fr}}
@@ -660,12 +661,11 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     <div class="box">
       <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
         <div class="anatot"><span class="eyebrow">Toplam Ana Bakiye</span><b id="nAnaTot">—</b></div>
-        <span class="hint why">Ana bakiye = alacaklar + Fiba altın/gümüş + stopaj sonrası fonlar + hesap &amp; bono − kart borcu. Nakit defteri (Bakiye) ve fiziki altın (Harem) buna katılmaz; fiziki altın "Toplam Ana Bakiye"ye katılır.</span></div>
-      <div class="flow">
-        <div><span class="eyebrow">Bakiye</span><b id="nNakit">—</b><small class="hint">nakit defteri · toplama girmez</small></div>
+        <span class="hint why">Ana bakiye = alacaklar + Fiba altın/gümüş + stopaj sonrası fonlar + hesap &amp; bono − kart borcu. Fiziki altın (Harem) buna katılmaz; "Toplam Ana Bakiye"ye katılır.</span></div>
+      <div class="flow f3">
         <div><span class="eyebrow">Alacaklar</span><b id="nAlacak">—</b></div>
-        <div><span class="eyebrow">Yatırımlar</span><b id="nMaden" style="color:var(--gold)">—</b><small class="hint" id="nYatSub"></small></div>
         <div><span class="eyebrow">Borçlar</span><b class="neg" id="nBorc">—</b></div>
+        <div><span class="eyebrow">Yatırımlar</span><b id="nMaden" style="color:var(--gold)">—</b><small class="hint" id="nYatSub"></small></div>
       </div>
     </div>
 
@@ -1122,7 +1122,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 70 · 5 Kas 23:10</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 71 · 5 Kas 23:20</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1337,10 +1337,10 @@ function renderHist(){
     else $(chgId).textContent=last?(last.id===td?'Bugünkü değer':fmtD(last.id)+' kaydı'):''};
   head('#hNow','#hChg',p=>exOf(p,HFB),false);head('#hNow2','#hChg2',anaOf,true);
   drawHist($('#hChart'),pts,'ex');drawHist($('#hChart2'),pts,'tot');
-  const comp=[['Bakiye','bakiye',1],['Alacaklar','alacak',1],['Altın & gümüş','maden',1],['Fonlar','fon',1],['Hesap & bono','hesap',1],['Borçlar','borc',-1]];
+  const comp=[['Alacaklar','alacak',1],['Altın & gümüş','maden',1],['Fonlar','fon',1],['Hesap & bono','hesap',1],['Borçlar','borc',-1]];
   $('#hCompLbl').textContent=last&&base&&base!==last?(lbl==='İlk kayıttan beri'?'ilk kayıttan beri değişim':lbl.toLocaleLowerCase('tr-TR')+'ki değişim'):'';
   $('#hComp').innerHTML=last?comp.map(([n,k,sg])=>{const v=last[k]||0,dv=base&&base!==last?v-(base[k]||0):null;
-    const sub=k==='bakiye'?'nakit defteri · toplama girmez':k==='fon'&&last.fonBy?Object.entries(last.fonBy).filter(([,x])=>x>0.5).map(([o,x])=>`${esc(o)} ${money(x)}`).join(' · '):'';
+    const sub=k==='fon'&&last.fonBy?Object.entries(last.fonBy).filter(([,x])=>x>0.5).map(([o,x])=>`${esc(o)} ${money(x)}`).join(' · '):'';
     return `<div class="row"><div class="what"><div>${n}</div>${sub?`<small>${sub}</small>`:''}</div><div class="amt">${money(v)}${dv!=null&&Math.abs(dv)>=1?`<small class="${dv*sg>=0?'pos':'neg'}">${signM(dv)}</small>`:''}</div></div>`}).join('')
     :'<div class="empty">İlk kayıt bugün oluşacak.</div>';
   const byM={};for(const h of H)byM[h.id.slice(0,7)]=h;const ms=Object.keys(byM).sort().reverse();
@@ -1504,7 +1504,7 @@ function render0(){
   const f=monthFlow(M);
   const cardSpend=CH.filter(c=>c.month===M).reduce((a,c)=>a+c.amount,0);
   const debt=S.st.filter(x=>!x.paid).reduce((a,x)=>a+(x.amount||0),0);
-  $('#nNakit').textContent=money(cashUpTo(M));$('#nBorc').textContent=money(debt);
+  $('#nBorc').textContent=money(debt);
   const pv=S.hold.reduce((a,h)=>a+(holdValue(h)||0),0);
   const FP=fundPositions();const fv=FP.reduce((a,p)=>a+(p.units>1e-9?(p.netValue??p.cost):0),0);
   const alT=alTotalNow();
