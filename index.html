@@ -289,6 +289,7 @@ a{color:var(--accent)}
 .brand{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 nav svg{display:none}
 .mbar{justify-content:center;gap:12px}
+@media (max-width:999px){[data-panel=ozet]>.mbar{display:none}}
 .mbar #monthLbl{min-width:120px;text-align:center;font-family:var(--f-display);font-weight:600;font-size:17px}
 .nextpay{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;text-decoration:none;color:inherit}
 .nextpay .np{display:grid;justify-items:end;gap:2px;text-align:right}
@@ -645,19 +646,6 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <span class="eyebrow">Sıradaki kart ödemesi</span>
       <span class="np"><b class="num" id="oNextAmt">—</b><span id="oNextSub" class="hint"></span></span>
     </a>
-    <div class="box">
-      <div class="kalan">
-        <span class="eyebrow">Bu ay kalan <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span>
-        <span class="big" id="sKalan">₺0,00</span>
-        <span class="hint why" id="sKalanHint">Alacaklar (tarihsizler ve bu aya kadar olanlar) + fonlar + hesap &amp; bono − bu ay ödenecek kart ekstreleri · altın ve gümüş hariç</span>
-      </div>
-      <div class="flow k3">
-        <div><span class="eyebrow">Alacaklar</span><b class="pos" id="sGelir">—</b><small class="hint" id="sGelirSub"></small></div>
-        <div><span class="eyebrow">Fon, hesap &amp; bono</span><b class="pos" id="sFon">—</b><small class="hint" id="sFonSub"></small></div>
-        <div><span class="eyebrow">Bu ay ödenecek</span><b class="neg" id="sKartHar">—</b><small class="hint" id="sKartSub"></small></div>
-      </div>
-    </div>
-
     <div class="box">
       <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
         <div class="anatot"><span class="eyebrow">Toplam Ana Bakiye</span><b id="nAnaTot">—</b></div>
@@ -1122,7 +1110,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 71 · 5 Kas 23:20</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 72 · 5 Kas 23:30</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1509,12 +1497,7 @@ function render0(){
   const FP=fundPositions();const fv=FP.reduce((a,p)=>a+(p.units>1e-9?(p.netValue??p.cost):0),0);
   const alT=alTotalNow();
   const alM=alFor(M,true).reduce((a,o)=>a+o.amount,0),alLater=Math.max(0,alOpen().filter(x=>!x.repeat&&x.date&&x.date.slice(0,7)>M).reduce((a,x)=>a+x.amount,0));
-  const dueList=S.st.filter(x=>!x.paid&&x.due&&x.due.slice(0,7)<=M&&(M!==mk(today)||true));
-  const proj=loanProjection(M),projSum=proj.reduce((a,x)=>a+x.amount,0);
-  const dueThis=dueList.reduce((a,x)=>a+(x.amount||0),0)+projSum;const hv=hbValue();const kalan=alM+fv+hv-dueThis;
-  $('#sKalan').textContent=money(kalan);$('#sKalan').className='big '+(kalan<0?'neg':'');
-  $('#sGelir').textContent=money(alM);$('#sGelirSub').textContent=alLater>0.004?`+${money(alLater)} sonraki aylarda`:'';$('#sFon').textContent=money(fv+hv);$('#sFonSub').textContent=hv>0.004?`fon ${money(fv)} · hesap & bono ${money(hv)}`:'';$('#sKartHar').textContent=money(dueThis);
-  const pend=dueList.filter(x=>!(x.amount>0)).length;$('#sKartSub').textContent=(dueList.length||proj.length)?`${dueList.length} ekstre${proj.length?` · ${proj.length} kredi taksiti (öngörülen)`:''}${pend?` · ${pend} tanesinin tutarı girilmedi`:''}`:'';
+  const hv=hbValue();
   $('#nMaden').textContent=money(pv+fv+hv);$('#nYatSub').textContent=`altın ${money(pv)} · fon ${money(fv)}${hv>0.004?` · hesap & bono ${money(hv)}`:''}`;renderInvest(pv,fv,FP,hv);renderHB();$('#nAlacak').textContent=money(alT);
   const ana=alT+pv+fv+hv-debt,pvFiz=physValue(),anaEx=ana-pvFiz;$('#nAna').textContent=money(anaEx);$('#nAna').className='big'+(anaEx<0?' neg':'');$('#nAnaTot').textContent=money(ana);
   {const cash=cashUpTo(mk(today));maybeSnap({v:2,ana:alT+pv+fv+hv-debt,bakiye:cash,alacak:alT,maden:pv,fizik:pvFiz,fon:fv,hesap:hv,borc:debt,
