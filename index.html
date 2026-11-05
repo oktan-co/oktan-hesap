@@ -412,6 +412,8 @@ nav svg{display:none}
 /* ---- servet geçmişi ---- */
 .hbox{padding:12px 10px 8px;display:grid;gap:6px}
 .hrange{padding:0 4px}
+.hhead{padding:6px 8px 4px}
+.anatot{display:flex;justify-content:space-between;align-items:baseline;gap:8px;opacity:.55;font-size:13px;color:var(--muted)}.anatot b{font-family:var(--f-num);font-weight:500;font-size:15px;color:var(--ink)}
 .hchart{position:relative;min-height:120px}
 .hchart svg{display:block;width:100%;height:auto;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .hg{stroke:var(--line);stroke-width:1}
@@ -657,7 +659,8 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 
     <div class="box">
       <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
-        <span class="hint why">Bakiye + alacaklar + yatırımlar (altın, gümüş, stopaj sonrası fonlar, hesap &amp; bono) − borçlar</span></div>
+        <div class="anatot"><span>Toplam Ana Bakiye · fiziki altın dahil</span><b id="nAnaTot">—</b></div>
+        <span class="hint why">Ana bakiye = bakiye + alacaklar + Fiba altın/gümüş + stopaj sonrası fonlar + hesap &amp; bono − borçlar. Fiziki altın (Harem) buna katılmaz; "Toplam Ana Bakiye"ye katılır.</span></div>
       <div class="flow">
         <div><span class="eyebrow">Bakiye</span><b id="nNakit">—</b></div>
         <div><span class="eyebrow">Alacaklar</span><b id="nAlacak">—</b></div>
@@ -1022,18 +1025,24 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 
   <!-- GEÇMİŞ (başlıktaki grafik düğmesi) -->
   <section class="panel" data-panel="gecmis" hidden>
-    <div class="box">
-      <div class="kalan">
-        <span class="eyebrow">Ana bakiye</span>
+    <div class="pchips hrange" id="hRange" role="group" aria-label="Zaman aralığı">
+      <button type="button" data-hr="1a">1 ay</button><button type="button" data-hr="3a">3 ay</button><button type="button" data-hr="6a">6 ay</button><button type="button" data-hr="1y">1 yıl</button><button type="button" data-hr="all">Tümü</button>
+    </div>
+    <div class="box hbox">
+      <div class="kalan hhead">
+        <span class="eyebrow">Ana bakiye <small class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">· fiziki altın hariç</small></span>
         <span class="big" id="hNow">—</span>
         <span class="hint" id="hChg"></span>
       </div>
+      <div id="hChart" class="hchart"></div>
     </div>
     <div class="box hbox">
-      <div class="pchips hrange" id="hRange" role="group" aria-label="Zaman aralığı">
-        <button type="button" data-hr="1a">1 ay</button><button type="button" data-hr="3a">3 ay</button><button type="button" data-hr="6a">6 ay</button><button type="button" data-hr="1y">1 yıl</button><button type="button" data-hr="all">Tümü</button>
+      <div class="kalan hhead">
+        <span class="eyebrow">Toplam Ana Bakiye <small class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">· fiziki altın dahil</small></span>
+        <span class="big" id="hNow2">—</span>
+        <span class="hint" id="hChg2"></span>
       </div>
-      <div id="hChart" class="hchart"></div>
+      <div id="hChart2" class="hchart"></div>
     </div>
     <div class="sec">
       <div class="sec-h"><h2>Dağılım</h2><span class="hint" id="hCompLbl"></span></div>
@@ -1043,7 +1052,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       <div class="sec-h"><h2>Aylara göre</h2><span class="hint">her ayın son kaydı</span></div>
       <div class="box list hcomp" id="hMonths"></div>
     </div>
-    <details class="howto"><summary>Nasıl çalışır?</summary><p class="hint">Uygulamayı her açtığında o günün Ana bakiyesi ve dağılımı kendiliğinden kaydedilir; grafik bu kayıtlardan çizilir. Açmadığın günler atlanır, çizgi bir önceki kayda bağlanır. Fonlarda Emre ve Merve ayrı ayrı da saklanır.</p></details>
+    <details class="howto"><summary>Nasıl çalışır?</summary><p class="hint">Her gün gece 23:00 civarı o günün değeri kendiliğinden kaydedilir (uygulamayı açtığında da kaydedilir). Kayıt olmayan günler bir önceki günün değeriyle gösterilir, değişim yoksa çizgi düz kalır. İki grafik var: Ana bakiye (fiziki altın hariç) ve Toplam Ana Bakiye. Fiziki altın ayrımı bu sürümden itibaren kaydedilir; öncesi için Fiba altın/gümüşün bugünkü değeri düşülerek tahmin edilir. Fonlarda Emre ve Merve ayrı ayrı da saklanır.</p></details>
   </section>
 
 </main>
@@ -1113,7 +1122,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 67 · 4 Kas 02:00</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 68 · 5 Kas 22:45</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1278,6 +1287,7 @@ function sellNet(t){const i=sellInfo(t);return i?i.net:t.units*t.price}
 /** Yeni bir satışın FIFO önizlemesi (mevcut lotlar bozulmadan) */
 function sellPreview(owner,code,units,price){const p=fundPositions().find(x=>x.code===code&&x.owner===owner);if(!p)return null;
   return {...fifoTake(p.lots.map(l=>({...l})),units,price,p.tax),have:p.units}}
+const physValue=()=>S.hold.filter(h=>h.src!=='fiba').reduce((a,h)=>a+(holdValue(h)||0),0);
 function holdValue(h){const src=h.src==='fiba'?S.fiba:S.harem;const p=(src.items||{})[h.prod];return p&&p.alis?h.qty*p.alis:null}
 
 /* ---------- render ---------- */
@@ -1301,16 +1311,30 @@ const fmtD=iso=>new Date(iso+'T00:00').toLocaleDateString('tr-TR',{day:'numeric'
 const signM=d=>(d>=0?'+':'−')+money(Math.abs(d));
 function niceTicks(lo,hi,n){const raw=(hi-lo)/Math.max(1,n-1),mag=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/mag,step=(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*mag;
   const out=[];for(let v=Math.floor(lo/step)*step;v<=Math.ceil(hi/step)*step+step/2;v+=step)out.push(Math.round(v/step)*step);return out}
+/* Kayıt olmayan günler bir önceki günün değeriyle doldurulur (değişim yoksa çizgi düz kalır); aralığın başı, aralıktan önceki son kayıttan taşınır. */
+function fillDaily(H,from,to){if(!H.length)return [];
+  const byId=new Map(H.map(h=>[h.id,h]));let prev=null;for(const h of H){if(h.id<from)prev=h;else break}
+  let start=from;if(H[0].id>start)start=H[0].id;
+  const out=[];let cur=prev;
+  for(let d=start;d<=to;d=addDays(d,1)){const rec=byId.get(d);if(rec)cur=rec;if(!cur)continue;out.push(rec||{...cur,id:d,filled:true})}
+  const lastRec=H[H.length-1];if(lastRec.id>to&&!out.length)out.push(lastRec);
+  return out}
+/* Fiziki altın (Harem) hariç ana bakiye. Eski kayıtlarda "fizik" alanı yok: Fiba (banka) altın/gümüşün bugünkü değeri maden toplamından düşülerek tahmin edilir. */
+let HFB=0;
+const fibaNow=()=>S.hold.filter(h=>h.src==='fiba').reduce((a,h)=>a+(holdValue(h)||0),0);
+const fizikOf=(p,fb)=>typeof p.fizik==='number'?p.fizik:Math.max(0,(p.maden||0)-fb);
+const exOf=(p,fb)=>p.ana-fizikOf(p,fb);
 function renderHist(){
-  const H=(S.hist||[]).filter(h=>/^\d{4}-\d{2}-\d{2}$/.test(h.id)&&typeof h.ana==='number'),td=isoToday();
+  const H=(S.hist||[]).filter(h=>/^\d{4}-\d{2}-\d{2}$/.test(h.id)&&typeof h.ana==='number'),td=isoToday();HFB=fibaNow();
   $$('#hRange [data-hr]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.hr===HR));
-  const last=H[H.length-1],pts=H.filter(h=>h.id>=addDays(td,-HR_DAYS[HR])),base=pts[0];
-  $('#hNow').textContent=last?money(last.ana):'—';
+  const last=H[H.length-1],pts=fillDaily(H,addDays(td,-HR_DAYS[HR]),td),base=pts[0];
   const lbl=HR==='all'||(base&&base===H[0]&&base.id>addDays(td,-HR_DAYS[HR]))?'İlk kayıttan beri':HR_LBL[HR];
-  if(last&&base&&base!==last){const d=last.ana-base.ana,pc=base.ana?d/Math.abs(base.ana)*100:0;
-    $('#hChg').innerHTML=`${esc(lbl)} <span class="${d>=0?'pos':'neg'}">${signM(d)}</span>${HIDE?'':` <span class="hint">(${d>=0?'+':'−'}%${Math.abs(pc).toLocaleString('tr-TR',{maximumFractionDigits:1})})</span>`}`}
-  else $('#hChg').textContent=last?(last.id===td?'Bugünkü değer':fmtD(last.id)+' kaydı'):'';
-  drawHist(pts);
+  const head=(nowId,chgId,f,withPct)=>{$(nowId).textContent=last?money(f(last)):'—';$(nowId).className='big'+(last&&f(last)<0?' neg':'');
+    if(last&&base&&base!==last){const d=f(last)-f(base),pc=f(base)?d/Math.abs(f(base))*100:0;
+      $(chgId).innerHTML=`${esc(lbl)} <span class="${d>=0?'pos':'neg'}">${signM(d)}</span>${HIDE||!withPct?'':` <span class="hint">(${d>=0?'+':'−'}%${Math.abs(pc).toLocaleString('tr-TR',{maximumFractionDigits:1})})</span>`}`}
+    else $(chgId).textContent=last?(last.id===td?'Bugünkü değer':fmtD(last.id)+' kaydı'):''};
+  head('#hNow','#hChg',p=>exOf(p,HFB),false);head('#hNow2','#hChg2',p=>p.ana,true);
+  drawHist($('#hChart'),pts,'ex');drawHist($('#hChart2'),pts,'tot');
   const comp=[['Bakiye','bakiye',1],['Alacaklar','alacak',1],['Altın & gümüş','maden',1],['Fonlar','fon',1],['Borçlar','borc',-1]];
   $('#hCompLbl').textContent=last&&base&&base!==last?(lbl==='İlk kayıttan beri'?'ilk kayıttan beri değişim':lbl.toLocaleLowerCase('tr-TR')+'ki değişim'):'';
   $('#hComp').innerHTML=last?comp.map(([n,k,sg])=>{const v=last[k]||0,dv=base&&base!==last?v-(base[k]||0):null;
@@ -1322,10 +1346,10 @@ function renderHist(){
     return `<div class="row"><div class="what"><div>${esc(monthName(m))}${m===mk(today)?' <span class="chip">şu ana kadar</span>':''}</div><small>${esc(fmtD(h.id))}</small></div><div class="amt">${money(h.ana)}${d!=null?`<small class="${d>=0?'pos':'neg'}">${signM(d)}</small>`:''}</div></div>`}).join('')
     :'<div class="empty">Ay sonu değerleri burada listelenecek.</div>';
 }
-function drawHist(pts){const box=$('#hChart');const W=Math.max(260,Math.round(box.clientWidth||340)),Hh=W<520?220:260;
-  if(!pts.length){box.innerHTML='<p class="empty">Henüz kayıt yok. Uygulamayı her açtığında o günün değeri kendiliğinden kaydedilir; grafik zamanla dolacak.</p>';return}
+function drawHist(box,pts,mode){const W=Math.max(260,Math.round(box.clientWidth||340)),Hh=W<520?220:260;
+  if(!pts.length){box.innerHTML='<p class="empty">Henüz kayıt yok. Her gün otomatik olarak bir nokta kaydedilir; grafik zamanla dolacak.</p>';return}
   const cmp=new Intl.NumberFormat('tr-TR',{notation:'compact',maximumFractionDigits:2});
-  const ts=pts.map(p=>new Date(p.id+'T00:00').getTime()),vs=pts.map(p=>p.ana),ys=pts.map(p=>(p.maden||0)+(p.fon||0));
+  const ts=pts.map(p=>new Date(p.id+'T00:00').getTime()),vs=pts.map(p=>mode==='ex'?exOf(p,HFB):p.ana),ys=mode==='ex'?vs:pts.map(p=>(p.maden||0)+(p.fon||0));
   let t0=ts[0],t1=ts[ts.length-1];if(t1===t0){t0-=3*864e5;t1+=3*864e5}
   let lo=Math.min(...vs,...ys),hi=Math.max(...vs,...ys);if(hi-lo<Math.max(Math.abs(hi)*0.002,1)){const pd=Math.max(Math.abs(hi)*0.02,1000);lo-=pd;hi+=pd}
   const tk=niceTicks(lo,hi,4);lo=Math.min(lo,tk[0]);hi=Math.max(hi,tk[tk.length-1]);
@@ -1339,14 +1363,14 @@ function drawHist(pts){const box=$('#hChart');const W=Math.max(260,Math.round(bo
   const xt=xs.map((t,i)=>`<text x="${f1(X(t))}" y="${Hh-6}" text-anchor="${nx>1&&i===0?'start':nx>1&&i===nx-1?'end':'middle'}" class="ht">${esc(xf.format(new Date(t)))}</text>`).join('');
   const n=pts.length-1,first=fmtD(pts[0].id),lastD=fmtD(pts[n].id);
   box.innerHTML=`<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" role="img" aria-label="Ana bakiye grafiği: ${esc(first)} ${esc(money(vs[0]))}, ${esc(lastD)} ${esc(money(vs[n]))}">
-    ${grid}${area?`<path d="${area}" class="ha"/>`:''}<path d="${line2}" class="hl2"/><path d="${line}" class="hl"/>
-    <circle cx="${f1(X(ts[n]))}" cy="${f1(Y(ys[n]))}" r="4.5" class="hd2"/><circle cx="${f1(X(ts[n]))}" cy="${f1(Y(vs[n]))}" r="4.5" class="hd"/>${xt}
+    ${grid}${area?`<path d="${area}" class="ha"/>`:''}${mode==='ex'?'':`<path d="${line2}" class="hl2"/>`}<path d="${line}" class="hl"/>
+    ${mode==='ex'?'':`<circle cx="${f1(X(ts[n]))}" cy="${f1(Y(ys[n]))}" r="4.5" class="hd2"/>`}<circle cx="${f1(X(ts[n]))}" cy="${f1(Y(vs[n]))}" r="4.5" class="hd"/>${xt}
     <line class="hx" y1="${T}" y2="${T+ih}" x1="0" x2="0" visibility="hidden"/><circle class="hd hc" r="4.5" cx="0" cy="0" visibility="hidden"/>
-  </svg><div class="hleg"><span><i style="background:var(--accent)"></i>Ana bakiye</span><span><i style="background:var(--gold)"></i>Yatırımlar</span></div><div class="htip" hidden></div>${pts.length<3?'<p class="hint" style="padding:4px 6px 2px">Grafik her gün kendiliğinden bir nokta ekleyerek dolacak.</p>':''}`;
+  </svg><div class="hleg"><span><i style="background:var(--accent)"></i>${mode==='ex'?'Ana bakiye':'Toplam Ana Bakiye'}</span>${mode==='ex'?'':'<span><i style="background:var(--gold)"></i>Yatırımlar</span>'}</div><div class="htip" hidden></div>${mode!=='ex'&&pts.length<3?'<p class="hint" style="padding:4px 6px 2px">Grafik her gün kendiliğinden bir nokta ekleyerek dolacak.</p>':''}`;
   const svg=box.querySelector('svg'),hx=svg.querySelector('.hx'),hc=svg.querySelector('.hc'),tip=box.querySelector('.htip');
   const show=ev=>{const r=svg.getBoundingClientRect(),k=r.width/W,px=(ev.clientX-r.left)/k;let bi=0,bd=Infinity;ts.forEach((t,i)=>{const d=Math.abs(X(t)-px);if(d<bd){bd=d;bi=i}});
     const x=X(ts[bi]),y=Y(vs[bi]);for(const a of ['x1','x2'])hx.setAttribute(a,f1(x));hx.setAttribute('visibility','visible');hc.setAttribute('cx',f1(x));hc.setAttribute('cy',f1(y));hc.setAttribute('visibility','visible');
-    const pv=bi>0?vs[bi]-vs[bi-1]:null;tip.innerHTML=`<span>${esc(fmtD(pts[bi].id))}</span><b class="num">${money(vs[bi])}</b><small>Yatırımlar ${money(ys[bi])}</small>${pv!=null&&Math.abs(pv)>=1?`<small class="${pv>=0?'pos':'neg'}">${signM(pv)} önceki kayda göre</small>`:''}`;tip.hidden=false;
+    const pv=bi>0?vs[bi]-vs[bi-1]:null;tip.innerHTML=`<span>${esc(fmtD(pts[bi].id))}</span><b class="num">${money(vs[bi])}</b>${mode==='ex'?'':`<small>Yatırımlar ${money(ys[bi])}</small>`}${pv!=null&&Math.abs(pv)>=1?`<small class="${pv>=0?'pos':'neg'}">${signM(pv)} önceki güne göre</small>`:''}`;tip.hidden=false;
     const tw=tip.offsetWidth;tip.style.left=Math.max(0,Math.min(box.clientWidth-tw,x*k-tw/2))+'px'};
   const hide=()=>{hx.setAttribute('visibility','hidden');hc.setAttribute('visibility','hidden');tip.hidden=true};
   svg.addEventListener('pointermove',show);svg.addEventListener('pointerdown',show);svg.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')hide()});
@@ -1490,8 +1514,8 @@ function render0(){
   $('#sGelir').textContent=money(alM);$('#sGelirSub').textContent=alLater>0.004?`+${money(alLater)} sonraki aylarda`:'';$('#sFon').textContent=money(fv+hv);$('#sFonSub').textContent=hv>0.004?`fon ${money(fv)} · hesap & bono ${money(hv)}`:'';$('#sKartHar').textContent=money(dueThis);
   const pend=dueList.filter(x=>!(x.amount>0)).length;$('#sKartSub').textContent=(dueList.length||proj.length)?`${dueList.length} ekstre${proj.length?` · ${proj.length} kredi taksiti (öngörülen)`:''}${pend?` · ${pend} tanesinin tutarı girilmedi`:''}`:'';
   $('#nMaden').textContent=money(pv+fv+hv);$('#nYatSub').textContent=`altın ${money(pv)} · fon ${money(fv)}${hv>0.004?` · hesap & bono ${money(hv)}`:''}`;renderInvest(pv,fv,FP,hv);renderHB();$('#nAlacak').textContent=money(alT);
-  const ana=cashUpTo(M)+alT+pv+fv+hv-debt;$('#nAna').textContent=money(ana);
-  {const cash=cashUpTo(mk(today));maybeSnap({ana:cash+alT+pv+fv+hv-debt,bakiye:cash,alacak:alT,maden:pv,fon:fv,hesap:hv,borc:debt,
+  const ana=cashUpTo(M)+alT+pv+fv+hv-debt,pvFiz=physValue(),anaEx=ana-pvFiz;$('#nAna').textContent=money(anaEx);$('#nAna').className='big'+(anaEx<0?' neg':'');$('#nAnaTot').textContent=money(ana);
+  {const cash=cashUpTo(mk(today));maybeSnap({ana:cash+alT+pv+fv+hv-debt,bakiye:cash,alacak:alT,maden:pv,fizik:pvFiz,fon:fv,hesap:hv,borc:debt,
     fonBy:Object.fromEntries(OWNERS.map(o=>[o,FP.filter(p=>p.owner===o&&p.units>1e-9).reduce((a,p)=>a+(p.netValue??p.cost),0)]))},S.hold.some(h=>holdValue(h)==null))}
   if(S.tab==='gecmis')renderHist();
   renderOzSide();
