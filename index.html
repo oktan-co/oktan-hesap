@@ -413,7 +413,7 @@ nav svg{display:none}
 .hbox{padding:12px 10px 8px;display:grid;gap:6px}
 .hrange{padding:0 4px}
 .hhead{padding:6px 8px 4px}
-.anatot{display:flex;justify-content:space-between;align-items:baseline;gap:8px;opacity:.55;font-size:13px;color:var(--muted)}.anatot b{font-family:var(--f-num);font-weight:500;font-size:15px;color:var(--ink)}
+.anatot{display:grid;gap:2px;margin-top:8px;opacity:.6}.anatot b{font-family:var(--f-num);font-weight:500;font-size:clamp(19px,5.2vw,24px);letter-spacing:-.01em;color:var(--ink)}
 .hchart{position:relative;min-height:120px}
 .hchart svg{display:block;width:100%;height:auto;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .hg{stroke:var(--line);stroke-width:1}
@@ -659,7 +659,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
 
     <div class="box">
       <div class="kalan" style="padding-bottom:12px"><span class="eyebrow">Ana bakiye <button type="button" class="info" data-why aria-label="Nasıl hesaplanıyor?">i</button></span><span class="big" id="nAna" style="font-size:clamp(26px,7vw,34px)">—</span>
-        <div class="anatot"><span>Toplam Ana Bakiye · fiziki altın dahil</span><b id="nAnaTot">—</b></div>
+        <div class="anatot"><span class="eyebrow">Toplam Ana Bakiye</span><b id="nAnaTot">—</b></div>
         <span class="hint why">Ana bakiye = alacaklar + Fiba altın/gümüş + stopaj sonrası fonlar + hesap &amp; bono − kart borcu. Nakit defteri (Bakiye) ve fiziki altın (Harem) buna katılmaz; fiziki altın "Toplam Ana Bakiye"ye katılır.</span></div>
       <div class="flow">
         <div><span class="eyebrow">Bakiye</span><b id="nNakit">—</b><small class="hint">nakit defteri · toplama girmez</small></div>
@@ -1030,7 +1030,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </div>
     <div class="box hbox">
       <div class="kalan hhead">
-        <span class="eyebrow">Ana bakiye <small class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">· fiziki altın hariç</small></span>
+        <span class="eyebrow">Ana bakiye</span>
         <span class="big" id="hNow">—</span>
         <span class="hint" id="hChg"></span>
       </div>
@@ -1038,7 +1038,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
     </div>
     <div class="box hbox">
       <div class="kalan hhead">
-        <span class="eyebrow">Toplam Ana Bakiye <small class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">· fiziki altın dahil</small></span>
+        <span class="eyebrow">Toplam Ana Bakiye</span>
         <span class="big" id="hNow2">—</span>
         <span class="hint" id="hChg2"></span>
       </div>
@@ -1122,7 +1122,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 69 · 5 Kas 23:05</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 70 · 5 Kas 23:10</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
