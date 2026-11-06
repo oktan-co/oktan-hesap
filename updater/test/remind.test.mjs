@@ -17,6 +17,11 @@ test('bugün ve yarın ayrılır, ödenenler ve tutarsız-beklemeyenler atlanır
   assert.deepEqual(d.tomorrow.map(s => [s.card, s.amount]), [['Emre Akbank', 25615.97], ['Garanti Bonus', null]]);
 });
 
+test('silinmiş karta ait ekstre atlanır', () => {
+  const d = pickDue([{ cardId: 'yok', due: '2026-10-20', amount: 0, pending: true, paid: false }, st[2]], cards, '2026-10-20');
+  assert.deepEqual(d.today.map(s => s.card), ['Garanti Bonus']);
+});
+
 test('ay sonundan sonraki gün', () => {
   const d = pickDue([{ cardId: 'c1', due: '2026-11-01', amount: 10, paid: false }], cards, '2026-10-31');
   assert.equal(d.tomorrow.length, 1);

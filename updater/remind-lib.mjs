@@ -7,12 +7,12 @@ export const daysLeft = (iso, from) => Math.round((Date.parse(iso + 'T12:00:00Z'
 export const longDate = iso => new Date(iso + 'T12:00:00Z').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long', timeZone: 'Europe/Istanbul' });
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/** Ödenmemiş ekstreleri bugün / yarın son ödemeli olarak ayırır; test için yaklaşanları da verir. */
+/** Ödenmemiş ekstreleri bugün / yarın son ödemeli olarak ayırır; test için yaklaşanları da verir. Silinmiş karta ait ekstreler atlanır. */
 export function pickDue(statements, cards, today) {
   const tomorrow = addDaysIso(today, 1);
-  const name = id => (cards.find(c => c.id === id) || {}).name || 'Kart';
+  const name = id => (cards.find(c => c.id === id) || {}).name;
   const open = statements
-    .filter(s => !s.paid && s.due && (s.amount > 0 || s.pending))
+    .filter(s => !s.paid && s.due && (s.amount > 0 || s.pending) && cards.some(c => c.id === s.cardId))
     .map(s => ({ card: name(s.cardId), due: s.due, amount: s.amount > 0 ? s.amount : null, note: s.note || '' }))
     .sort((a, b) => a.due.localeCompare(b.due) || a.card.localeCompare(b.card, 'tr'));
   return {

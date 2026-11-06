@@ -1117,7 +1117,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 74 · 5 Kas 23:27</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 75 · 6 Kas 13:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1452,6 +1452,8 @@ document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,sele
   if(e.key==='n'||e.key==='N'){e.preventDefault();setTab('harcama');const f=$('#spAddFold');f.open=true;setSpTab('manual');setTimeout(()=>{f.scrollIntoView({block:'nearest'});$('#spAmt').focus()},50)}
   else if(e.key==='/'){e.preventDefault();setTab('harcama');setTimeout(()=>$('#fQ').focus(),50)}});
 WIDE.addEventListener?.('change',()=>{setTab(S.tab);render()});
+/* Ekstreler: silinmiş karta ait (sahipsiz) olanlar hiçbir yerde gösterilmez, toplamlara girmez. */
+function syncSt(){S.st=(S.stAll||[]).filter(x=>(x.amount>0||x.pending)&&S.cards.some(c=>c.id===x.cardId))}
 /* Kredi taksitleri: açık taksitten sonrakiler henüz kayıt değil (öncekini ödeyince açılıyor). Aylık hesapta görünsün diye M ayına kadar olanları öngör. */
 function loanProjection(M){const out=[];
   for(const c of S.cards){if(c.kind!=='loan'||!c.dueDay||!(c.inst>0))continue;
@@ -2366,6 +2368,10 @@ document.addEventListener('click',async e=>{
   const k=b.dataset.del,id=b.dataset.id,coll={sp:'spend',tx:'tx',card:'cards',hold:'holdings',fund:'fundtx',al:'alacak'}[k];if(!coll)return;
   const x=({sp:S.sp,tx:S.tx,card:S.cards,hold:S.hold,fund:S.fdtx,al:S.al}[k]||[]).find(v=>v.id===id);const data=x?stripId(x):null;
   const lbl={sp:'Harcama',tx:'Kayıt',card:'Kart',hold:'Varlık',fund:'Fon işlemi',al:'Alacak'}[k];
+  if(k==='card'){/* kartla birlikte ona bağlı ekstreler de silinir; ödeme kayıtları (nakit defteri) kalır. Geri al hepsini geri getirir. */
+    const sts=(S.stAll||[]).filter(v=>v.cardId===id).map(v=>({id:v.id,data:stripId(v)}));
+    (async()=>{await db.collection(coll).doc(id).delete();for(const v of sts)await db.collection('statements').doc(v.id).delete()})().catch(err=>showBanner(errText(err)));
+    toast(lbl+' silindi.',data?async()=>{await db.collection(coll).doc(id).set(data);for(const v of sts)await db.collection('statements').doc(v.id).set(v.data)}:null);return}
   db.collection(coll).doc(id).delete().catch(err=>showBanner(errText(err)));
   toast(lbl+' silindi.',data?()=>db.collection(coll).doc(id).set(data):null);
 });
@@ -2731,7 +2737,7 @@ function startData(fs){
   const on=(ref,fn)=>unsub.push(ref.onSnapshot(s=>{if(!(s.metadata&&s.metadata.fromCache))LOADED.add(ref.path);fn(s)},err));
   on(db.collection('history'),s=>{S.hist=list(s).sort((a,b)=>a.id.localeCompare(b.id));if(S.tab==='gecmis')renderHist()});
   on(db.collection('tx'),s=>{got();S.tx=list(s).filter(t=>t.date&&t.amount>0);render()});
-  on(db.collection('cards'),s=>{got();S.cards=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render();queuePlan()});
+  on(db.collection('cards'),s=>{got();S.cards=list(s).sort((a,b)=>(a.created||0)-(b.created||0));syncSt();render();queuePlan()});
   on(db.collection('holdings'),s=>{got();S.hold=list(s).sort((a,b)=>(a.created||0)-(b.created||0));render()});
   on(db.collection('spend'),s=>{got();S.sp=list(s).filter(x=>x.amount>0&&x.date);render()});
   on(db.collection('alacak'),s=>{got();S.al=list(s).filter(a=>Number.isFinite(a.amount)&&a.amount!==0).sort((a,b)=>(a.created||0)-(b.created||0));
@@ -2739,7 +2745,7 @@ function startData(fs){
     for(const a of S.al)if(a.src&&!a.repeat&&a.date&&a.date===a.srcDate&&!a.dateSet)db.collection('alacak').doc(a.id).update({date:''}).catch(()=>{});
     render()});
   on(db.collection('hesap'),s=>{got();S.hb=list(s).filter(x=>Number.isFinite(x.amount)).sort((a,b)=>(a.created||0)-(b.created||0));render()});
-  on(db.collection('statements'),s=>{got();S.st=list(s).filter(x=>x.amount>0||x.pending);render();queuePlan()});
+  on(db.collection('statements'),s=>{got();S.stAll=list(s);syncSt();render();queuePlan()});
   on(db.collection('fundtx'),s=>{got();S.fdtx=list(s).filter(t=>t.code&&t.units>0&&t.price>0&&t.date);render()});
   on(db.doc('prices/funds'),s=>{S.fdp=s.exists?s.data():{items:{}};render()});
   on(db.doc('prices/harem'),s=>{S.harem=s.exists?s.data():{items:{}};render()});

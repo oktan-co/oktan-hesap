@@ -17,7 +17,9 @@ const db = getFirestore();
 const list = async name => (await db.collection(name).get()).docs.map(d => ({ id: d.id, ...d.data() }));
 const doc = async path => { const s = await db.doc(path).get(); return s.exists ? s.data() : null; };
 
-const [tx, fdtx, hold, al, hb, st] = await Promise.all(['tx', 'fundtx', 'holdings', 'alacak', 'hesap', 'statements'].map(list));
+const [tx, fdtx, hold, al, hb, stAll, cards] = await Promise.all(['tx', 'fundtx', 'holdings', 'alacak', 'hesap', 'statements', 'cards'].map(list));
+// Silinmiş karta ait (sahipsiz) ekstreler borca sayılmaz.
+const st = stAll.filter(x => cards.some(c => c.id === x.cardId));
 const [fdp, harem, fiba, doviz, settings] = await Promise.all(['prices/funds', 'prices/harem', 'prices/fiba', 'prices/doviz', 'settings/main'].map(doc));
 const missing = [['prices/funds', fdp], ['prices/harem', harem], ['prices/fiba', fiba]].filter(([, v]) => !v).map(([k]) => k);
 if (missing.length) { console.error('Fiyat belgesi yok, kayıt atlandı:', missing.join(', ')); process.exit(1); }
