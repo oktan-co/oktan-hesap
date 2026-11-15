@@ -242,10 +242,10 @@ form.inner{display:grid;gap:12px;padding:14px 16px}
 .search:focus-within{border-color:var(--accent)}
 .drop{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:center;text-align:center;padding:22px 16px;border:2px dashed var(--line);border-radius:10px;background:var(--bg);cursor:pointer}
 .drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--bg))}
-.imrow{display:grid;grid-template-columns:140px 110px minmax(0,1fr) 170px 96px auto;gap:8px;align-items:center;padding:8px 16px;border-top:1px solid var(--line)}
+.imrow{display:grid;grid-template-columns:140px 110px minmax(0,1fr) 170px 120px 96px auto;gap:8px;align-items:center;padding:8px 16px;border-top:1px solid var(--line)}
 .imrow input,.imrow select{width:100%;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
 .imrow input.num{text-align:right;font-family:var(--f-num)}
-@media (max-width:640px){.imrow{grid-template-columns:1fr 1fr auto}.imrow .imnote,.imrow select[data-f=cat]{grid-column:1/3}}
+@media (max-width:640px){.imrow{grid-template-columns:1fr 1fr auto}.imrow .imnote,.imrow select[data-f=cat],.imrow select[data-f=nm]{grid-column:1/3}}
 .imrow.dupx{box-shadow:inset 4px 0 0 var(--neg);background:color-mix(in srgb,var(--neg) 7%,transparent)}
 .imrow.dupn{box-shadow:inset 4px 0 0 var(--gold);background:color-mix(in srgb,var(--gold) 9%,transparent)}
 .imrow.skipped input:not([data-f=skip]),.imrow.skipped select{opacity:.45}
@@ -746,6 +746,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
         <button class="btn ghost" type="button" id="spStop" hidden>Durdur</button>
         <div class="msg" id="spImMsg"></div>
       </div>
+      <div class="pad" id="spOwnBar" hidden style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="hint" style="display:flex;gap:6px;align-items:center">Hepsi için kimin harcaması <select id="spImOwn" class="spcat" style="margin:0"></select></label></div>
       <div id="spRev" class="list"></div>
       <div class="pad" id="spRevFoot" hidden style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line)">
         <button class="btn" type="button" id="spAddAll">Hepsini ekle</button>
@@ -1117,7 +1118,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 75 · 6 Kas 13:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 76 · 15 Kas 23:05</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1218,6 +1219,7 @@ function applyCats(){const raw=S.settings.spGroups;const key=JSON.stringify(Arra
   SP_GROUPS=CAT_GROUPS.map(x=>[x.g,x.c]);NOT_MINE=new Set(CAT_GROUPS.filter(x=>x.nm).flatMap(x=>x.c));SP_CATS=SP_GROUPS.flatMap(g=>g[1]);
   const sc=$('#spCat');if(sc){const v=sc.value;sc.innerHTML=spCatOpts(v)}
   const so=$('#spOwn');if(so){const v=so.value;so.innerHTML=ownOpts(v)}
+  const io=$('#spImOwn');if(io)io.innerHTML='<option value="__">Seç…</option>'+ownOpts('');
   renderCatEditor()}
 function ownOpts(sel){return '<option value="">Benim</option>'+[...NOT_MINE].map(c=>`<option${c===sel?' selected':''}>${esc(c)}</option>`).join('')}
 const cardsOnly=()=>S.cards.filter(c=>c.kind!=='loan'); // krediler 'cards' koleksiyonunda kind:'loan' ile durur; harcama ödeme seçeneklerinde görünmez
@@ -2207,6 +2209,7 @@ function spRowHtml(r,i){const d=r.dup;
     <input class="num" data-f="amount" inputmode="decimal" value="${esc(r.amountTxt)}" aria-label="Tutar">
     <input class="imnote" data-f="note" value="${esc(r.note)}" maxlength="60" placeholder="Açıklama" aria-label="Açıklama">
     <select data-f="cat" aria-label="Kategori">${spCatOpts(r.cat)}</select>
+    <select data-f="nm" aria-label="Kimin harcaması">${ownOpts(r.nm||'')}</select>
     <select data-f="type" aria-label="Tür"><option value=""${r.type==='iade'?'':' selected'}>Harcama</option><option value="iade"${r.type==='iade'?' selected':''}>İade</option></select>
     <button class="del" type="button" data-imdel="${i}" aria-label="Satırı çıkar">✕</button>
     ${d?`<div class="imdup ${d.lvl}"><span><b>${d.lvl==='x'?'Zaten kayıtlı':'Olası kopya'}</b> · ${esc(dmyS(d.ex.date))}${d.ex.note?' · '+esc(d.ex.note):''} · ${money(d.ex.amount)}</span><label><input type="checkbox" data-f="skip"${r.skip?' checked':''}> Atla (ekleme)</label></div>`:''}</div>`}
@@ -2220,7 +2223,7 @@ function renderSpRev(){
       html+=spRows.map((r,i)=>r.gone||r.dup?'':spRowHtml(r,i)).join('')+`<div class="imgrp">Olası kopyalar (${dups.length})</div>`+spRows.map((r,i)=>r.gone||!r.dup?'':spRowHtml(r,i)).join('')}
     else html+=spRows.map((r,i)=>r.gone?'':spRowHtml(r,i)).join('')}
   $('#spRev').innerHTML=html;
-  $('#spRevFoot').hidden=!live.length;
+  $('#spRevFoot').hidden=!live.length;$('#spOwnBar').hidden=!live.length;
   renderSpSum();
 }
 $('#spRev').addEventListener('input',e=>{const row=e.target.closest('[data-im]');if(!row)return;const r=spRows[+row.dataset.im];const f=e.target.dataset.f;if(f==='skip')return;
@@ -2230,6 +2233,7 @@ $('#spRev').addEventListener('change',e=>{const row=e.target.closest('[data-im]'
   r[f==='amount'?'amountTxt':f]=e.target.value;if(['date','amount','type'].includes(f)){r.skipSet=false;renderSpRev()}else renderSpSum()});
 $('#spRev').addEventListener('click',e=>{const b=e.target.closest('[data-dupall]');if(!b)return;const skip=b.dataset.dupall==='1'?false:true;
   for(const r of spRows)if(!r.gone&&r.dup){r.skip=skip;r.skipSet=true}renderSpRev()});
+$('#spImOwn').addEventListener('change',e=>{const v=e.target.value;if(v==='__')return;for(const r of spRows)if(!r.gone)r.nm=v;e.target.value='__';renderSpRev()});
 $('#spImPay').addEventListener('change',()=>{for(const r of spRows)r.skipSet=false;renderSpRev()});
 function renderSpSum(){const all=spRows.filter(r=>!r.gone),sk=all.filter(r=>r.skip).length,live=all.filter(r=>!r.skip);const ia=live.filter(r=>r.type==='iade');const net=live.reduce((a,r)=>a+(r.type==='iade'?-1:1)*(parseNum(r.amountTxt)||0),0);
   $('#spRevSum').textContent=all.length?`${live.length-ia.length} harcama${ia.length?` · ${ia.length} iade`:''}${sk?` · ${sk} atlanacak`:''} · net ${money(net)}`:'';
@@ -2310,7 +2314,7 @@ $('#spAddAll').addEventListener('click',async()=>{const msg=$('#spImMsg');if(!ne
   if(!live.length){flash(msg,'Eklenecek satır kalmadı (hepsi atlanacak olarak işaretli).',true);return}
   for(const r of live){const a=parseNum(r.amountTxt);if(!(a>0)||!/^\d{4}-\d{2}-\d{2}$/.test(r.date)){flash(msg,'Her satırda geçerli bir tarih ve sıfırdan büyük tutar olmalı.',true);return}}
   const b=$('#spAddAll');b.disabled=true;let ok=0;const added=[];
-  try{for(const r of live){const nid=uid();added.push(nid);await db.collection('spend').doc(nid).set({amount:Math.round(parseNum(r.amountTxt)*100)/100,cat:r.cat,date:r.date,note:r.note.trim(),pay:$('#spImPay').value,refund:r.type==='iade',created:Date.now()});r.gone=true;ok++}
+  try{for(const r of live){const nid=uid();added.push(nid);await db.collection('spend').doc(nid).set({amount:Math.round(parseNum(r.amountTxt)*100)/100,cat:r.cat,date:r.date,note:r.note.trim(),pay:$('#spImPay').value,refund:r.type==='iade',...(r.nm?{nm:r.nm}:{}),created:Date.now()});r.gone=true;ok++}
     const skippedN=spRows.filter(r=>!r.gone&&r.skip).length;spRows=[];renderSpRev();flash(msg,ok+' harcama eklendi'+(skippedN?`, ${skippedN} kopya atlandı`:'')+'.');
     if(added.length)toast(ok+' harcama eklendi.',async()=>{for(const id of added)await db.collection('spend').doc(id).delete()},10000)}
   catch(err){renderSpRev();flash(msg,(ok?ok+' harcama eklendi, kalanlar eklenemedi. ':'')+errText(err),true)}finally{b.disabled=false}});
