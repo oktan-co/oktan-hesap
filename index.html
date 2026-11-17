@@ -424,6 +424,8 @@ nav svg{display:none}
 .anatot{display:grid;gap:2px;margin-top:8px;opacity:.6}.anatot b{font-family:var(--f-num);font-weight:500;font-size:clamp(19px,5.2vw,24px);letter-spacing:-.01em;color:var(--ink)}
 .hchart{position:relative;min-height:120px}
 .hchart svg{display:block;width:100%;height:auto;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.hchart svg *{pointer-events:none}
+#hZoomReset{margin-left:auto}
 .hg{stroke:var(--line);stroke-width:1}
 .ht{fill:var(--muted);font:11px var(--f-body)}
 .hl{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
@@ -1022,7 +1024,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
   <!-- GEÇMİŞ (başlıktaki grafik düğmesi) -->
   <section class="panel" data-panel="gecmis" hidden>
     <div class="pchips hrange" id="hRange" role="group" aria-label="Zaman aralığı">
-      <button type="button" data-hr="1a">1 ay</button><button type="button" data-hr="3a">3 ay</button><button type="button" data-hr="6a">6 ay</button><button type="button" data-hr="1y">1 yıl</button><button type="button" data-hr="all">Tümü</button>
+      <button type="button" data-hr="1a">1 ay</button><button type="button" data-hr="3a">3 ay</button><button type="button" data-hr="6a">6 ay</button><button type="button" data-hr="1y">1 yıl</button><button type="button" data-hr="all">Tümü</button><button type="button" id="hZoomReset" hidden aria-label="Yakınlaştırmayı sıfırla" title="Sıfırla">↺</button>
     </div>
     <div class="box hbox">
       <div class="kalan hhead">
@@ -1118,7 +1120,7 @@ dialog.sheet::backdrop{background:rgb(0 0 0 / .45)}
       </div>
       <div class="msg" id="bkMsg"></div>
     </div>
-    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 76 · 15 Kas 23:05</p><!-- her yayında numarayı 1 artır, saati güncelle -->
+    <p class="hint" id="appVer" style="text-align:center;margin:12px 0 4px">Sürüm 77 · 17 Kas 08:25</p><!-- her yayında numarayı 1 artır, saati güncelle -->
   </div>
 </dialog>
 </div>
@@ -1333,7 +1335,9 @@ function renderHist(){
       $(chgId).innerHTML=`${esc(lbl)} <span class="${d>=0?'pos':'neg'}">${signM(d)}</span>${HIDE||!withPct?'':` <span class="hint">(${d>=0?'+':'−'}%${Math.abs(pc).toLocaleString('tr-TR',{maximumFractionDigits:1})})</span>`}`}
     else $(chgId).textContent=last?(last.id===td?'Bugünkü değer':fmtD(last.id)+' kaydı'):''};
   head('#hNow','#hChg',p=>exOf(p,HFB),false);head('#hNow2','#hChg2',anaOf,true);
-  drawHist($('#hChart'),pts,'ex');drawHist($('#hChart2'),pts,'tot');
+  {const T=p=>new Date(p.id+'T00:00').getTime(),all=H.length?fillDaily(H,H[0].id,td):[];
+    HD={all,ts:all.map(T),defA:pts.length?T(pts[0]):0,defB:pts.length?T(pts[pts.length-1]):0}}
+  drawHistAll();
   const comp=[['Alacaklar','alacak',1],['Altın & gümüş','maden',1],['Fonlar','fon',1],['Hesap & bono','hesap',1],['Borçlar','borc',-1]];
   $('#hCompLbl').textContent=last&&base&&base!==last?(lbl==='İlk kayıttan beri'?'ilk kayıttan beri değişim':lbl.toLocaleLowerCase('tr-TR')+'ki değişim'):'';
   $('#hComp').innerHTML=last?comp.map(([n,k,sg])=>{const v=last[k]||0,dv=base&&base!==last?v-(base[k]||0):null;
@@ -1345,39 +1349,91 @@ function renderHist(){
     return `<div class="row"><div class="what"><div>${esc(monthName(m))}${m===mk(today)?' <span class="chip">şu ana kadar</span>':''}</div><small>${esc(fmtD(h.id))}</small></div><div class="amt">${money(anaOf(h))}${d!=null?`<small class="${d>=0?'pos':'neg'}">${signM(d)}</small>`:''}</div></div>`}).join('')
     :'<div class="empty">Ay sonu değerleri burada listelenecek.</div>';
 }
-function drawHist(box,pts,mode){const W=Math.max(260,Math.round(box.clientWidth||340)),Hh=W<520?220:260;
-  if(!pts.length){box.innerHTML='<p class="empty">Henüz kayıt yok. Her gün otomatik olarak bir nokta kaydedilir; grafik zamanla dolacak.</p>';return}
+/* ---- grafik yakınlaştırma: iki parmakla büyüt/küçült + kaydır, çift dokunma / "Sıfırla" ile tüm aralığa dön; iki grafik ortak ---- */
+let HD=null,HZ=null;try{const z=JSON.parse(sessionStorage.getItem('kasa.hz')||'null');if(Array.isArray(z)&&z.length===2&&z.every(Number.isFinite)&&z[1]>z[0])HZ=z}catch(e){}
+function setHZ(z){HZ=z;try{z?sessionStorage.setItem('kasa.hz',JSON.stringify(z)):sessionStorage.removeItem('kasa.hz')}catch(e){}}
+function hClamp(a,b){const T0=HD.ts[0],T1=HD.ts[HD.ts.length-1],full=T1-T0;if(!(full>0))return [a,b];
+  const sp=Math.max(Math.min(full,3*864e5),Math.min(full,b-a));a+=((b-a)-sp)/2;if(a<T0)a=T0;if(a+sp>T1)a=T1-sp;return [a,a+sp]}
+function histWin(){let a=HD.defA,b=HD.defB;if(HZ)return hClamp(HZ[0],HZ[1]);if(a===b){a-=3*864e5;b+=3*864e5}return [a,b]}
+let hRaf=0;
+function drawHistAll(){cancelAnimationFrame(hRaf);hRaf=0;if(!HD)return;drawHist($('#hChart'),'ex');drawHist($('#hChart2'),'tot');const rb=$('#hZoomReset');if(rb)rb.hidden=!HZ}
+const hSched=()=>{if(!hRaf)hRaf=requestAnimationFrame(drawHistAll)};
+function hZoomTo(a,sp){setHZ(hClamp(a,a+sp));hSched()}
+function hTicks(t0,t1,W){const nx=W<420?4:5,span=(t1-t0)/864e5,raw=span/nx,out=[];let fmt;
+  if(raw<21){const k=[1,2,3,7,14].find(x=>x>=raw)||14,d=new Date(t0);d.setHours(0,0,0,0);if(d.getTime()<t0)d.setDate(d.getDate()+1);
+    for(;d.getTime()<=t1;d.setDate(d.getDate()+k))out.push(d.getTime());fmt={day:'numeric',month:'short'}}
+  else{const km=[1,2,3,6,12,24].find(x=>x*30.4>=raw)||24,d=new Date(t0);d.setDate(1);d.setHours(0,0,0,0);if(d.getTime()<t0)d.setMonth(d.getMonth()+1);
+    if(km>1)while(d.getMonth()%km!==0)d.setMonth(d.getMonth()+1);
+    for(;d.getTime()<=t1;d.setMonth(d.getMonth()+km))out.push(d.getTime());fmt=km>=12?{year:'numeric'}:span>240?{month:'short',year:'2-digit'}:{month:'short'}}
+  return {ticks:out,fmt}}
+function hHideTip(box){const hx=box.querySelector('.hx'),hc=box.querySelector('.hc'),tip=box.querySelector('.htip');hx&&hx.setAttribute('visibility','hidden');hc&&hc.setAttribute('visibility','hidden');if(tip)tip.hidden=true}
+function hBind(box){
+  const svg=box.querySelector('svg'),tip=box.querySelector('.htip');
+  const frac=cx=>{const M=box._m,r=svg.getBoundingClientRect(),k=r.width/M.W;return Math.max(0,Math.min(1,((cx-r.left)/k-M.L)/M.iw))};
+  const show=ev=>{const M=box._m;if(!M||box._pinch)return;const hx=svg.querySelector('.hx'),hc=svg.querySelector('.hc'),r=svg.getBoundingClientRect(),k=r.width/M.W,px=(ev.clientX-r.left)/k;
+    let bi=-1,bd=Infinity;M.ts.forEach((t,i)=>{if(t<M.t0||t>M.t1)return;const d=Math.abs(M.X(t)-px);if(d<bd){bd=d;bi=i}});if(bi<0)return;
+    const x=M.X(M.ts[bi]),y=M.Y(M.vs[bi]),f1=n=>n.toFixed(1);for(const a of ['x1','x2'])hx.setAttribute(a,f1(x));hx.setAttribute('visibility','visible');hc.setAttribute('cx',f1(x));hc.setAttribute('cy',f1(y));hc.setAttribute('visibility','visible');
+    const pv=bi>0?M.vs[bi]-M.vs[bi-1]:null;tip.innerHTML=`<span>${esc(fmtD(M.pts[bi].id))}</span><b class="num">${money(M.vs[bi])}</b>${M.mode==='ex'?'':`<small>Yatırımlar ${money(M.ys[bi])}</small>`}${pv!=null&&Math.abs(pv)>=1?`<small class="${pv>=0?'pos':'neg'}">${signM(pv)} önceki güne göre</small>`:''}`;tip.hidden=false;
+    const tw=tip.offsetWidth;tip.style.left=Math.max(0,Math.min(box.clientWidth-tw,x*k-tw/2))+'px'};
+  let mp=null,tap=null;
+  svg.addEventListener('pointerdown',ev=>{if(ev.pointerType==='mouse'&&HZ)mp={x:ev.clientX,w:histWin(),moved:false};show(ev)});
+  svg.addEventListener('pointermove',ev=>{if(mp&&ev.pointerType==='mouse'&&ev.buttons===1){const M=box._m,r=svg.getBoundingClientRect(),k=r.width/M.W,dx=(ev.clientX-mp.x)/k;if(Math.abs(dx)>3)mp.moved=true;
+      if(mp.moved){const sp=mp.w[1]-mp.w[0];hZoomTo(mp.w[0]-dx/M.iw*sp,sp);return}}
+    show(ev)});
+  svg.addEventListener('pointerup',ev=>{mp=null;if(ev.pointerType==='touch'&&!box._pinch){const n=Date.now();if(tap&&n-tap.t<320&&Math.hypot(ev.clientX-tap.x,ev.clientY-tap.y)<28&&HZ){setHZ(null);hSched();tap=null}else tap={t:n,x:ev.clientX,y:ev.clientY}}});
+  svg.addEventListener('pointerleave',e=>{mp=null;if(e.pointerType==='mouse')hHideTip(box)});
+  if(box._g)return;box._g=1;
+  let pin=null;
+  const dist=(p,q)=>Math.hypot(p.clientX-q.clientX,p.clientY-q.clientY)||1;
+  box.addEventListener('touchstart',e=>{if(e.touches.length===2&&box._m&&HD&&HD.ts.length>1){const [p,q]=e.touches,w=histWin();pin={d:dist(p,q),sp:w[1]-w[0],anchor:w[0]+frac((p.clientX+q.clientX)/2)*(w[1]-w[0])};box._pinch=true;hHideTip(box);e.preventDefault()}},{passive:false});
+  box.addEventListener('touchmove',e=>{if(!pin||e.touches.length!==2)return;e.preventDefault();const [p,q]=e.touches,sp=pin.sp*pin.d/dist(p,q),cf=frac((p.clientX+q.clientX)/2);hZoomTo(pin.anchor-cf*sp,sp)},{passive:false});
+  const end=e=>{if(e.touches.length<2&&pin){pin=null;setTimeout(()=>{box._pinch=false},120)}};
+  box.addEventListener('touchend',end);box.addEventListener('touchcancel',end);
+  box.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey)||!box._m||!HD||HD.ts.length<2)return;e.preventDefault();const w=histWin(),sp=(w[1]-w[0])*Math.exp(e.deltaY*0.01),cf=frac(e.clientX),anchor=w[0]+cf*(w[1]-w[0]);hZoomTo(anchor-cf*sp,sp)},{passive:false});
+}
+function drawHist(box,mode){const W=Math.max(260,Math.round(box.clientWidth||340)),Hh=W<520?220:260,all=HD.all;
+  if(!all.length){box._k=null;box._m=null;box.innerHTML='<p class="empty">Henüz kayıt yok. Her gün otomatik olarak bir nokta kaydedilir; grafik zamanla dolacak.</p>';return}
   const cmp=new Intl.NumberFormat('tr-TR',{notation:'compact',maximumFractionDigits:2});
-  const ts=pts.map(p=>new Date(p.id+'T00:00').getTime()),vs=pts.map(p=>mode==='ex'?exOf(p,HFB):anaOf(p)),ys=mode==='ex'?vs:pts.map(p=>(p.maden||0)+(p.fon||0));
-  let t0=ts[0],t1=ts[ts.length-1];if(t1===t0){t0-=3*864e5;t1+=3*864e5}
-  let lo=Math.min(...vs,...ys),hi=Math.max(...vs,...ys);if(hi-lo<Math.max(Math.abs(hi)*0.002,1)){const pd=Math.max(Math.abs(hi)*0.02,1000);lo-=pd;hi+=pd}
+  const ts=HD.ts,n=all.length-1,vs=all.map(p=>mode==='ex'?exOf(p,HFB):anaOf(p)),ys=mode==='ex'?vs:all.map(p=>(p.maden||0)+(p.fon||0));
+  const [t0,t1]=histWin();
+  const yAt=(arr,t)=>{if(t<=ts[0])return arr[0];if(t>=ts[n])return arr[n];let j=0;while(j<n-1&&ts[j+1]<=t)j++;const u=(t-ts[j])/(ts[j+1]-ts[j]);return arr[j]+(arr[j+1]-arr[j])*u};
+  let lo=Infinity,hi=-Infinity;const upd=v=>{if(v<lo)lo=v;if(v>hi)hi=v};
+  for(const arr of (mode==='ex'?[vs]:[vs,ys])){upd(yAt(arr,t0));upd(yAt(arr,t1));for(let i=0;i<=n;i++)if(ts[i]>=t0&&ts[i]<=t1)upd(arr[i])}
+  if(hi-lo<Math.max(Math.abs(hi)*0.002,1)){const pd=Math.max(Math.abs(hi)*0.02,1000);lo-=pd;hi+=pd}
   const tk=niceTicks(lo,hi,4);lo=Math.min(lo,tk[0]);hi=Math.max(hi,tk[tk.length-1]);
   const yl=tk.map(v=>HIDE?'•••':cmp.format(v)),L=Math.max(...yl.map(x=>x.length))*6.6+14,R=10,T=40,B=26,iw=W-L-R,ih=Hh-T-B;
   const X=t=>L+(t-t0)/(t1-t0)*iw,Y=v=>T+(1-(v-lo)/(hi-lo))*ih,f1=n=>n.toFixed(1);
-  const line=pts.map((p,i)=>`${i?'L':'M'}${f1(X(ts[i]))},${f1(Y(vs[i]))}`).join(''),line2=pts.map((p,i)=>`${i?'L':'M'}${f1(X(ts[i]))},${f1(Y(ys[i]))}`).join('');
-  const area=pts.length>1?`${line}L${f1(X(ts[ts.length-1]))},${f1(T+ih)}L${f1(X(ts[0]))},${f1(T+ih)}Z`:'';
+  let i0=0,i1=n;while(i0<n&&ts[i0+1]<=t0)i0++;while(i1>0&&ts[i1-1]>=t1)i1--;
+  const seg=arr=>{let d='';for(let i=i0;i<=i1;i++)d+=`${i>i0?'L':'M'}${f1(X(ts[i]))},${f1(Y(arr[i]))}`;return d};
+  const line=seg(vs),line2=seg(ys);
+  const area=i1>i0?`${line}L${f1(X(ts[i1]))},${f1(T+ih)}L${f1(X(ts[i0]))},${f1(T+ih)}Z`:'';
   const grid=tk.map((v,i)=>`<line x1="${f1(L)}" x2="${W-R}" y1="${f1(Y(v))}" y2="${f1(Y(v))}" class="hg"/><text x="${f1(L-8)}" y="${f1(Y(v)+4)}" text-anchor="end" class="ht">${esc(yl[i])}</text>`).join('');
-  const span=(t1-t0)/864e5,xf=new Intl.DateTimeFormat('tr-TR',span>240?{month:'short',year:'2-digit'}:{day:'numeric',month:'short'});
-  const nx=pts.length>1?(W<420?3:4):1,xs=[];for(let i=0;i<nx;i++)xs.push(nx===1?ts[0]:t0+(t1-t0)*i/(nx-1));
-  const xt=xs.map((t,i)=>`<text x="${f1(X(t))}" y="${Hh-6}" text-anchor="${nx>1&&i===0?'start':nx>1&&i===nx-1?'end':'middle'}" class="ht">${esc(xf.format(new Date(t)))}</text>`).join('');
-  const n=pts.length-1,first=fmtD(pts[0].id),lastD=fmtD(pts[n].id);
-  box.innerHTML=`<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" role="img" aria-label="Ana bakiye grafiği: ${esc(first)} ${esc(money(vs[0]))}, ${esc(lastD)} ${esc(money(vs[n]))}">
-    ${grid}${area?`<path d="${area}" class="ha"/>`:''}${mode==='ex'?'':`<path d="${line2}" class="hl2"/>`}<path d="${line}" class="hl"/>
-    ${mode==='ex'?'':`<circle cx="${f1(X(ts[n]))}" cy="${f1(Y(ys[n]))}" r="4.5" class="hd2"/>`}<circle cx="${f1(X(ts[n]))}" cy="${f1(Y(vs[n]))}" r="4.5" class="hd"/>${xt}
-    <line class="hx" y1="${T}" y2="${T+ih}" x1="0" x2="0" visibility="hidden"/><circle class="hd hc" r="4.5" cx="0" cy="0" visibility="hidden"/>
-  </svg><div class="hleg"><span><i style="background:var(--accent)"></i>${mode==='ex'?'Ana bakiye':'Toplam Ana Bakiye'}</span>${mode==='ex'?'':'<span><i style="background:var(--gold)"></i>Yatırımlar</span>'}</div><div class="htip" hidden></div>${mode!=='ex'&&pts.length<3?'<p class="hint" style="padding:4px 6px 2px">Grafik her gün kendiliğinden bir nokta ekleyerek dolacak.</p>':''}`;
-  const svg=box.querySelector('svg'),hx=svg.querySelector('.hx'),hc=svg.querySelector('.hc'),tip=box.querySelector('.htip');
-  const show=ev=>{const r=svg.getBoundingClientRect(),k=r.width/W,px=(ev.clientX-r.left)/k;let bi=0,bd=Infinity;ts.forEach((t,i)=>{const d=Math.abs(X(t)-px);if(d<bd){bd=d;bi=i}});
-    const x=X(ts[bi]),y=Y(vs[bi]);for(const a of ['x1','x2'])hx.setAttribute(a,f1(x));hx.setAttribute('visibility','visible');hc.setAttribute('cx',f1(x));hc.setAttribute('cy',f1(y));hc.setAttribute('visibility','visible');
-    const pv=bi>0?vs[bi]-vs[bi-1]:null;tip.innerHTML=`<span>${esc(fmtD(pts[bi].id))}</span><b class="num">${money(vs[bi])}</b>${mode==='ex'?'':`<small>Yatırımlar ${money(ys[bi])}</small>`}${pv!=null&&Math.abs(pv)>=1?`<small class="${pv>=0?'pos':'neg'}">${signM(pv)} önceki güne göre</small>`:''}`;tip.hidden=false;
-    const tw=tip.offsetWidth;tip.style.left=Math.max(0,Math.min(box.clientWidth-tw,x*k-tw/2))+'px'};
-  const hide=()=>{hx.setAttribute('visibility','hidden');hc.setAttribute('visibility','hidden');tip.hidden=true};
-  svg.addEventListener('pointermove',show);svg.addEventListener('pointerdown',show);svg.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')hide()});
+  let xt;
+  if(!HZ){const span=(t1-t0)/864e5,xf=new Intl.DateTimeFormat('tr-TR',span>240?{month:'short',year:'2-digit'}:{day:'numeric',month:'short'});
+    const nx=i1>i0?(W<420?3:4):1,xs=[];for(let i=0;i<nx;i++)xs.push(nx===1?ts[0]:t0+(t1-t0)*i/(nx-1));
+    xt=xs.map((t,i)=>`<text x="${f1(X(t))}" y="${Hh-6}" text-anchor="${nx>1&&i===0?'start':nx>1&&i===nx-1?'end':'middle'}" class="ht">${esc(xf.format(new Date(t)))}</text>`).join('')}
+  else{const {ticks,fmt}=hTicks(t0,t1,W),xf=new Intl.DateTimeFormat('tr-TR',fmt);
+    xt=ticks.map(t=>{const x=X(t);return `<text x="${f1(x)}" y="${Hh-6}" text-anchor="${x<L+18?'start':x>W-R-18?'end':'middle'}" class="ht">${esc(xf.format(new Date(t)))}</text>`}).join('')}
+  const endVis=ts[n]>=t0&&ts[n]<=t1,cid='hclip-'+mode;
+  const inner=`<defs><clipPath id="${cid}"><rect x="${f1(L)}" y="${T-4}" width="${f1(iw)}" height="${ih+8}"/></clipPath></defs>${grid}
+    <g clip-path="url(#${cid})">${area?`<path d="${area}" class="ha"/>`:''}${mode==='ex'?'':`<path d="${line2}" class="hl2"/>`}<path d="${line}" class="hl"/></g>
+    ${endVis?`${mode==='ex'?'':`<circle cx="${f1(X(ts[n]))}" cy="${f1(Y(ys[n]))}" r="4.5" class="hd2"/>`}<circle cx="${f1(X(ts[n]))}" cy="${f1(Y(vs[n]))}" r="4.5" class="hd"/>`:''}${xt}
+    <line class="hx" y1="${T}" y2="${T+ih}" x1="0" x2="0" visibility="hidden"/><circle class="hd hc" r="4.5" cx="0" cy="0" visibility="hidden"/>`;
+  const key=[mode,W,Hh,all.length<3].join();
+  if(box._k!==key){box._k=key;
+    box.innerHTML=`<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" role="img"></svg><div class="hleg"><span><i style="background:var(--accent)"></i>${mode==='ex'?'Ana bakiye':'Toplam Ana Bakiye'}</span>${mode==='ex'?'':'<span><i style="background:var(--gold)"></i>Yatırımlar</span>'}</div><div class="htip" hidden></div>${mode!=='ex'&&all.length<3?'<p class="hint" style="padding:4px 6px 2px">Grafik her gün kendiliğinden bir nokta ekleyerek dolacak.</p>':''}`;
+    hBind(box)}
+  const svg=box.querySelector('svg');
+  svg.setAttribute('aria-label',`Ana bakiye grafiği: ${fmtD(all[0].id)} ${money(vs[0])}, ${fmtD(all[n].id)} ${money(vs[n])}`);
+  svg.innerHTML=inner;
+  box._m={W,L,iw,ts,vs,ys,X,Y,t0,t1,mode,pts:all};
+  if(!box._pinch&&!box.querySelector('.htip').hidden)hHideTip(box);
 }
 function setYat(open){$('#nYatRows').hidden=!open;$('#yatTgl').setAttribute('aria-expanded',open?'true':'false');try{localStorage.setItem('kasa.yatopen',open?'1':'0')}catch(e){}}
 {let o=false;try{o=localStorage.getItem('kasa.yatopen')==='1'}catch(e){}setYat(o)}
 $('#yatTgl').addEventListener('click',()=>setYat($('#nYatRows').hidden));
-$('#hRange').addEventListener('click',e=>{const b=e.target.closest('[data-hr]');if(!b)return;HR=b.dataset.hr;try{localStorage.setItem('kasa.hr',HR)}catch(e){}renderHist()});
+$('#hRange').addEventListener('click',e=>{const b=e.target.closest('[data-hr]');if(!b)return;HR=b.dataset.hr;try{localStorage.setItem('kasa.hr',HR)}catch(e){}setHZ(null);renderHist()});
+$('#hZoomReset').addEventListener('click',()=>{setHZ(null);drawHistAll()});
 $('#histBtn').addEventListener('click',()=>setTab(S.tab==='gecmis'?(S.prevTab||'ozet'):'gecmis'));
 {let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S.tab==='gecmis')renderHist()},150)})}
 /* ---------- fon işlemi: kaydır + düzenle ---------- */
